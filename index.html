@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/icon-white.png"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>linkbuds-web</title>
+    <script>
+      // Prevent theme flash by applying theme before React loads
+      (function () {
+        const storageKey = 'linkbuds-theme';
+        const theme = localStorage.getItem(storageKey) || 'system';
+        const root = document.documentElement;
+
+        if (theme === 'system') {
+          const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+            .matches
+            ? 'dark'
+            : 'light';
+          root.classList.add(systemTheme);
+        } else {
+          root.classList.add(theme);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script
+      type="module"
+      src="/src/resources/main.tsx"
+    ></script>
+  </body>
+</html>
