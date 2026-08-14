@@ -27,7 +27,13 @@ export function useAbility() {
       });
     }
 
-    if (companyId && company?.plan?.customDomainEnabled) {
+    if (
+      companyId &&
+      (company?.plan?.customDomainEnabled ||
+        company?.plan?.type === 'FREE' ||
+        company?.plan?.type === 'AGENCY' ||
+        company?.plan?.type === 'CUSTOM')
+    ) {
       can(Action.ManageCustomDomain, AuthorizationSubject.CompanyDomain, {
         companyId,
       });

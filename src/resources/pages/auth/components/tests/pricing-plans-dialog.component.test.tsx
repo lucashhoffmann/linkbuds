@@ -28,7 +28,7 @@ const pricingPlansCatalog: PricingPlansResponse = {
       maxClientPages: 1,
       priceCents: 0,
       priceLabel: null,
-      features: ['1 pagina de cliente'],
+      features: ['1 pagina de cliente', 'Dominio personalizado'],
       action: 'Comecar gratis',
       active: true,
       featured: false,
@@ -103,6 +103,7 @@ describe('PricingPlansDialog', () => {
     await user.click(screen.getByRole('button', { name: 'Planos' }));
 
     expect(await screen.findByText('R$ 180 /mês')).toBeInTheDocument();
+    expect(screen.getByText('Dominio personalizado')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Anual' }));
 

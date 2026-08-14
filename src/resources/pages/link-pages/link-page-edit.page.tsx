@@ -24,12 +24,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import {
   Activity,
   BarChart3,
   CalendarDays,
   Clock3,
+  Globe2,
   GripVertical,
   Lock,
   MousePointerClick,
@@ -59,6 +60,7 @@ import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { Select } from '@/resources/components/ui/select';
+import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
@@ -1528,6 +1530,26 @@ function BrandingTab({
       title='Branding'
       status={status}
     >
+      <div className='bg-muted/40 flex flex-col gap-3 rounded-md border p-4 text-sm sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex items-start gap-3'>
+          <Globe2 className='mt-0.5 size-4 shrink-0' />
+          <div>
+            <p className='font-medium'>Domínio próprio</p>
+            <p className='text-muted-foreground mt-1'>
+              O apontamento DNS fica em LinkPages, no painel Domínio
+              customizado da Company.
+            </p>
+          </div>
+        </div>
+        <Button
+          asChild
+          size='sm'
+          variant='outline'
+          className='shrink-0'
+        >
+          <RouterLink to={routes.linkPages.list}>Configurar domínio</RouterLink>
+        </Button>
+      </div>
       {!enabled && (
         <div className='bg-muted/40 flex items-center gap-3 rounded-md border p-4 text-sm'>
           <Lock className='size-4' />

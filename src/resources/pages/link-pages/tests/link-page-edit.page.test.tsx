@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Action } from '@/app/modules/authorization/types/authorization.types';
 import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
 import {
   LinkPageEditPage,
@@ -402,6 +403,26 @@ describe('LinkPageEditPage', () => {
       false,
     );
     expect(screen.queryByText(/clicks/)).not.toBeInTheDocument();
+  });
+
+  it('keeps white-label blocked for free plans with custom domains', () => {
+    const mutations = createMutationsMock();
+    mocks.useCan.mockImplementation(
+      (action) => action !== Action.ManageWhiteLabel,
+    );
+    mocks.useLinkPageMutations.mockReturnValue(mutations);
+
+    renderLinkPageEditPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Branding' }));
+
+    expect(screen.getByText('Domínio próprio')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Configurar domínio' }),
+    ).toHaveAttribute('href', '/link-pages');
+    expect(screen.getByText(/White-label está disponível/i)).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Custom Footer' })).toBeDisabled();
+    expect(screen.getByRole('option', { name: 'Hide Footer' })).toBeDisabled();
   });
 
   it('shows basic analytics for free plans', () => {

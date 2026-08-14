@@ -1,6 +1,7 @@
 import { Globe2, Link2, Plus, Trash2 } from 'lucide-react';
 import { type FormEvent } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useSession } from '@/app/modules/auth/hooks';
 import { Action, AuthorizationSubject } from '@/app/modules/authorization/types/authorization.types';
 import { useCan } from '@/app/modules/authorization/hooks/use-ability';
 import {
@@ -13,13 +14,27 @@ import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { routes } from '@/shared/constants/router.constants';
 
+function canPlanManageCustomDomain(
+  plan?: { customDomainEnabled?: boolean; type?: string } | null,
+) {
+  return Boolean(
+    plan?.customDomainEnabled ||
+      plan?.type === 'FREE' ||
+      plan?.type === 'AGENCY' ||
+      plan?.type === 'CUSTOM',
+  );
+}
+
 export function LinkPagesPage() {
   const { data, isLoading } = useListLinkPagesUseCase();
   const mutations = useLinkPageMutations();
-  const canManageDomain = useCan(
+  const { company } = useSession();
+  const canManageDomainByAbility = useCan(
     Action.ManageCustomDomain,
     AuthorizationSubject.CompanyDomain,
   );
+  const canManageDomain =
+    canManageDomainByAbility || canPlanManageCustomDomain(company?.plan);
   const domain = useCompanyDomainUseCase(canManageDomain);
 
   return (
@@ -138,14 +153,41 @@ function DomainPanel({ domain }: { domain: ReturnType<typeof useCompanyDomainUse
   };
 
   if (currentDomain) {
+    const dnsHostName = dnsProviderHostName(currentDomain.hostname);
+
     return (
       <div className='mt-3 rounded-md border p-3 text-sm'>
-        <p className='font-medium'>{currentDomain.hostname}</p>
-        <p className='text-muted-foreground mt-1'>Status: {currentDomain.status}</p>
+        <div className='flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between'>
+          <p className='font-medium'>{currentDomain.hostname}</p>
+          <span className='bg-muted rounded-full px-2 py-0.5 text-xs'>
+            Status: {currentDomain.status}
+          </span>
+        </div>
         <div className='bg-muted/40 mt-3 rounded-md p-3'>
-          <p>DNS: {currentDomain.dnsInstructions.type}</p>
-          <p>Nome: {currentDomain.dnsInstructions.name}</p>
-          <p>Valor: {currentDomain.dnsInstructions.value}</p>
+          <p className='font-medium'>Apontamento DNS</p>
+          <p className='text-muted-foreground mt-1'>
+            Crie este registro CNAME no provedor do domínio e depois clique em
+            Verificar.
+          </p>
+          <div className='mt-3 grid gap-2 md:grid-cols-3'>
+            <DnsInstructionItem
+              label='Tipo'
+              value={currentDomain.dnsInstructions.type}
+            />
+            <DnsInstructionItem
+              label='Host / Nome'
+              value={dnsHostName}
+              help={
+                dnsHostName === currentDomain.hostname
+                  ? undefined
+                  : `Se o provedor pedir o domínio completo, use ${currentDomain.hostname}.`
+              }
+            />
+            <DnsInstructionItem
+              label='Destino / Valor'
+              value={currentDomain.dnsInstructions.value}
+            />
+          </div>
         </div>
         <div className='mt-3 flex gap-2'>
           <Button
@@ -171,18 +213,58 @@ function DomainPanel({ domain }: { domain: ReturnType<typeof useCompanyDomainUse
 
   return (
     <form
-      className='mt-3 flex flex-col gap-2 sm:flex-row sm:items-end'
+      className='mt-3 flex flex-col gap-3'
       onSubmit={createDomain}
     >
-      <div className='flex-1'>
-        <Label htmlFor='hostname'>Domínio</Label>
-        <Input
-          id='hostname'
-          name='hostname'
-          placeholder='www.suaagencia.com'
-        />
+      <div className='text-muted-foreground rounded-md bg-muted/40 p-3 text-sm'>
+        Depois de salvar o domínio, vamos mostrar o CNAME exato para configurar
+        no DNS.
       </div>
-      <Button type='submit'>Salvar domínio</Button>
+      <div className='flex flex-col gap-2 sm:flex-row sm:items-end'>
+        <div className='flex-1'>
+          <Label htmlFor='hostname'>Domínio</Label>
+          <Input
+            id='hostname'
+            name='hostname'
+            placeholder='www.suaagencia.com'
+          />
+        </div>
+        <Button type='submit'>Salvar domínio</Button>
+      </div>
     </form>
   );
+}
+
+function DnsInstructionItem({
+  help,
+  label,
+  value,
+}: {
+  help?: string;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className='min-w-0'>
+      <p className='text-muted-foreground text-xs'>{label}</p>
+      <code className='mt-1 block truncate rounded bg-background px-2 py-1 text-xs'>
+        {value}
+      </code>
+      {help && <p className='text-muted-foreground mt-1 text-xs'>{help}</p>}
+    </div>
+  );
+}
+
+function dnsProviderHostName(hostname: string) {
+  const labels = hostname.replace(/\.$/, '').split('.').filter(Boolean);
+
+  if (labels[0] === 'www') {
+    return 'www';
+  }
+
+  if (labels.length === 2) {
+    return '@';
+  }
+
+  return labels[0] ?? hostname;
 }
