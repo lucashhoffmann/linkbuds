@@ -14,6 +14,10 @@ import {
   ErrorInternalPage,
   ErrorNotFoundPage,
   HomePage,
+  LinkPageEditPage,
+  LinkPageNewPage,
+  LinkPagesPage,
+  PublicLinkPagePage,
 } from '@/resources/pages';
 import { useSession } from '@/app/modules/auth/hooks';
 
@@ -48,6 +52,11 @@ export function Router() {
         />
 
         <Route
+          path={routes.publicLinkPage()}
+          element={<PublicLinkPagePage />}
+        />
+
+        <Route
           path={routes.errors.broken}
           element={<ErrorBrokenPage />}
         />
@@ -68,6 +77,21 @@ export function Router() {
             <Route
               path={routes.home}
               element={<HomePage />}
+            />
+
+            <Route
+              path={routes.linkPages.list}
+              element={<LinkPagesPage />}
+            />
+
+            <Route
+              path={routes.linkPages.new}
+              element={<LinkPageNewPage />}
+            />
+
+            <Route
+              path={routes.linkPages.edit()}
+              element={<LinkPageEditPage />}
             />
           </Route>
         </Route>

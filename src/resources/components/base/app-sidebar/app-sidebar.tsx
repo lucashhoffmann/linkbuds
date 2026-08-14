@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Home } from 'lucide-react';
+import { Home, PanelsTopLeft } from 'lucide-react';
 
 import { NavMain } from '../nav-main';
 import { NavUser } from '../nav-user';
@@ -23,6 +23,11 @@ const navItems = [
     title: 'Início',
     url: routes.home,
     icon: Home,
+  },
+  {
+    title: 'LinkPages',
+    url: routes.linkPages.list,
+    icon: PanelsTopLeft,
   },
 ];
 

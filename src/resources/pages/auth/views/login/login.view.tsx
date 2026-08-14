@@ -145,7 +145,7 @@ export function LoginView() {
           to={routes.register}
           className='text-zinc-800 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-200 dark:hover:text-zinc-300'
         >
-          Cadastre-se aqui.
+          Começar agora.
         </Link>
       </p>
 

@@ -1,5 +1,9 @@
 export { AuthPage } from './auth/auth.page';
 export { HomePage } from './home/home.page';
+export { LinkPageEditPage } from './link-pages/link-page-edit.page';
+export { LinkPageNewPage } from './link-pages/link-page-new.page';
+export { LinkPagesPage } from './link-pages/link-pages.page';
+export { PublicLinkPagePage } from './link-pages/public-link-page.page';
 export { ErrorBrokenPage } from './errors/error-broken.page';
 export { ErrorInternalPage } from './errors/error-internal.page';
 export { ErrorNotFoundPage } from './errors/error-not-found.page';

@@ -63,28 +63,6 @@ export function RegisterView() {
 
             <FormField
               control={methods.control}
-              name='companyName'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className='text-sm font-medium text-zinc-700 dark:text-zinc-300'>
-                    Empresa
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder='Nome da empresa'
-                      type='text'
-                      autoComplete='organization'
-                      className='h-11 rounded-sm border-zinc-300 bg-white text-zinc-900 shadow-none placeholder:text-zinc-400 focus-visible:ring-0 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={methods.control}
               name='email'
               render={({ field }) => (
                 <FormItem>
@@ -139,7 +117,7 @@ export function RegisterView() {
             {isPendingRegister && (
               <Loader2 className='mr-2 h-4 w-4 animate-spin' />
             )}
-            Criar conta
+            Começar agora
           </Button>
         </form>
       </FormProvider>

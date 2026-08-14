@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
+import { Loader2 } from 'lucide-react';
 import { Slot } from 'radix-ui';
 
 import { cn } from '@/shared/lib/utils';
@@ -40,7 +41,11 @@ const buttonVariants = cva(
 );
 
 function Button({
+  children,
   className,
+  disabled,
+  isSaving = false,
+  savingLabel = 'Salvando...',
   variant = 'default',
   size = 'default',
   asChild = false,
@@ -48,17 +53,31 @@ function Button({
 }: React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    isSaving?: boolean;
+    savingLabel?: React.ReactNode;
   }) {
   const Comp = asChild ? Slot.Root : 'button';
+  const content = isSaving ? (
+    <>
+      <Loader2 className='size-4 animate-spin' />
+      {savingLabel}
+    </>
+  ) : (
+    children
+  );
 
   return (
     <Comp
+      aria-busy={isSaving || undefined}
       data-slot='button'
       data-variant={variant}
       data-size={size}
+      disabled={disabled || isSaving}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {content}
+    </Comp>
   );
 }
 

@@ -2,10 +2,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import {
-  registerSchema,
-  type RegisterSchemaType,
-} from './register-schema';
+import { registerSchema, type RegisterSchemaType } from './register-schema';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { useRegisterUseCase } from '@/app/modules/auth/use-cases';
 import { useAuthStore } from '@/app/store/auth-store/use-auth-store';
@@ -28,7 +25,8 @@ export function useRegister() {
 
   async function onSubmit(data: RegisterSchemaType) {
     try {
-      const companyName = data.companyName?.trim() || data.name;
+      const companyName = data.name.trim();
+
       const response = await mutateRegister({
         ...data,
         companyName,

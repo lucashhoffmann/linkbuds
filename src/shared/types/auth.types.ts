@@ -25,6 +25,19 @@ export interface ICompanySession {
   id: string;
   name: string;
   email: string;
+  plan: {
+    id: string;
+    name: string;
+    code: string;
+    type: 'FREE' | 'AGENCY' | 'CUSTOM';
+    maxClientPages: number;
+    priceCents: number;
+    active: boolean;
+    analyticsEnabled: boolean;
+    analyticsTier: 'BASIC' | 'FULL';
+    customDomainEnabled: boolean;
+    whiteLabelEnabled: boolean;
+  } | null;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
