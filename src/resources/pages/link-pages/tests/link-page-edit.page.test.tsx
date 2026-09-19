@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -233,9 +233,8 @@ describe('LinkPageEditPage', () => {
     renderLinkPageEditPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Aparência' }));
-    fireEvent.change(screen.getByDisplayValue('Modelo 1'), {
-      target: { value: 'LAYOUT_2' },
-    });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Modelo 1' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Modelo 2' }));
 
     await act(async () => {
       vi.advanceTimersByTime(700);
@@ -266,9 +265,8 @@ describe('LinkPageEditPage', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Marca' }));
-    fireEvent.change(screen.getByDisplayValue('Com LinksBuds'), {
-      target: { value: 'HIDDEN' },
-    });
+    fireEvent.click(screen.getByRole('combobox', { name: 'Com LinksBuds' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Ocultar rodapé' }));
 
     await act(async () => {
       vi.advanceTimersByTime(700);
@@ -283,21 +281,27 @@ describe('LinkPageEditPage', () => {
     });
   });
 
-  it('keeps link creation working', () => {
+  it('creates links from the central modal', () => {
     const mutations = createMutationsMock();
     mocks.useLinkPageMutations.mockReturnValue(mutations);
 
     renderLinkPageEditPage();
 
-    fireEvent.change(screen.getByPlaceholderText('Rótulo'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar link' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveAccessibleName('Adicionar link');
+    fireEvent.change(within(dialog).getByLabelText('Rótulo'), {
       target: { value: 'Reservar' },
     });
-    fireEvent.change(screen.getByPlaceholderText('URL'), {
+    fireEvent.change(within(dialog).getByLabelText('URL'), {
       target: { value: 'https://example.com' },
     });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Adicionar' })[0]);
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Adicionar link' }),
+    );
 
-    expect(mutations.createLink.mutate).toHaveBeenCalledWith({
+    expect(mutations.createLink.mutateAsync).toHaveBeenCalledWith({
       active: true,
       backgroundColor: '#FFFFFF',
       borderColor: '#E5E7EB',
@@ -332,18 +336,22 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.change(screen.getByDisplayValue('Link'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar link' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Tipo'), {
       target: { value: 'CONTACT' },
     });
-    fireEvent.change(screen.getByPlaceholderText('Rótulo'), {
+    fireEvent.change(within(dialog).getByLabelText('Rótulo'), {
       target: { value: 'WhatsApp' },
     });
-    fireEvent.change(screen.getByPlaceholderText('WhatsApp com DDD'), {
+    fireEvent.change(within(dialog).getByLabelText('WhatsApp com DDD'), {
       target: { value: '5511999999999' },
     });
-    fireEvent.click(screen.getAllByRole('button', { name: 'Adicionar' })[0]);
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Adicionar link' }),
+    );
 
-    expect(mutations.createLink.mutate).toHaveBeenCalledWith({
+    expect(mutations.createLink.mutateAsync).toHaveBeenCalledWith({
       active: true,
       backgroundColor: '#25D366',
       borderColor: '#25D366',
@@ -359,27 +367,82 @@ describe('LinkPageEditPage', () => {
     });
   });
 
-  it('updates existing link colors with uppercase HEX only', () => {
+  it('edits links only after confirmation and discards cancelled changes', () => {
     const mutations = createMutationsMock();
     mocks.useLinkPageMutations.mockReturnValue(mutations);
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByLabelText('Fundo de A'));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
+    let dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText('Rótulo')).toHaveValue('A');
+    expect(within(dialog).getByLabelText('URL')).toHaveValue(
+      'https://a.example.com',
+    );
+
+    fireEvent.change(within(dialog).getByLabelText('Rótulo'), {
+      target: { value: 'A cancelado' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }));
+
+    expect(mutations.updateLink.mutateAsync).not.toHaveBeenCalled();
+    expect(screen.getAllByText('A')).not.toHaveLength(0);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
+    dialog = screen.getByRole('dialog');
+    fireEvent.click(within(dialog).getByLabelText('Cor do fundo'));
     fireEvent.change(screen.getByLabelText('Valor hexadecimal'), {
       target: { value: '#25d366' },
     });
+    expect(mutations.updateLink.mutateAsync).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Salvar alterações' }),
+    );
 
-    expect(mutations.updateLink.mutate).toHaveBeenCalledWith({
+    expect(mutations.updateLink.mutateAsync).toHaveBeenCalledWith({
       linkId: 'link-a',
-      payload: { backgroundColor: '#25D366' },
+      payload: {
+        backgroundColor: '#25D366',
+        borderColor: '#E5E7EB',
+        borderEnabled: true,
+        contactType: null,
+        contactValue: null,
+        kind: 'LINK',
+        label: 'A',
+        placement: 'VERTICAL',
+        textColor: '#111827',
+        url: 'https://a.example.com',
+      },
+    });
+  });
+
+  it('keeps the edit modal open when saving fails', async () => {
+    const mutations = createMutationsMock();
+    mutations.updateLink.mutateAsync.mockRejectedValueOnce(
+      new Error('Falha ao salvar'),
+    );
+    mocks.useLinkPageMutations.mockReturnValue(mutations);
+
+    renderLinkPageEditPage();
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Editar' })[0]);
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Rótulo'), {
+      target: { value: 'A não salvo' },
+    });
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Salvar alterações' }),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
     });
 
-    fireEvent.change(screen.getByLabelText('Valor hexadecimal'), {
-      target: { value: '#invalido' },
-    });
-
-    expect(mutations.updateLink.mutate).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('dialog')).getByLabelText('Rótulo'),
+    ).toHaveValue('A não salvo');
+    expect(screen.getAllByText('A')).not.toHaveLength(0);
   });
 
   it('shows lifetime click counts on editable link rows', () => {
@@ -429,11 +492,17 @@ describe('LinkPageEditPage', () => {
       screen.getByText(/Marca branca está disponível/i),
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('combobox', { name: 'Com LinksBuds' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('combobox', { name: 'Com LinksBuds' }));
+
+    expect(
       screen.getByRole('option', { name: 'Rodapé personalizado' }),
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
     expect(
       screen.getByRole('option', { name: 'Ocultar rodapé' }),
-    ).toBeDisabled();
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows basic analytics for free plans', () => {

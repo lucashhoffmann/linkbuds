@@ -61,6 +61,13 @@ import type {
 } from '@/app/modules/link-pages/types/link-pages.types';
 import { Button } from '@/resources/components/ui/button';
 import { ColorPicker } from '@/resources/components/ui/color-picker';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/resources/components/ui/dialog';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { Select } from '@/resources/components/ui/select';
@@ -79,6 +86,7 @@ type LinkPageLinkStyle = Pick<
   LinkPageLink,
   'backgroundColor' | 'borderColor' | 'borderEnabled' | 'textColor'
 >;
+type LinkFormValues = Omit<LinkPageLink, 'active' | 'id' | 'sortOrder'>;
 
 const autosaveDelayMs = 700;
 const defaultLinkStyle: LinkPageLinkStyle = {
@@ -93,6 +101,19 @@ const whatsAppLinkStyle: LinkPageLinkStyle = {
   borderEnabled: false,
   textColor: '#FFFFFF',
 };
+
+function createLinkForm(): LinkFormValues {
+  return {
+    ...defaultLinkStyle,
+    placement: 'VERTICAL',
+    kind: 'LINK',
+    label: '',
+    url: '',
+    contactType: null,
+    contactValue: null,
+  };
+}
+
 const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'content', label: 'Conteúdo' },
   { id: 'appearance', label: 'Aparência' },
@@ -459,28 +480,6 @@ function BorderEnabledField({
   );
 }
 
-function CompactColorField({
-  label,
-  onChange,
-  value,
-}: {
-  label: string;
-  onChange: (value: string) => void;
-  value: string;
-}) {
-  return (
-    <label className='text-muted-foreground flex items-center gap-1 text-xs'>
-      <span>{label}</span>
-      <ColorPicker
-        label={label}
-        value={value}
-        onChange={onChange}
-        className='h-7 w-7 p-0 [&>span:last-child]:hidden'
-      />
-    </label>
-  );
-}
-
 function EditorSection({
   action,
   children,
@@ -631,9 +630,11 @@ function LinksManager({
   mutations: ReturnType<typeof useLinkPageMutations>;
   setDraft: Dispatch<SetStateAction<LinkPageDetail>>;
 }) {
-  const [newLinkKind, setNewLinkKind] = useState<LinkPageLinkKind>('LINK');
-  const [newLinkStyle, setNewLinkStyle] =
-    useState<LinkPageLinkStyle>(defaultLinkStyle);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<LinkPageLink | null>(null);
+  const [linkForm, setLinkForm] = useState<LinkFormValues>(() =>
+    createLinkForm(),
+  );
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -645,52 +646,79 @@ function LinksManager({
     }),
   );
 
-  const updateNewLinkStyle = (style: Partial<LinkPageLinkStyle>) => {
-    setNewLinkStyle((current) => ({ ...current, ...style }));
+  const closeLinkDialog = () => {
+    setLinkDialogOpen(false);
+    setEditingLink(null);
+  };
+
+  const openNewLinkDialog = () => {
+    setEditingLink(null);
+    setLinkForm(createLinkForm());
+    setLinkDialogOpen(true);
+  };
+
+  const openEditLinkDialog = (link: LinkPageLink) => {
+    setEditingLink(link);
+    setLinkForm({
+      placement: link.placement,
+      kind: link.kind,
+      label: link.label,
+      url: link.url,
+      contactType: link.contactType,
+      contactValue: link.contactValue,
+      textColor: link.textColor,
+      backgroundColor: link.backgroundColor,
+      borderColor: link.borderColor,
+      borderEnabled: link.borderEnabled,
+    });
+    setLinkDialogOpen(true);
+  };
+
+  const updateLinkForm = (values: Partial<LinkFormValues>) => {
+    setLinkForm((current) => ({ ...current, ...values }));
   };
 
   const handleKindChange = (kind: LinkPageLinkKind) => {
-    setNewLinkKind(kind);
-    setNewLinkStyle(kind === 'CONTACT' ? whatsAppLinkStyle : defaultLinkStyle);
-  };
+    setLinkForm((current) => {
+      const value = current.url ?? current.contactValue ?? '';
+      const style = kind === 'CONTACT' ? whatsAppLinkStyle : defaultLinkStyle;
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const placement = String(
-      formData.get('placement'),
-    ) as LinkPageLinkPlacement;
-    const label = String(formData.get('label') ?? '');
-    const value = String(formData.get('value') ?? '');
-
-    mutations.createLink.mutate({
-      placement,
-      kind: newLinkKind,
-      label,
-      url: newLinkKind === 'LINK' ? value : null,
-      contactType: newLinkKind === 'CONTACT' ? 'WHATSAPP' : null,
-      contactValue: newLinkKind === 'CONTACT' ? value : null,
-      textColor: newLinkStyle.textColor,
-      backgroundColor: newLinkStyle.backgroundColor,
-      borderColor: newLinkStyle.borderColor,
-      borderEnabled: newLinkStyle.borderEnabled,
-      sortOrder: draft.links.length,
-      active: true,
+      return {
+        ...current,
+        ...style,
+        kind,
+        url: kind === 'LINK' ? value : null,
+        contactType: kind === 'CONTACT' ? 'WHATSAPP' : null,
+        contactValue: kind === 'CONTACT' ? value : null,
+      };
     });
-    event.currentTarget.reset();
   };
 
-  const handleUpdateLinkStyle = (
-    linkId: string,
-    style: Partial<LinkPageLinkStyle>,
-  ) => {
-    setDraft((current) => ({
-      ...current,
-      links: current.links.map((link) =>
-        link.id === linkId ? { ...link, ...style } : link,
-      ),
-    }));
-    mutations.updateLink.mutate({ linkId, payload: style });
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      if (editingLink) {
+        await mutations.updateLink.mutateAsync({
+          linkId: editingLink.id,
+          payload: linkForm,
+        });
+        setDraft((current) => ({
+          ...current,
+          links: current.links.map((link) =>
+            link.id === editingLink.id ? { ...link, ...linkForm } : link,
+          ),
+        }));
+      } else {
+        await mutations.createLink.mutateAsync({
+          ...linkForm,
+          sortOrder: draft.links.length,
+          active: true,
+        });
+      }
+      closeLinkDialog();
+    } catch {
+      return;
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -725,81 +753,134 @@ function LinksManager({
   return (
     <EditorSection
       title='Links'
-      action={
-        mutations.reorderLinks.isPending ? (
-          <Button
-            type='button'
-            size='sm'
-            variant='ghost'
-            isSaving
-          />
-        ) : null
-      }
+      action={<Button onClick={openNewLinkDialog}>Adicionar link</Button>}
     >
-      <form
-        className='grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
-        onSubmit={submit}
+      <Dialog
+        open={linkDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) closeLinkDialog();
+          else setLinkDialogOpen(true);
+        }}
       >
-        <Select name='placement'>
-          <option value='VERTICAL'>Vertical</option>
-          <option value='HORIZONTAL'>Horizontal</option>
-        </Select>
-        <Select
-          name='kind'
-          value={newLinkKind}
-          onChange={(event) =>
-            handleKindChange(event.target.value as LinkPageLinkKind)
-          }
-        >
-          <option value='LINK'>Link</option>
-          <option value='CONTACT'>WhatsApp</option>
-        </Select>
-        <Input
-          name='label'
-          placeholder='Rótulo'
-          required
-        />
-        <Input
-          name='value'
-          placeholder={newLinkKind === 'CONTACT' ? 'WhatsApp com DDD' : 'URL'}
-          required
-        />
-        <Button
-          type='submit'
-          className='h-12'
-        >
-          Adicionar
-        </Button>
-        <div className='bg-muted/20 rounded-md border p-3 md:col-span-5'>
-          <div className='grid gap-3 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]'>
-            <ColorField
-              label='Cor do texto'
-              value={newLinkStyle.textColor}
-              onChange={(textColor) => updateNewLinkStyle({ textColor })}
-            />
-            <ColorField
-              label='Cor do fundo'
-              value={newLinkStyle.backgroundColor}
-              onChange={(backgroundColor) =>
-                updateNewLinkStyle({ backgroundColor })
-              }
-            />
-            <ColorField
-              label='Cor da borda'
-              value={newLinkStyle.borderColor}
-              onChange={(borderColor) => updateNewLinkStyle({ borderColor })}
-            />
-            <div className='flex items-end'>
-              <BorderEnabledField
-                checked={newLinkStyle.borderEnabled}
-                onChange={(borderEnabled) =>
-                  updateNewLinkStyle({ borderEnabled })
+        <DialogContent className='max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-xl'>
+          <DialogHeader>
+            <DialogTitle>
+              {editingLink ? 'Editar link' : 'Adicionar link'}
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            className='grid gap-4'
+            onSubmit={submit}
+          >
+            <div className='grid gap-4 sm:grid-cols-2'>
+              <div className='grid gap-2'>
+                <Label htmlFor='link-placement'>Posição</Label>
+                <select
+                  id='link-placement'
+                  className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring h-12 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
+                  value={linkForm.placement}
+                  onChange={(event) =>
+                    updateLinkForm({
+                      placement: event.target.value as LinkPageLinkPlacement,
+                    })
+                  }
+                >
+                  <option value='VERTICAL'>Vertical</option>
+                  <option value='HORIZONTAL'>Horizontal</option>
+                </select>
+              </div>
+              <div className='grid gap-2'>
+                <Label htmlFor='link-kind'>Tipo</Label>
+                <select
+                  id='link-kind'
+                  className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring h-12 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
+                  value={linkForm.kind}
+                  onChange={(event) =>
+                    handleKindChange(event.target.value as LinkPageLinkKind)
+                  }
+                >
+                  <option value='LINK'>Link</option>
+                  <option value='CONTACT'>WhatsApp</option>
+                </select>
+              </div>
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='link-label'>Rótulo</Label>
+              <Input
+                id='link-label'
+                value={linkForm.label}
+                onChange={(event) =>
+                  updateLinkForm({ label: event.target.value })
                 }
+                required
               />
             </div>
-          </div>
-        </div>
-      </form>
+            <div className='grid gap-2'>
+              <Label htmlFor='link-value'>
+                {linkForm.kind === 'CONTACT' ? 'WhatsApp com DDD' : 'URL'}
+              </Label>
+              <Input
+                id='link-value'
+                value={
+                  linkForm.kind === 'CONTACT'
+                    ? (linkForm.contactValue ?? '')
+                    : (linkForm.url ?? '')
+                }
+                onChange={(event) =>
+                  updateLinkForm(
+                    linkForm.kind === 'CONTACT'
+                      ? { contactValue: event.target.value }
+                      : { url: event.target.value },
+                  )
+                }
+                required
+              />
+            </div>
+            <div className='bg-muted/20 grid gap-4 rounded-md border p-3'>
+              <p className='text-sm font-medium'>Aparência</p>
+              <div className='grid gap-3 sm:grid-cols-2'>
+                <ColorField
+                  label='Cor do texto'
+                  value={linkForm.textColor}
+                  onChange={(textColor) => updateLinkForm({ textColor })}
+                />
+                <ColorField
+                  label='Cor do fundo'
+                  value={linkForm.backgroundColor}
+                  onChange={(backgroundColor) =>
+                    updateLinkForm({ backgroundColor })
+                  }
+                />
+                <ColorField
+                  label='Cor da borda'
+                  value={linkForm.borderColor}
+                  onChange={(borderColor) => updateLinkForm({ borderColor })}
+                />
+                <div className='flex items-end'>
+                  <BorderEnabledField
+                    checked={linkForm.borderEnabled}
+                    onChange={(borderEnabled) =>
+                      updateLinkForm({ borderEnabled })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type='button'
+                variant='outline'
+                onClick={closeLinkDialog}
+              >
+                Cancelar
+              </Button>
+              <Button type='submit'>
+                {editingLink ? 'Salvar alterações' : 'Adicionar link'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
       {draft.links.length ? (
         <DndContext
           sensors={sensors}
@@ -821,9 +902,7 @@ function LinksManager({
                   }
                   link={link}
                   onRemove={() => mutations.deleteLink.mutate(link.id)}
-                  onUpdateStyle={(style) =>
-                    handleUpdateLinkStyle(link.id, style)
-                  }
+                  onEdit={() => openEditLinkDialog(link)}
                 />
               ))}
             </div>
@@ -841,13 +920,13 @@ function LinksManager({
 function SortableLinkRow({
   clicks,
   link,
+  onEdit,
   onRemove,
-  onUpdateStyle,
 }: {
   clicks?: number;
   link: LinkPageLink;
+  onEdit: () => void;
   onRemove: () => void;
-  onUpdateStyle: (style: Partial<LinkPageLinkStyle>) => void;
 }) {
   const {
     attributes,
@@ -867,7 +946,7 @@ function SortableLinkRow({
         transition,
       }}
       className={cn(
-        'bg-background flex flex-wrap items-center gap-2 rounded-md border p-2 text-sm shadow-xs',
+        'bg-background flex min-w-0 items-center gap-2 rounded-md border p-2 text-sm shadow-xs',
         isDragging && 'relative z-10 opacity-70',
       )}
     >
@@ -882,7 +961,7 @@ function SortableLinkRow({
       </button>
       <div className='min-w-0 flex-1'>
         <p className='truncate font-medium'>{link.label}</p>
-        <div className='text-muted-foreground mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs'>
+        <div className='text-muted-foreground mt-1 flex min-w-0 items-center gap-2 text-xs'>
           <span className='min-w-0 truncate'>
             {link.placement === 'VERTICAL' ? 'Vertical' : 'Horizontal'} ·{' '}
             {detail}
@@ -898,42 +977,24 @@ function SortableLinkRow({
           )}
         </div>
       </div>
-      <div className='flex flex-wrap items-center gap-3'>
-        <CompactColorField
-          label={`Texto de ${link.label}`}
-          value={link.textColor}
-          onChange={(textColor) => onUpdateStyle({ textColor })}
-        />
-        <CompactColorField
-          label={`Fundo de ${link.label}`}
-          value={link.backgroundColor}
-          onChange={(backgroundColor) => onUpdateStyle({ backgroundColor })}
-        />
-        <CompactColorField
-          label={`Borda de ${link.label}`}
-          value={link.borderColor}
-          onChange={(borderColor) => onUpdateStyle({ borderColor })}
-        />
-        <label className='text-muted-foreground flex items-center gap-1 text-xs'>
-          <input
-            type='checkbox'
-            className='size-4'
-            checked={link.borderEnabled}
-            onChange={(event) =>
-              onUpdateStyle({ borderEnabled: event.target.checked })
-            }
-          />
-          Borda
-        </label>
+      <div className='flex shrink-0 items-center gap-1'>
+        <Button
+          type='button'
+          size='sm'
+          variant='outline'
+          onClick={onEdit}
+        >
+          Editar
+        </Button>
+        <Button
+          type='button'
+          size='sm'
+          variant='outline'
+          onClick={onRemove}
+        >
+          Remover
+        </Button>
       </div>
-      <Button
-        type='button'
-        size='sm'
-        variant='outline'
-        onClick={onRemove}
-      >
-        Remover
-      </Button>
     </div>
   );
 }
