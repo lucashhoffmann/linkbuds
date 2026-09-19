@@ -9,7 +9,9 @@ type ApiErrorPayload = {
 export function axiosErrorHandler(error: unknown) {
   if (!(error instanceof AxiosError)) {
     console.error('Erro nao esperado:', error);
-    toast.error('Erro nao esperado');
+    toast.error(
+      error instanceof Error ? error.message : 'Erro nao esperado',
+    );
     return;
   }
 

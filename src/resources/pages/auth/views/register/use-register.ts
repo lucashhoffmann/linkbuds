@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { registerSchema, type RegisterSchemaType } from './register-schema';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { useRegisterUseCase } from '@/app/modules/auth/use-cases';
-import { useAuthStore } from '@/app/store/auth-store/use-auth-store';
+import { Http } from '@/app/api/api';
 import { routes } from '@/shared/constants/router.constants';
 
 export function useRegister() {
@@ -20,19 +20,22 @@ export function useRegister() {
   });
 
   const navigate = useNavigate();
-  const handleSetUserAuth = useAuthStore((state) => state.handleSetUserAuth);
   const { mutateRegister, isPendingRegister } = useRegisterUseCase();
 
   async function onSubmit(data: RegisterSchemaType) {
     try {
-      const companyName = data.name.trim();
+      const companyName = data.companyName?.trim() || data.name.trim();
 
-      const response = await mutateRegister({
+      await mutateRegister({
         ...data,
         companyName,
       });
 
-      handleSetUserAuth({ token: response.token });
+      await Http.post('/api/auth/sign-in/email', {
+        email: data.email,
+        password: data.password,
+      });
+
       toast.success('Conta criada com sucesso');
       navigate(routes.home);
     } catch (error) {

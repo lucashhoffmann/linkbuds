@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from 'react';
-import Cookies from 'js-cookie';
 import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@/app/store/auth-store/use-auth-store';
 import { useGetSessionAuthUseCase } from '@/app/modules/auth/use-cases';
+import { authClient } from '../client';
 
 export function useAuthBootstrap() {
-  const token = Cookies.get('access-token') as string | undefined;
+  const { data: betterAuthSession, isPending: isPendingBetterAuthSession } =
+    authClient.useSession();
   const [
     authBootstrapStatus,
     userAuthenticated,
@@ -24,19 +25,28 @@ export function useAuthBootstrap() {
     ]),
   );
 
+  const isSameUser = userAuthenticated?.id === betterAuthSession?.user.id;
   const shouldBootstrap =
-    Boolean(token) &&
+    Boolean(betterAuthSession?.user) &&
     (authBootstrapStatus !== 'ready' ||
       !userAuthenticated ||
-      !companyAuthenticated);
+      !companyAuthenticated ||
+      !isSameUser);
 
   const { cachedUserLogged, isLoadingUserLogged, errorUserLogged } =
     useGetSessionAuthUseCase({
-      enabled: shouldBootstrap,
+      enabled: shouldBootstrap && !isPendingBetterAuthSession,
     });
 
   useEffect(() => {
-    if (!token) {
+    if (isPendingBetterAuthSession) {
+      if (authBootstrapStatus !== 'bootstrapping') {
+        handleSetAuthBootstrapStatus('bootstrapping');
+      }
+      return;
+    }
+
+    if (!betterAuthSession?.user) {
       if (authBootstrapStatus !== 'unauthenticated') {
         handleClearSession();
       }
@@ -48,13 +58,14 @@ export function useAuthBootstrap() {
     }
   }, [
     authBootstrapStatus,
+    betterAuthSession,
     handleClearSession,
     handleSetAuthBootstrapStatus,
-    token,
+    isPendingBetterAuthSession,
   ]);
 
   useEffect(() => {
-    if (!token || !shouldBootstrap) {
+    if (!betterAuthSession?.user || !shouldBootstrap) {
       return;
     }
 
@@ -67,33 +78,42 @@ export function useAuthBootstrap() {
 
     if (cachedUserLogged) {
       handleSetUserAuth({
-        token,
         auth: cachedUserLogged,
       });
       return;
     }
 
     if (errorUserLogged) {
+      void authClient.signOut();
       handleClearSession();
     }
   }, [
     authBootstrapStatus,
+    betterAuthSession,
     cachedUserLogged,
     errorUserLogged,
     handleClearSession,
     handleSetAuthBootstrapStatus,
     handleSetUserAuth,
+    isSameUser,
     isLoadingUserLogged,
     shouldBootstrap,
-    token,
   ]);
 
   return useMemo(
     () => ({
-      status: token ? authBootstrapStatus : 'unauthenticated',
-      hasToken: Boolean(token),
-      isBootstrapping: Boolean(token) && authBootstrapStatus !== 'ready',
-      isReady: !token || authBootstrapStatus === 'ready',
+      status: betterAuthSession?.user
+        ? authBootstrapStatus
+        : isPendingBetterAuthSession
+          ? 'bootstrapping'
+          : 'unauthenticated',
+      hasToken: Boolean(betterAuthSession?.user),
+      isBootstrapping:
+        isPendingBetterAuthSession ||
+        (Boolean(betterAuthSession?.user) && authBootstrapStatus !== 'ready'),
+      isReady:
+        (!betterAuthSession?.user && !isPendingBetterAuthSession) ||
+        authBootstrapStatus === 'ready',
       hasResolvedSession:
         authBootstrapStatus === 'ready' &&
         Boolean(userAuthenticated) &&
@@ -101,8 +121,9 @@ export function useAuthBootstrap() {
     }),
     [
       authBootstrapStatus,
+      betterAuthSession,
       companyAuthenticated,
-      token,
+      isPendingBetterAuthSession,
       userAuthenticated,
     ],
   );

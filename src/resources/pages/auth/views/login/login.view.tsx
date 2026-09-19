@@ -1,4 +1,3 @@
-import { useSession } from '@/app/modules/auth/hooks';
 import { Button } from '@/resources/components/ui/button';
 import {
   Form,
@@ -12,54 +11,21 @@ import { Input } from '@/resources/components/ui/input';
 import { PasswordInput } from '@/resources/components/ui/password-input';
 import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { FcGoogle } from 'react-icons/fc';
 
 import { AuthFooter } from '../../components/auth-footer.component';
 import { useLogin } from './use-login';
 import { routes } from '@/shared/constants/router.constants';
 
 export function LoginView() {
-  const { authenticated } = useSession();
-
   const {
     methods,
     handleSubmit,
     disabledContinue,
     isPendingMutateAuth,
-    handleLogout,
-    navigate,
+    googleAuthEnabled,
+    handleGoogleLogin,
   } = useLogin();
-
-  if (authenticated) {
-    return (
-      <div className='mx-auto flex w-full flex-col gap-6'>
-        <div className='space-y-2'>
-          <h1 className='text-3xl leading-tight font-semibold tracking-tight text-zinc-900 dark:text-zinc-100'>
-            Sessão ativa
-          </h1>
-          <p className='text-sm text-zinc-600 dark:text-zinc-400'>
-            Você já está conectado ao Linkbuds.
-          </p>
-        </div>
-
-        <Button
-          type='button'
-          className='h-11 w-full rounded-sm'
-          onClick={() => navigate(routes.home)}
-        >
-          Continuar
-        </Button>
-        <Button
-          type='button'
-          variant='outline'
-          className='h-11 w-full rounded-sm'
-          onClick={handleLogout}
-        >
-          Sair
-        </Button>
-        <AuthFooter />
-      </div>
-    );
-  }
 
   return (
     <div className='animate-in fade-in slide-in-from-bottom-6 mx-auto flex w-full flex-col gap-6 duration-300'>
@@ -138,6 +104,18 @@ export function LoginView() {
           </Button>
         </form>
       </Form>
+
+      {googleAuthEnabled && (
+        <Button
+          type='button'
+          variant='outline'
+          className='h-11 w-full rounded-sm'
+          onClick={handleGoogleLogin}
+        >
+          <FcGoogle className='mr-2 h-4 w-4' />
+          Entrar com Google
+        </Button>
+      )}
 
       <p className='text-center text-sm text-zinc-600 dark:text-zinc-400'>
         Não possui uma conta ainda?{' '}

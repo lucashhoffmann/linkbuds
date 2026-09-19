@@ -1,10 +1,3 @@
-export type ITokenType = {
-  id: string;
-  companyId: string;
-  iat: number;
-  exp: number;
-};
-
 export interface IUserSession {
   id: string;
   name: string;
@@ -44,8 +37,7 @@ export interface ICompanySession {
 }
 
 export interface IAuthResponse {
-  token: string;
-  refreshToken: string;
+  ok: boolean;
 }
 
 export interface IAuthSessionResponse {

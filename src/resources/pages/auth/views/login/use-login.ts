@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loginSchema, type LoginSchemaType } from './login-schema';
-import { useAuthStore } from '@/app/store/auth-store/use-auth-store';
-import { useLoginUseCase } from '@/app/modules/auth/use-cases';
+import { authClient, isGoogleAuthEnabled } from '@/app/modules/auth/hooks';
+import { Http } from '@/app/api/api';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { routes } from '@/shared/constants/router.constants';
 
@@ -21,9 +21,8 @@ export function useLogin() {
   });
 
   const navigate = useNavigate();
-  const handleSetUserAuth = useAuthStore((state) => state.handleSetUserAuth);
-  const handleLogout = useAuthStore((state) => state.handleLogout);
-  const { mutateAuth, isPendingMutateAuth } = useLoginUseCase();
+  const [isPendingMutateAuth, setIsPendingMutateAuth] = useState(false);
+  const googleAuthEnabled = isGoogleAuthEnabled();
 
   useEffect(() => {
     if (!emailFromQuery) {
@@ -38,11 +37,30 @@ export function useLogin() {
   }, [emailFromQuery, methods]);
 
   async function onSubmit(data: LoginSchemaType) {
+    setIsPendingMutateAuth(true);
     try {
-      const response = await mutateAuth(data);
-
-      handleSetUserAuth({ token: response.token });
+      await Http.post('/api/auth/sign-in/email', data);
       navigate(routes.home);
+    } catch (error) {
+      axiosErrorHandler(error);
+    } finally {
+      setIsPendingMutateAuth(false);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    if (!googleAuthEnabled) {
+      return;
+    }
+
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: 'google',
+      });
+
+      if (error) {
+        throw error;
+      }
     } catch (error) {
       axiosErrorHandler(error);
     }
@@ -60,7 +78,7 @@ export function useLogin() {
     methods,
     disabledContinue,
     isPendingMutateAuth,
-    handleLogout,
-    navigate,
+    googleAuthEnabled,
+    handleGoogleLogin,
   };
 }

@@ -12,7 +12,11 @@ function currentCanonicalUrl() {
   return `${window.location.origin}${window.location.pathname}`;
 }
 
-function upsertMeta(attribute: 'name' | 'property', key: string, content: string) {
+function upsertMeta(
+  attribute: 'name' | 'property',
+  key: string,
+  content: string,
+) {
   let element = document.head.querySelector<HTMLMetaElement>(
     `meta[${attribute}="${key}"]`,
   );
@@ -98,7 +102,11 @@ export function usePublicLinkPageSeo(
     upsertMeta('property', 'og:url', canonicalUrl);
     upsertMeta('name', 'twitter:title', title);
     upsertMeta('name', 'twitter:description', description);
-    upsertMeta('name', 'twitter:card', imageUrl ? 'summary_large_image' : 'summary');
+    upsertMeta(
+      'name',
+      'twitter:card',
+      imageUrl ? 'summary_large_image' : 'summary',
+    );
 
     if (imageUrl) {
       upsertMeta('property', 'og:image', imageUrl);

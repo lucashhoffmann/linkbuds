@@ -1,14 +1,17 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthBootstrap, useSession } from '@/app/modules/auth/hooks';
+import { useAuthBootstrap } from '@/app/modules/auth/hooks';
 import { routes } from '@/shared/constants/router.constants';
 import { FeaturePageSkeleton } from '@/resources/components/base';
 
 export function AuthMiddleware() {
   const location = useLocation();
-  const { authenticated } = useSession();
-  const { isReady } = useAuthBootstrap();
+  const { isReady, status } = useAuthBootstrap();
 
-  if (!authenticated) {
+  if (!isReady) {
+    return <FeaturePageSkeleton />;
+  }
+
+  if (status === 'unauthenticated') {
     return (
       <Navigate
         to={routes.login}
@@ -16,10 +19,6 @@ export function AuthMiddleware() {
         state={{ from: location }}
       />
     );
-  }
-
-  if (!isReady) {
-    return <FeaturePageSkeleton />;
   }
 
   return <Outlet />;

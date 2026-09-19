@@ -5,8 +5,7 @@ import type {
 } from '@/shared/types/auth.types';
 
 export interface ISetUserAuth {
-  token: string;
-  auth?: IAuthSessionResponse;
+  auth: IAuthSessionResponse;
 }
 
 export type AuthBootstrapStatus =
@@ -18,10 +17,9 @@ export type AuthBootstrapStatus =
 export interface IAuthStore {
   userAuthenticated: IUserSession | null;
   companyAuthenticated: ICompanySession | null;
-  expiresIn: number | null;
   authBootstrapStatus: AuthBootstrapStatus;
   handleSetUserAuth: (data: ISetUserAuth) => void;
   handleSetAuthBootstrapStatus: (status: AuthBootstrapStatus) => void;
   handleClearSession: () => void;
-  handleLogout: () => void;
+  handleLogout: () => Promise<void>;
 }
