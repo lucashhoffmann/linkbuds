@@ -58,8 +58,8 @@ describe('LinkPageRenderer', () => {
         name: 'Junte-se a Cliente Roma no LinksBuds',
       }),
     ).toHaveAttribute('href', '/register');
-    expect(screen.getByText('Report · Privacy')).toBeInTheDocument();
-    expect(screen.getByText('More from LinksBuds')).toBeInTheDocument();
+    expect(screen.getByText('Denunciar · Privacidade')).toBeInTheDocument();
+    expect(screen.getByText('Mais do LinksBuds')).toBeInTheDocument();
   });
 
   it('uses a WhatsApp icon for WhatsApp contact links', () => {
@@ -153,7 +153,9 @@ describe('LinkPageRenderer', () => {
 
     render(<LinkPageRenderer linkPage={page} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Compartilhar LinkPage' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Compartilhar LinkPage' }),
+    );
 
     expect(writeText).toHaveBeenCalledWith(window.location.href);
   });
@@ -178,7 +180,9 @@ describe('LinkPageRenderer', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Compartilhar LinkPage' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Compartilhar LinkPage' }),
+    );
 
     expect(share).not.toHaveBeenCalled();
     expect(writeText).not.toHaveBeenCalled();

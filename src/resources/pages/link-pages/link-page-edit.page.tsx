@@ -37,7 +37,10 @@ import {
   Radio,
   Users,
 } from 'lucide-react';
-import { Action, AuthorizationSubject } from '@/app/modules/authorization/types/authorization.types';
+import {
+  Action,
+  AuthorizationSubject,
+} from '@/app/modules/authorization/types/authorization.types';
 import { useCan } from '@/app/modules/authorization/hooks/use-ability';
 import {
   useGetLinkPageUseCase,
@@ -57,6 +60,7 @@ import type {
   SocialPlatform,
 } from '@/app/modules/link-pages/types/link-pages.types';
 import { Button } from '@/resources/components/ui/button';
+import { ColorPicker } from '@/resources/components/ui/color-picker';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { Select } from '@/resources/components/ui/select';
@@ -90,11 +94,11 @@ const whatsAppLinkStyle: LinkPageLinkStyle = {
   textColor: '#FFFFFF',
 };
 const tabs: Array<{ id: Tab; label: string }> = [
-  { id: 'content', label: 'Content' },
-  { id: 'appearance', label: 'Appearance' },
-  { id: 'settings', label: 'Settings' },
-  { id: 'analytics', label: 'Analytics' },
-  { id: 'branding', label: 'Branding' },
+  { id: 'content', label: 'Conteúdo' },
+  { id: 'appearance', label: 'Aparência' },
+  { id: 'settings', label: 'Configurações' },
+  { id: 'analytics', label: 'Análises' },
+  { id: 'branding', label: 'Marca' },
 ];
 
 function dateInputValue(daysAgo: number) {
@@ -132,7 +136,10 @@ function formatDuration(milliseconds: number) {
   return `${Math.round(milliseconds / 1000)}s`;
 }
 
-function targetLabel(linkPage: LinkPageDetail, target: LinkPageAnalyticsTarget) {
+function targetLabel(
+  linkPage: LinkPageDetail,
+  target: LinkPageAnalyticsTarget,
+) {
   if (
     target.targetType === 'HORIZONTAL_LINK' ||
     target.targetType === 'VERTICAL_LINK'
@@ -257,7 +264,9 @@ export function LinkPageEditPage() {
   }
 
   if (!data) {
-    return <div className='rounded-md border p-4'>LinkPage não encontrada.</div>;
+    return (
+      <div className='rounded-md border p-4'>LinkPage não encontrada.</div>
+    );
   }
 
   return (
@@ -281,13 +290,12 @@ function LinkPageEditor({ linkPage }: { linkPage: LinkPageDetail }) {
     AuthorizationSubject.LinkPageWhiteLabel,
   );
   const linkClicks = useLinkPageLinkClicksUseCase(draft.id, canViewAnalytics);
-  const clicksByLinkId = (linkClicks.data?.items ?? []).reduce<LinkClickCountMap>(
-    (acc, item) => {
-      acc[item.linkId] = Number(item.clicks);
-      return acc;
-    },
-    {},
-  );
+  const clicksByLinkId = (
+    linkClicks.data?.items ?? []
+  ).reduce<LinkClickCountMap>((acc, item) => {
+    acc[item.linkId] = Number(item.clicks);
+    return acc;
+  }, {});
 
   const headerStatus = useAutosaveSection(
     {
@@ -384,9 +392,9 @@ function LinkPageEditor({ linkPage }: { linkPage: LinkPageDetail }) {
 
       <aside
         data-testid='link-page-live-preview'
-        className='self-start rounded-md border bg-slate-100 p-3 dark:bg-slate-950 md:sticky md:top-4'
+        className='self-start rounded-md border bg-slate-100 p-3 md:sticky md:top-4 dark:bg-slate-950'
       >
-        <p className='mb-3 text-sm font-medium'>Live Preview</p>
+        <p className='mb-3 text-sm font-medium'>Prévia ao vivo</p>
         <div className='h-[480px] overflow-hidden rounded-md sm:h-[500px] xl:h-[530px]'>
           <div className='mx-auto w-full max-w-[390px] origin-top scale-[0.64] sm:scale-[0.68] xl:scale-[0.72]'>
             <LinkPageRenderer
@@ -400,13 +408,7 @@ function LinkPageEditor({ linkPage }: { linkPage: LinkPageDetail }) {
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className='grid gap-2'>
       <Label>{label}</Label>
@@ -428,14 +430,12 @@ function ColorField({
     <label className='grid gap-2 text-sm'>
       <span className='text-muted-foreground'>{label}</span>
       <span className='border-input bg-background flex h-12 items-center gap-2 rounded-md border px-2 shadow-xs'>
-        <input
-          type='color'
-          aria-label={label}
-          className='h-8 w-10 cursor-pointer rounded border-0 bg-transparent p-0'
+        <ColorPicker
+          label={label}
           value={value}
-          onChange={(event) => onChange(event.target.value.toUpperCase())}
+          onChange={onChange}
+          className='w-full border-0 shadow-none'
         />
-        <span className='font-mono text-xs uppercase'>{value}</span>
       </span>
     </label>
   );
@@ -473,12 +473,11 @@ function CompactColorField({
   return (
     <label className='text-muted-foreground flex items-center gap-1 text-xs'>
       <span>{label}</span>
-      <input
-        type='color'
-        aria-label={label}
-        className='size-7 cursor-pointer rounded border-0 bg-transparent p-0'
+      <ColorPicker
+        label={label}
         value={value}
-        onChange={(event) => onChange(event.target.value.toUpperCase())}
+        onChange={onChange}
+        className='h-7 w-7 p-0 [&>span:last-child]:hidden'
       />
     </label>
   );
@@ -522,19 +521,21 @@ function AutosaveStatusButton({ status }: { status: AutosaveStatus }) {
     );
   }
 
-  const labelByStatus: Record<Exclude<AutosaveStatus, 'idle' | 'saving'>, string> =
-    {
-      dirty: 'Aguardando...',
-      error: 'Erro ao salvar',
-      saved: 'Salvo',
-    };
+  const labelByStatus: Record<
+    Exclude<AutosaveStatus, 'idle' | 'saving'>,
+    string
+  > = {
+    dirty: 'Aguardando...',
+    error: 'Erro ao salvar',
+    saved: 'Salvo',
+  };
 
   return (
     <Button
       type='button'
       size='sm'
       variant='ghost'
-      className='pointer-events-none text-muted-foreground'
+      className='text-muted-foreground pointer-events-none'
       disabled
     >
       {labelByStatus[status]}
@@ -560,11 +561,11 @@ function ContentTab({
   return (
     <div className='space-y-6'>
       <EditorSection
-        title='Header'
+        title='Cabeçalho'
         status={headerStatus}
       >
         <div className='grid gap-3 md:grid-cols-2'>
-          <Field label='Avatar URL'>
+          <Field label='URL do avatar'>
             <Input
               value={draft.avatarUrl ?? ''}
               onChange={(event) =>
@@ -579,7 +580,10 @@ function ContentTab({
             <Input
               value={draft.title}
               onChange={(event) =>
-                setDraft((current) => ({ ...current, title: event.target.value }))
+                setDraft((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
               }
             />
           </Field>
@@ -655,7 +659,9 @@ function LinksManager({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    const placement = String(formData.get('placement')) as LinkPageLinkPlacement;
+    const placement = String(
+      formData.get('placement'),
+    ) as LinkPageLinkPlacement;
     const label = String(formData.get('label') ?? '');
     const value = String(formData.get('value') ?? '');
 
@@ -736,9 +742,7 @@ function LinksManager({
         className='grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]'
         onSubmit={submit}
       >
-        <Select
-          name='placement'
-        >
+        <Select name='placement'>
           <option value='VERTICAL'>Vertical</option>
           <option value='HORIZONTAL'>Horizontal</option>
         </Select>
@@ -768,7 +772,7 @@ function LinksManager({
         >
           Adicionar
         </Button>
-        <div className='rounded-md border bg-muted/20 p-3 md:col-span-5'>
+        <div className='bg-muted/20 rounded-md border p-3 md:col-span-5'>
           <div className='grid gap-3 sm:grid-cols-[repeat(3,minmax(0,1fr))_auto]'>
             <ColorField
               label='Cor do texto'
@@ -813,7 +817,9 @@ function LinksManager({
                 <SortableLinkRow
                   key={link.id}
                   clicks={
-                    canViewAnalytics ? clicksByLinkId[link.id] ?? 0 : undefined
+                    canViewAnalytics
+                      ? (clicksByLinkId[link.id] ?? 0)
+                      : undefined
                   }
                   link={link}
                   onRemove={() => mutations.deleteLink.mutate(link.id)}
@@ -853,8 +859,7 @@ function SortableLinkRow({
     transform,
     transition,
   } = useSortable({ id: link.id });
-  const detail =
-    link.kind === 'CONTACT' ? 'WhatsApp' : link.url;
+  const detail = link.kind === 'CONTACT' ? 'WhatsApp' : link.url;
 
   return (
     <div
@@ -890,7 +895,7 @@ function SortableLinkRow({
                 className='size-3'
                 aria-hidden='true'
               />
-              {formatNumber(clicks)} clicks
+              {formatNumber(clicks)} cliques
             </span>
           )}
         </div>
@@ -960,9 +965,7 @@ function SocialManager({
         className='grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto]'
         onSubmit={submit}
       >
-        <Select
-          name='platform'
-        >
+        <Select name='platform'>
           {Object.entries(socialPlatformLabels).map(([platform, label]) => (
             <option
               key={platform}
@@ -1050,7 +1053,7 @@ function ImagesManager({
         />
         <Input
           name='altText'
-          placeholder='Alt'
+          placeholder='Texto alternativo'
         />
         <Input
           name='targetUrl'
@@ -1096,11 +1099,11 @@ function AppearanceTab({
 }) {
   return (
     <EditorSection
-      title='Appearance'
+      title='Aparência'
       status={status}
     >
       <div className='grid gap-4 md:grid-cols-2'>
-        <Field label='Layout'>
+        <Field label='Modelo'>
           <Select
             value={draft.layout}
             onChange={(event) =>
@@ -1110,12 +1113,12 @@ function AppearanceTab({
               }))
             }
           >
-            <option value='LAYOUT_1'>Layout 1</option>
-            <option value='LAYOUT_2'>Layout 2</option>
-            <option value='LAYOUT_3'>Layout 3</option>
+            <option value='LAYOUT_1'>Modelo 1</option>
+            <option value='LAYOUT_2'>Modelo 2</option>
+            <option value='LAYOUT_3'>Modelo 3</option>
           </Select>
         </Field>
-        <Field label='Background'>
+        <Field label='Plano de fundo'>
           <Select
             value={draft.backgroundType}
             onChange={(event) =>
@@ -1131,14 +1134,11 @@ function AppearanceTab({
           </Select>
         </Field>
         <Field label='Cor sólida'>
-          <Input
-            type='color'
+          <ColorPicker
+            label='Cor sólida'
             value={draft.backgroundColor}
-            onChange={(event) =>
-              setDraft((current) => ({
-                ...current,
-                backgroundColor: event.target.value,
-              }))
+            onChange={(backgroundColor) =>
+              setDraft((current) => ({ ...current, backgroundColor }))
             }
           />
         </Field>
@@ -1169,7 +1169,7 @@ function SettingsTab({
 }) {
   return (
     <EditorSection
-      title='Settings'
+      title='Configurações'
       status={status}
     >
       <div className='grid gap-4 md:grid-cols-2'>
@@ -1242,7 +1242,7 @@ function AnalyticsTab({
     return (
       <div className='bg-muted/40 flex items-center gap-3 rounded-md border p-4 text-sm'>
         <Lock className='size-4' />
-        Analytics está disponível em planos com a feature habilitada.
+        As análises estão disponíveis em planos com o recurso habilitado.
       </div>
     );
   }
@@ -1253,12 +1253,12 @@ function AnalyticsTab({
         <div>
           <div className='flex items-center gap-2 font-medium'>
             <BarChart3 className='size-4' />
-            Insights
+            Análises
           </div>
           <p className='text-muted-foreground mt-1 text-sm'>
             {isFull
-              ? 'Analytics completo por período.'
-              : 'Plano Free: janela básica fixa dos últimos 7 dias.'}
+              ? 'Análises completas por período.'
+              : 'Plano grátis: janela básica fixa dos últimos 7 dias.'}
           </p>
         </div>
         {isFull && (
@@ -1282,7 +1282,9 @@ function AnalyticsTab({
       </div>
 
       {insights.isLoading && (
-        <div className='rounded-md border p-4 text-sm'>Carregando insights...</div>
+        <div className='rounded-md border p-4 text-sm'>
+          Carregando análises...
+        </div>
       )}
 
       <div className='grid gap-3 md:grid-cols-3 xl:grid-cols-6'>
@@ -1320,7 +1322,7 @@ function AnalyticsTab({
 
       <div className='grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'>
         <AnalyticsPanel
-          title='Top links'
+          title='Principais links'
           icon={<MousePointerClick className='size-4' />}
         >
           <RankedList
@@ -1447,7 +1449,9 @@ function TimeseriesBars({
   const max = Math.max(...points.map((point) => toNumber(point.count)), 0);
 
   if (!points.length) {
-    return <p className='text-muted-foreground text-sm'>Sem visitas no período.</p>;
+    return (
+      <p className='text-muted-foreground text-sm'>Sem visitas no período.</p>
+    );
   }
 
   return (
@@ -1480,7 +1484,7 @@ function TimeseriesBars({
 function LockedAnalyticsLabel() {
   return (
     <p className='text-muted-foreground text-sm'>
-      Disponível nos planos Agency e Custom.
+      Disponível nos planos Agência e Personalizado.
     </p>
   );
 }
@@ -1527,7 +1531,7 @@ function BrandingTab({
 }) {
   return (
     <EditorSection
-      title='Branding'
+      title='Marca'
       status={status}
     >
       <div className='bg-muted/40 flex flex-col gap-3 rounded-md border p-4 text-sm sm:flex-row sm:items-center sm:justify-between'>
@@ -1536,8 +1540,8 @@ function BrandingTab({
           <div>
             <p className='font-medium'>Domínio próprio</p>
             <p className='text-muted-foreground mt-1'>
-              O apontamento DNS fica em LinkPages, no painel Domínio
-              customizado da Company.
+              O apontamento DNS fica em LinkPages, no painel Domínio customizado
+              da empresa.
             </p>
           </div>
         </div>
@@ -1553,11 +1557,11 @@ function BrandingTab({
       {!enabled && (
         <div className='bg-muted/40 flex items-center gap-3 rounded-md border p-4 text-sm'>
           <Lock className='size-4' />
-          White-label está disponível em planos com a feature habilitada. O modo
-          Powered by LinksBuds permanece permitido.
+          Marca branca está disponível em planos com o recurso habilitado. O
+          modo Com LinksBuds permanece permitido.
         </div>
       )}
-      <Field label='Footer'>
+      <Field label='Rodapé'>
         <Select
           value={draft.footerMode}
           onChange={(event) =>
@@ -1567,18 +1571,18 @@ function BrandingTab({
             }))
           }
         >
-          <option value='LINKSBUDS'>Powered by LinksBuds</option>
+          <option value='LINKSBUDS'>Com LinksBuds</option>
           <option
             value='CUSTOM'
             disabled={!enabled}
           >
-            Custom Footer
+            Rodapé personalizado
           </option>
           <option
             value='HIDDEN'
             disabled={!enabled}
           >
-            Hide Footer
+            Ocultar rodapé
           </option>
         </Select>
       </Field>
@@ -1604,7 +1608,7 @@ function BrandingTab({
           }
         />
         <Input
-          placeholder='Logo URL'
+          placeholder='URL do logo'
           value={draft.footerLogoUrl ?? ''}
           onChange={(event) =>
             setDraft((current) => ({

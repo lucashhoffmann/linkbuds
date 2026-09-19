@@ -210,7 +210,7 @@ export function LinkPageNewPage() {
           />
         </div>
         <fieldset className='grid gap-3'>
-          <legend className='text-sm font-medium'>Layout</legend>
+          <legend className='text-sm font-medium'>Modelo</legend>
           <div className='grid gap-3 md:grid-cols-3'>
             {layoutOptions.map((option) => (
               <button
@@ -250,7 +250,7 @@ export function LinkPageNewPage() {
       </form>
 
       <aside className='rounded-md border bg-slate-100 p-4 dark:bg-slate-950'>
-        <p className='mb-3 text-sm font-medium'>Preview</p>
+        <p className='mb-3 text-sm font-medium'>Prévia</p>
         <div className='h-[500px] overflow-hidden rounded-md sm:h-[530px]'>
           <div className='mx-auto w-full max-w-[390px] origin-top scale-[0.68] sm:scale-[0.72]'>
             <LinkPageRenderer

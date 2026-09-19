@@ -82,7 +82,7 @@ export function LinkPagesPage() {
           <div>
             <h2 className='font-semibold'>Domínio customizado</h2>
             <p className='text-muted-foreground text-sm'>
-              Configure um domínio da Company para publicar seus slugs.
+              Configure um domínio da empresa para publicar seus slugs.
             </p>
           </div>
           <Globe2 className='text-muted-foreground size-5' />

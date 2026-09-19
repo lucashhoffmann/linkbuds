@@ -4,10 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Action } from '@/app/modules/authorization/types/authorization.types';
 import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
-import {
-  LinkPageEditPage,
-  reorderLinksForDrop,
-} from '../link-page-edit.page';
+import { LinkPageEditPage, reorderLinksForDrop } from '../link-page-edit.page';
 
 const mocks = vi.hoisted(() => ({
   useCan: vi.fn(),
@@ -23,7 +20,8 @@ vi.mock('@/app/modules/authorization/hooks/use-ability', () => ({
 
 vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useGetLinkPageUseCase: mocks.useGetLinkPageUseCase,
-  useLinkPageAnalyticsInsightsUseCase: mocks.useLinkPageAnalyticsInsightsUseCase,
+  useLinkPageAnalyticsInsightsUseCase:
+    mocks.useLinkPageAnalyticsInsightsUseCase,
   useLinkPageLinkClicksUseCase: mocks.useLinkPageLinkClicksUseCase,
   useLinkPageMutations: mocks.useLinkPageMutations,
 }));
@@ -234,8 +232,8 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Appearance' }));
-    fireEvent.change(screen.getByDisplayValue('Layout 1'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Aparência' }));
+    fireEvent.change(screen.getByDisplayValue('Modelo 1'), {
       target: { value: 'LAYOUT_2' },
     });
 
@@ -251,7 +249,7 @@ describe('LinkPageEditPage', () => {
       layout: 'LAYOUT_2',
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Configurações' }));
     fireEvent.change(screen.getByDisplayValue('cliente-roma'), {
       target: { value: 'cliente-novo' },
     });
@@ -267,8 +265,8 @@ describe('LinkPageEditPage', () => {
       status: 'ACTIVE',
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Branding' }));
-    fireEvent.change(screen.getByDisplayValue('Powered by LinksBuds'), {
+    fireEvent.click(screen.getByRole('button', { name: 'Marca' }));
+    fireEvent.change(screen.getByDisplayValue('Com LinksBuds'), {
       target: { value: 'HIDDEN' },
     });
 
@@ -361,20 +359,27 @@ describe('LinkPageEditPage', () => {
     });
   });
 
-  it('updates existing link colors from the editor', () => {
+  it('updates existing link colors with uppercase HEX only', () => {
     const mutations = createMutationsMock();
     mocks.useLinkPageMutations.mockReturnValue(mutations);
 
     renderLinkPageEditPage();
 
-    fireEvent.change(screen.getByLabelText('Fundo de A'), {
-      target: { value: '#25D366' },
+    fireEvent.click(screen.getByLabelText('Fundo de A'));
+    fireEvent.change(screen.getByLabelText('Valor hexadecimal'), {
+      target: { value: '#25d366' },
     });
 
     expect(mutations.updateLink.mutate).toHaveBeenCalledWith({
       linkId: 'link-a',
       payload: { backgroundColor: '#25D366' },
     });
+
+    fireEvent.change(screen.getByLabelText('Valor hexadecimal'), {
+      target: { value: '#invalido' },
+    });
+
+    expect(mutations.updateLink.mutate).toHaveBeenCalledTimes(1);
   });
 
   it('shows lifetime click counts on editable link rows', () => {
@@ -387,8 +392,8 @@ describe('LinkPageEditPage', () => {
       'page-id',
       true,
     );
-    expect(screen.getByText('7 clicks')).toBeInTheDocument();
-    expect(screen.getAllByText('0 clicks')).toHaveLength(2);
+    expect(screen.getByText('7 cliques')).toBeInTheDocument();
+    expect(screen.getAllByText('0 cliques')).toHaveLength(2);
   });
 
   it('hides link click counts when analytics is blocked', () => {
@@ -402,7 +407,7 @@ describe('LinkPageEditPage', () => {
       'page-id',
       false,
     );
-    expect(screen.queryByText(/clicks/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/cliques/)).not.toBeInTheDocument();
   });
 
   it('keeps white-label blocked for free plans with custom domains', () => {
@@ -414,15 +419,21 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Branding' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Marca' }));
 
     expect(screen.getByText('Domínio próprio')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Configurar domínio' }),
     ).toHaveAttribute('href', '/link-pages');
-    expect(screen.getByText(/White-label está disponível/i)).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Custom Footer' })).toBeDisabled();
-    expect(screen.getByRole('option', { name: 'Hide Footer' })).toBeDisabled();
+    expect(
+      screen.getByText(/Marca branca está disponível/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', { name: 'Rodapé personalizado' }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('option', { name: 'Ocultar rodapé' }),
+    ).toBeDisabled();
   });
 
   it('shows basic analytics for free plans', () => {
@@ -431,12 +442,15 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Análises' }));
 
-    expect(screen.getByText(/plano free/i)).toBeInTheDocument();
+    expect(screen.getByText(/plano grátis/i)).toBeInTheDocument();
     expect(screen.getByText('Online agora')).toBeInTheDocument();
     expect(screen.getByText('A')).toBeInTheDocument();
-    expect(screen.getAllByText(/disponível nos planos agency e custom/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(/disponível nos planos agência e personalizado/i)
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it('shows full analytics dimensions for agency and custom plans', () => {
@@ -478,9 +492,9 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Análises' }));
 
-    expect(screen.getByText(/analytics completo/i)).toBeInTheDocument();
+    expect(screen.getByText(/análises completas/i)).toBeInTheDocument();
     expect(screen.getByText('Origens')).toBeInTheDocument();
     expect(screen.getByText(/google/)).toBeInTheDocument();
     expect(screen.getByText(/mobile/)).toBeInTheDocument();

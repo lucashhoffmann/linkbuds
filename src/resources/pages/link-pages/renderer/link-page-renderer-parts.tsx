@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { Asterisk, ExternalLink, Link2, Mail, Phone, Share2 } from 'lucide-react';
+import {
+  Asterisk,
+  ExternalLink,
+  Link2,
+  Mail,
+  Phone,
+  Share2,
+} from 'lucide-react';
 import { FaWhatsapp } from 'react-icons/fa';
 import { resolveLinkHref } from '@/app/modules/link-pages/utils/contact-url.util';
 import type {
@@ -19,10 +26,7 @@ import {
 
 type TrackFn = (targetType: AnalyticsTargetType, targetId: string) => void;
 
-async function shareLinkPage(
-  linkPage: LinkPageViewModel,
-  preview: boolean,
-) {
+async function shareLinkPage(linkPage: LinkPageViewModel, preview: boolean) {
   if (preview || typeof window === 'undefined') {
     return;
   }
@@ -66,7 +70,7 @@ function LinksBudsBrandingBar({
       <button
         type='button'
         aria-label='Compartilhar LinkPage'
-        className='flex size-9 items-center justify-center rounded-full bg-white/85 text-slate-950 shadow-sm ring-1 ring-black/5 transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:outline-none backdrop-blur'
+        className='flex size-9 items-center justify-center rounded-full bg-white/85 text-slate-950 shadow-sm ring-1 ring-black/5 backdrop-blur transition-colors hover:bg-white focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:outline-none'
         onClick={() => void shareLinkPage(linkPage, preview)}
       >
         <Share2 className='size-4' />
@@ -232,7 +236,10 @@ export function HorizontalLinkCards({
           <a
             key={link.id}
             href={resolveLinkHref(link)}
-            className={cn(linkPageDesignTokens.horizontalCard.className, 'snap-start')}
+            className={cn(
+              linkPageDesignTokens.horizontalCard.className,
+              'snap-start',
+            )}
             style={itemStyle(link)}
             onClick={() => onTrack?.('HORIZONTAL_LINK', link.id)}
           >
@@ -261,13 +268,19 @@ export function VerticalLinks({
 
   return (
     <section
-      className={cn(linkPageDesignTokens.spacing.section, linkPageDesignTokens.spacing.stack)}
+      className={cn(
+        linkPageDesignTokens.spacing.section,
+        linkPageDesignTokens.spacing.stack,
+      )}
     >
       {links.map((link) => (
         <a
           key={link.id}
           href={resolveLinkHref(link)}
-          className={cn(linkPageDesignTokens.verticalLink.className, 'flex items-center justify-between')}
+          className={cn(
+            linkPageDesignTokens.verticalLink.className,
+            'flex items-center justify-between',
+          )}
           style={itemStyle(link)}
           onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
         >
@@ -369,13 +382,17 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
             className='size-5 rounded object-cover'
           />
         )}
-        {linkPage.footerText || 'Powered by LinksBuds'}
+        {linkPage.footerText || 'Com LinksBuds'}
       </span>
     );
 
     return (
       <footer className='mt-8 text-center text-xs text-slate-500'>
-        {linkPage.footerUrl ? <a href={linkPage.footerUrl}>{content}</a> : content}
+        {linkPage.footerUrl ? (
+          <a href={linkPage.footerUrl}>{content}</a>
+        ) : (
+          content
+        )}
       </footer>
     );
   }
@@ -389,8 +406,8 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
         Junte-se a {linkPage.title} no LinksBuds
       </a>
       <div className='mt-5 leading-tight text-white/90 mix-blend-difference'>
-        <p>Report · Privacy</p>
-        <p>More from LinksBuds</p>
+        <p>Denunciar · Privacidade</p>
+        <p>Mais do LinksBuds</p>
       </div>
     </footer>
   );

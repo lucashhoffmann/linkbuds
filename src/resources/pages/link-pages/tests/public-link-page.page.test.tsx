@@ -90,7 +90,9 @@ describe('PublicLinkPagePage', () => {
     vi.spyOn(linkPagesService, 'getPublic').mockResolvedValue(publicPage);
     vi.spyOn(linkPagesService, 'trackEvent').mockResolvedValue(undefined);
     vi.spyOn(linkPagesService, 'trackEventBeacon').mockReturnValue(true);
-    vi.spyOn(linkPagesService, 'trackPresence').mockResolvedValue({ onlineNow: 1 });
+    vi.spyOn(linkPagesService, 'trackPresence').mockResolvedValue({
+      onlineNow: 1,
+    });
   });
 
   it('renders a public LinkPage and tracks page view, presence plus link click', async () => {
@@ -109,8 +111,8 @@ describe('PublicLinkPagePage', () => {
         name: 'Junte-se a Cliente Roma no LinksBuds',
       }),
     ).toHaveAttribute('href', '/register');
-    expect(screen.getByText('Report · Privacy')).toBeInTheDocument();
-    expect(screen.getByText('More from LinksBuds')).toBeInTheDocument();
+    expect(screen.getByText('Denunciar · Privacidade')).toBeInTheDocument();
+    expect(screen.getByText('Mais do LinksBuds')).toBeInTheDocument();
     expect(document.title).toBe('Cliente Roma | LinksBuds');
     expect(getCanonical()).toContain('/p/cliente-roma');
     expect(getMeta('name', 'description')).toBe('Pizza artesanal');
@@ -161,7 +163,9 @@ describe('PublicLinkPagePage', () => {
 
     renderPublicPage();
 
-    expect(await screen.findByText('LinkPage não encontrada')).toBeInTheDocument();
+    expect(
+      await screen.findByText('LinkPage não encontrada'),
+    ).toBeInTheDocument();
     expect(document.title).toBe('LinkPage nao encontrada | LinksBuds');
     expect(getMeta('name', 'robots')).toBe('noindex');
   });
