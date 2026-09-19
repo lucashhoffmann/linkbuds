@@ -429,14 +429,12 @@ function ColorField({
   return (
     <label className='grid gap-2 text-sm'>
       <span className='text-muted-foreground'>{label}</span>
-      <span className='border-input bg-background flex h-12 items-center gap-2 rounded-md border px-2 shadow-xs'>
-        <ColorPicker
-          label={label}
-          value={value}
-          onChange={onChange}
-          className='w-full border-0 shadow-none'
-        />
-      </span>
+      <ColorPicker
+        label={label}
+        value={value}
+        onChange={onChange}
+        className='w-full'
+      />
     </label>
   );
 }
