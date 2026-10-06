@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LinkPagesPage } from '../link-pages.page';
@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   useListLinkPagesUseCase: vi.fn(),
   usePublicOrigin: vi.fn(),
   useIsMobile: vi.fn(),
+  confirmAction: vi.fn(),
 }));
 
 vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
@@ -18,6 +19,11 @@ vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useLinkPagesOverviewUseCase: mocks.useLinkPagesOverviewUseCase,
   useListLinkPagesUseCase: mocks.useListLinkPagesUseCase,
   usePublicOrigin: mocks.usePublicOrigin,
+}));
+
+vi.mock('@/resources/components/base', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  confirmAction: mocks.confirmAction,
 }));
 
 vi.mock('@/shared/hooks/use-mobile', () => ({
@@ -86,14 +92,17 @@ function renderPage(path = '/link-pages') {
 
 describe('LinkPagesPage', () => {
   const createPost = { mutate: vi.fn() };
+  const update = { mutate: vi.fn(), isPending: false };
 
   beforeEach(() => {
     createPost.mutate.mockReset();
+    update.mutate.mockReset();
     mocks.useIsMobile.mockReturnValue(false);
     mocks.useGetLinkPageUseCase.mockReturnValue({ data: undefined });
     mocks.useLinkPageMutations.mockReturnValue({
       remove: { mutate: vi.fn() },
       createPost,
+      update,
     });
     mocks.usePublicOrigin.mockReturnValue('https://links.agencia.com');
     mocks.useLinkPagesOverviewUseCase.mockReturnValue({
@@ -125,6 +134,26 @@ describe('LinkPagesPage', () => {
     ).toBeInTheDocument();
     // Quota reached: new client disabled.
     expect(screen.getByRole('button', { name: /Cliente/ })).toBeDisabled();
+  });
+
+  it('shows the status badge and deactivates only after confirming', async () => {
+    renderPage();
+
+    expect(screen.getAllByText('Ativa').length).toBeGreaterThan(0);
+
+    mocks.confirmAction.mockResolvedValueOnce(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Desativar' }));
+    await waitFor(() => expect(mocks.confirmAction).toHaveBeenCalledTimes(1));
+    expect(update.mutate).not.toHaveBeenCalled();
+
+    mocks.confirmAction.mockResolvedValueOnce(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Desativar' }));
+    await waitFor(() =>
+      expect(update.mutate).toHaveBeenCalledWith(
+        { status: 'INACTIVE' },
+        expect.anything(),
+      ),
+    );
   });
 
   it('selects a client and creates a post under it from the canvas', () => {

@@ -692,6 +692,7 @@ function FormFieldControl({
             TEXT: 'text',
             EMAIL: 'email',
             PHONE: 'tel',
+            URL: 'url',
             NUMBER: 'number',
             DATE: 'date',
           }[field.type]
@@ -736,15 +737,58 @@ export function FormBlock({
   if (!form) return null;
 
   if (sent) {
+    const animated = form.successAnimation !== false;
+
     return (
       <section
         role='status'
         className={cn(
           linkPageDesignTokens.spacing.section,
-          'rounded-2xl bg-white/90 p-5 text-center text-sm font-medium shadow-sm',
+          animated && 'animate-lb-pop',
+          'grid justify-items-center gap-3 rounded-2xl bg-white/90 p-6 text-center text-sm font-medium shadow-sm',
         )}
       >
-        {form.successMessage}
+        {animated && (
+          <svg
+            aria-hidden='true'
+            viewBox='0 0 52 52'
+            className='size-14 text-emerald-600'
+            fill='none'
+            stroke='currentColor'
+            strokeWidth='3'
+            strokeLinecap='round'
+            strokeLinejoin='round'
+          >
+            <circle
+              cx='26'
+              cy='26'
+              r='24'
+              pathLength='1'
+              strokeDasharray='1'
+              className='animate-lb-draw'
+            />
+            <path
+              d='M15 27l7 7 15-15'
+              pathLength='1'
+              strokeDasharray='1'
+              className='animate-lb-draw [animation-delay:0.4s]'
+            />
+          </svg>
+        )}
+        <p className={cn(animated && 'animate-lb-pop [animation-delay:0.6s]')}>
+          {form.successMessage}
+        </p>
+        {form.redirectUrl && (
+          <a
+            href={form.redirectUrl}
+            className={cn(
+              animated && 'animate-lb-pop [animation-delay:0.8s]',
+              'text-xs underline underline-offset-2 opacity-70',
+            )}
+          >
+            Redirecionando... toque se não abrir
+          </a>
+        )}
       </section>
     );
   }
@@ -762,6 +806,11 @@ export function FormBlock({
 
     if (result.ok) {
       setSent(true);
+      // Let the check animation play before leaving the page.
+      if (form?.redirectUrl) {
+        const url = form.redirectUrl;
+        setTimeout(() => window.location.assign(url), 1800);
+      }
     } else {
       setError(result);
     }

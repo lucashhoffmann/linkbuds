@@ -6,6 +6,7 @@ export type PricingPlan = {
   label: string;
   description: string;
   maxClientPages: number | null;
+  customDomain: boolean;
   priceCents: number | null;
   priceLabel: string | null;
   features: string[];

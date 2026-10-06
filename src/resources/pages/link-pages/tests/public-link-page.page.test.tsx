@@ -172,8 +172,11 @@ describe('PublicLinkPagePage', () => {
     renderPublicPage();
 
     expect(
-      await screen.findByText('LinkPage não encontrada'),
+      await screen.findByText('LinkBud não encontrado'),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Criar meu LinkBud' }),
+    ).toHaveAttribute('href', '/register');
     expect(document.title).toBe('Página não encontrada | LinkBuds');
     expect(getMeta('name', 'robots')).toBe('noindex');
   });

@@ -9,6 +9,7 @@ import {
   Link2,
   Pencil,
   Plus,
+  Power,
   QrCode,
   Trash2,
   Trophy,
@@ -95,6 +96,31 @@ function PageIcon({ page }: { page: LinkPageSummary }) {
   );
 }
 
+/** Green = live, yellow = deactivated (public link returns not found). */
+function StatusBadge({ status }: { status: LinkPageSummary['status'] }) {
+  const active = status === 'ACTIVE';
+
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+        active
+          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+          : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+      )}
+    >
+      <span
+        aria-hidden='true'
+        className={cn(
+          'size-1.5 rounded-full',
+          active ? 'bg-emerald-500' : 'bg-amber-500',
+        )}
+      />
+      {active ? 'Ativa' : 'Inativa'}
+    </span>
+  );
+}
+
 function publicUrl(origin: string, page: LinkPageSummary) {
   return `${origin}${routes.publicLinkPage(page.publicPath)}`;
 }
@@ -109,7 +135,7 @@ function ListGroup({
   children: React.ReactNode;
 }) {
   return (
-    <section className='grid gap-0.5'>
+    <section className='grid grid-cols-1 gap-0.5'>
       <div className='text-muted-foreground flex items-center justify-between px-2 py-1 text-xs font-medium'>
         {title}
         {action}
@@ -173,9 +199,7 @@ function PageListItem({
       >
         <PageIcon page={page} />
         <span className='min-w-0 flex-1 truncate'>{page.name}</span>
-        {page.status === 'INACTIVE' && (
-          <span className='text-muted-foreground text-xs'>inativa</span>
-        )}
+        {page.status === 'INACTIVE' && <StatusBadge status={page.status} />}
       </button>
       {/* Desktop: reveal on hover/focus; touch has no hover, so always shown. */}
       <div className='flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100'>
@@ -239,7 +263,7 @@ function BioTree({
   const hasChildren = posts.length > 0 || Boolean(children);
 
   return (
-    <div className='grid gap-0.5'>
+    <div className='grid grid-cols-1 gap-0.5'>
       <PageListItem
         page={bio}
         selected={selectedId === bio.id}
@@ -249,7 +273,7 @@ function BioTree({
         onRemove={bio.type === 'AGENCY' ? undefined : () => onRemove(bio)}
       />
       {hasChildren && expanded && (
-        <ul className='ml-4 grid gap-0.5'>
+        <ul className='ml-4 grid grid-cols-1 gap-0.5'>
           {posts.map((post) => (
             <li
               key={post.id}
@@ -504,6 +528,29 @@ function PageCanvas({
     views.find((option) => option.value === initialView)?.value ?? 'preview',
   );
   const { analyticsOpen, toggleAnalytics } = usePreviewStore();
+  const { update } = useLinkPageMutations(page.id);
+  const active = page.status === 'ACTIVE';
+
+  async function toggleStatus() {
+    const confirmed = await confirmAction({
+      title: `${active ? 'Desativar' : 'Ativar'} "${page.name}"?`,
+      description: active
+        ? page.parentPageId
+          ? 'A página sai do ar, mas nada é excluído. Você pode ativar de novo quando quiser.'
+          : 'A página e seus posts e formulários saem do ar, mas nada é excluído. Você pode ativar de novo quando quiser.'
+        : 'A página volta a ficar acessível pelo link público.',
+      confirmLabel: active ? 'Desativar' : 'Ativar',
+    });
+    if (!confirmed) return;
+
+    update.mutate(
+      { status: active ? 'INACTIVE' : 'ACTIVE' },
+      {
+        onSuccess: () =>
+          toast.success(active ? 'Página desativada' : 'Página ativada'),
+      },
+    );
+  }
 
   async function copy() {
     try {
@@ -521,7 +568,10 @@ function PageCanvas({
         <div className='flex min-w-0 flex-1 items-center gap-3'>
           <PageIcon page={page} />
           <div className='min-w-0 flex-1'>
-            <h2 className='truncate font-semibold'>{page.name}</h2>
+            <div className='flex min-w-0 items-center gap-2'>
+              <h2 className='truncate font-semibold'>{page.name}</h2>
+              <StatusBadge status={page.status} />
+            </div>
             <p className='text-muted-foreground truncate text-xs'>
               /p/{page.publicPath}
             </p>
@@ -560,6 +610,20 @@ function PageCanvas({
               <Trash2 className='size-4' />
             </Button>
           )}
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={update.isPending}
+            title={
+              active
+                ? 'Tira a página do ar sem excluir'
+                : 'Coloca a página no ar de novo'
+            }
+            onClick={() => void toggleStatus()}
+          >
+            <Power className='size-4' />
+            {active ? 'Desativar' : 'Ativar'}
+          </Button>
           <Button
             asChild
             size='sm'

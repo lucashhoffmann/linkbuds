@@ -12,7 +12,7 @@ import {
 import { routes } from '@/shared/constants/router.constants';
 
 /** Old value fades out while the agency's own value fades in, on a loop. */
-function Swap({ from, to }: { from: string; to: string }) {
+export function Swap({ from, to }: { from: string; to: string }) {
   return (
     <span className='relative inline-grid min-w-0'>
       <span className='motion-safe:animate-lb-swap-out col-start-1 row-start-1 truncate motion-reduce:invisible'>

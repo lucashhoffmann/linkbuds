@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import {
+  ChevronDown,
   ClipboardList,
   Download,
   Eye,
@@ -156,6 +157,8 @@ function formatValue(value: FormAnswerValue | undefined) {
   return value ?? '';
 }
 
+const MAX_COLUMNS = 3;
+
 const dateFormat = new Intl.DateTimeFormat('pt-BR', {
   dateStyle: 'short',
   timeStyle: 'short',
@@ -174,9 +177,13 @@ export function ResponsesTab({
   sheetConnected: boolean;
 }) {
   const submissions = useFormSubmissionsUseCase(form.id);
-  const items = submissions.data?.items ?? [];
+  const allItems = submissions.data?.items ?? [];
+  const [query, setQuery] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const total = submissions.data?.total ?? 0;
-  const pending = items.filter((item) => !item.webhookDeliveredAt).length;
+  const pending = allItems.filter((item) => !item.webhookDeliveredAt).length;
 
   function resend() {
     submissions.resend.mutate(undefined, {
@@ -190,7 +197,7 @@ export function ResponsesTab({
   }
   const columns = [
     ...fields.map(({ id, label }) => ({ id, label })),
-    ...items
+    ...allItems
       .flatMap((item) => item.answers)
       .filter(
         (answer, index, all) =>
@@ -199,17 +206,45 @@ export function ResponsesTab({
       )
       .map(({ id, label }) => ({ id, label: `${label} (removido)` })),
   ];
-  const rows = items.map((item) => {
-    const byId = new Map(item.answers.map((answer) => [answer.id, answer]));
+  const term = query.trim().toLowerCase();
+  const rows = allItems
+    .map((item) => {
+      const byId = new Map(item.answers.map((answer) => [answer.id, answer]));
 
-    return {
-      item,
-      values: columns.map((column) => formatValue(byId.get(column.id)?.value)),
-      device: [item.deviceType, item.browser, item.operatingSystem]
-        .filter(Boolean)
-        .join(' · '),
-    };
-  });
+      return {
+        item,
+        values: columns.map((column) =>
+          formatValue(byId.get(column.id)?.value),
+        ),
+        device: [item.deviceType, item.browser, item.operatingSystem]
+          .filter(Boolean)
+          .join(' · '),
+        // Local YYYY-MM-DD, comparable with <input type="date"> values.
+        day: new Date(item.createdAt).toLocaleDateString('sv-SE'),
+      };
+    })
+    .filter(
+      ({ item, values, device, day }) =>
+        (!from || day >= from) &&
+        (!to || day <= to) &&
+        (!term ||
+          [...values, item.ipAddress, item.countryCode, device]
+            .join(' ')
+            .toLowerCase()
+            .includes(term)),
+    );
+  const filtered = Boolean(term || from || to);
+  // Table shows the first fields; the rest open per row.
+  const shown = columns.slice(0, MAX_COLUMNS);
+  const hidden = columns.length - shown.length;
+
+  function toggle(id: string) {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
+  }
 
   function exportCsv() {
     const csv = toCsv([
@@ -253,7 +288,7 @@ export function ResponsesTab({
     return <p className='text-muted-foreground text-sm'>Carregando...</p>;
   }
 
-  if (items.length === 0) {
+  if (allItems.length === 0) {
     return (
       <p className='text-muted-foreground text-sm'>
         Nenhuma resposta ainda. Compartilhe o link do formulário.
@@ -265,9 +300,10 @@ export function ResponsesTab({
     <div className='grid gap-3'>
       <div className='flex flex-wrap items-center gap-2'>
         <p className='text-muted-foreground mr-auto text-sm'>
+          {filtered && `${rows.length} de `}
           {total} {total === 1 ? 'resposta' : 'respostas'}
-          {total > items.length &&
-            ` · mostrando as ${items.length} mais recentes`}
+          {total > allItems.length &&
+            ` · mostrando as ${allItems.length} mais recentes`}
         </p>
         {sheetConnected && pending > 0 && (
           <Button
@@ -285,69 +321,176 @@ export function ResponsesTab({
         <Button
           variant='outline'
           size='sm'
+          disabled={rows.length === 0}
           onClick={exportCsv}
         >
           <Download className='size-4' />
           Exportar CSV
         </Button>
       </div>
-      <div className='bg-card overflow-x-auto rounded-xl border'>
-        <table className='w-full text-left text-sm'>
-          <thead className='text-muted-foreground border-b text-xs'>
-            <tr>
-              <th className='px-3 py-2 font-medium whitespace-nowrap'>Data</th>
-              {columns.map((column) => (
-                <th
-                  key={column.id}
-                  className='px-3 py-2 font-medium whitespace-nowrap'
-                >
-                  {column.label}
-                </th>
-              ))}
-              <th className='px-3 py-2 font-medium'>IP</th>
-              <th className='px-3 py-2 font-medium'>País</th>
-              <th className='px-3 py-2 font-medium'>Dispositivo</th>
-              <th className='px-3 py-2'>
-                <span className='sr-only'>Ações</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className='divide-y'>
-            {rows.map(({ item, values, device }) => (
-              <tr key={item.id}>
-                <td className='px-3 py-2 whitespace-nowrap tabular-nums'>
-                  {dateFormat.format(new Date(item.createdAt))}
-                </td>
-                {values.map((value, index) => (
-                  <td
-                    key={columns[index].id}
-                    className='max-w-64 truncate px-3 py-2'
-                    title={value}
-                  >
-                    {value}
-                  </td>
-                ))}
-                <td className='px-3 py-2 font-mono text-xs whitespace-nowrap'>
-                  {item.ipAddress ?? '—'}
-                </td>
-                <td className='px-3 py-2'>{item.countryCode ?? '—'}</td>
-                <td className='px-3 py-2 whitespace-nowrap'>{device || '—'}</td>
-                <td className='px-1 py-1'>
-                  <button
-                    type='button'
-                    onClick={() => void remove(item.id)}
-                    title='Excluir resposta'
-                    aria-label='Excluir resposta'
-                    className={cn(action, 'hover:text-destructive')}
-                  >
-                    <Trash2 className='size-4' />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Input
+          type='search'
+          aria-label='Buscar respostas'
+          placeholder='Buscar em qualquer campo'
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className='min-w-48 flex-1'
+        />
+        <Input
+          type='date'
+          aria-label='De'
+          title='De'
+          value={from}
+          max={to || undefined}
+          onChange={(event) => setFrom(event.target.value)}
+          className='w-auto'
+        />
+        <Input
+          type='date'
+          aria-label='Até'
+          title='Até'
+          value={to}
+          min={from || undefined}
+          onChange={(event) => setTo(event.target.value)}
+          className='w-auto'
+        />
+        {filtered && (
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => {
+              setQuery('');
+              setFrom('');
+              setTo('');
+            }}
+          >
+            Limpar
+          </Button>
+        )}
       </div>
+      {rows.length === 0 ? (
+        <p className='text-muted-foreground text-sm'>
+          Nenhuma resposta encontrada com esses filtros.
+        </p>
+      ) : (
+        <div className='bg-card overflow-x-auto rounded-xl border'>
+          <table className='w-full text-left text-sm'>
+            <thead className='text-muted-foreground border-b text-xs'>
+              <tr>
+                <th className='px-3 py-2 font-medium whitespace-nowrap'>
+                  Data
+                </th>
+                {shown.map((column) => (
+                  <th
+                    key={column.id}
+                    className='px-3 py-2 font-medium whitespace-nowrap'
+                  >
+                    {column.label}
+                  </th>
+                ))}
+                <th className='px-3 py-2 font-medium'>IP</th>
+                <th className='px-3 py-2 font-medium'>País</th>
+                <th className='px-3 py-2 font-medium'>Dispositivo</th>
+                <th className='px-3 py-2'>
+                  <span className='sr-only'>Ações</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className='divide-y'>
+              {rows.map(({ item, values, device }) => {
+                const open = expanded.has(item.id);
+
+                return (
+                  <Fragment key={item.id}>
+                    <tr>
+                      <td className='px-3 py-2 whitespace-nowrap tabular-nums'>
+                        {dateFormat.format(new Date(item.createdAt))}
+                      </td>
+                      {values.slice(0, MAX_COLUMNS).map((value, index) => (
+                        <td
+                          key={columns[index].id}
+                          className='max-w-64 truncate px-3 py-2'
+                          title={value}
+                        >
+                          {value}
+                        </td>
+                      ))}
+                      <td className='px-3 py-2 font-mono text-xs whitespace-nowrap'>
+                        {item.ipAddress ?? '—'}
+                      </td>
+                      <td className='px-3 py-2'>{item.countryCode ?? '—'}</td>
+                      <td className='px-3 py-2 whitespace-nowrap'>
+                        {device || '—'}
+                      </td>
+                      <td className='px-1 py-1'>
+                        <div className='flex items-center justify-end'>
+                          {hidden > 0 && (
+                            <button
+                              type='button'
+                              onClick={() => toggle(item.id)}
+                              aria-expanded={open}
+                              title={
+                                open
+                                  ? 'Recolher'
+                                  : `Ver mais ${hidden} campo(s)`
+                              }
+                              aria-label={
+                                open ? 'Recolher resposta' : 'Expandir resposta'
+                              }
+                              className={action}
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  'size-4 transition-transform',
+                                  open && 'rotate-180',
+                                )}
+                              />
+                            </button>
+                          )}
+                          <button
+                            type='button'
+                            onClick={() => void remove(item.id)}
+                            title='Excluir resposta'
+                            aria-label='Excluir resposta'
+                            className={cn(action, 'hover:text-destructive')}
+                          >
+                            <Trash2 className='size-4' />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {open && (
+                      <tr className='bg-muted/40'>
+                        <td
+                          colSpan={shown.length + 5}
+                          className='px-3 py-3'
+                        >
+                          <dl className='grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3'>
+                            {columns.slice(MAX_COLUMNS).map((column, index) => (
+                              <div
+                                key={column.id}
+                                className='min-w-0'
+                              >
+                                <dt className='text-muted-foreground text-xs'>
+                                  {column.label}
+                                </dt>
+                                <dd className='break-words whitespace-pre-wrap'>
+                                  {values[MAX_COLUMNS + index] || '—'}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -120,6 +120,7 @@ class LinkPagesService {
       answers: Record<string, string | boolean>;
       visitorId?: string | null;
       website?: string;
+      durationMs?: number | null;
     },
   ) {
     await Http.post(`/public/link-pages/${id}/submissions`, payload);

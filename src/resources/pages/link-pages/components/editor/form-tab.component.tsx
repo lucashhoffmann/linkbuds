@@ -9,6 +9,7 @@ import type {
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Select } from '@/resources/components/ui/select';
+import { Switch } from '@/resources/components/ui/switch';
 import type { AutosaveStatus } from './editor.types';
 import { EditorSection, Field } from './editor-fields.component';
 
@@ -17,6 +18,7 @@ const fieldTypeLabels: Record<FormFieldType, string> = {
   TEXTAREA: 'Texto longo',
   EMAIL: 'Email',
   PHONE: 'Telefone',
+  URL: 'Link',
   NUMBER: 'Número',
   DATE: 'Data',
   SELECT: 'Lista de opções',
@@ -31,6 +33,7 @@ function newFieldId() {
 export function cleanFormConfig(form: FormConfig): FormConfig {
   return {
     ...form,
+    redirectUrl: form.redirectUrl?.trim() || null,
     fields: form.fields.map(({ options, ...field }) =>
       field.type === 'SELECT'
         ? {
@@ -219,6 +222,12 @@ export function FormTab({
         Adicionar campo
       </Button>
       <div className='grid gap-4 border-t pt-4 md:grid-cols-2'>
+        <div className='md:col-span-2'>
+          <h3 className='text-sm font-semibold'>Finalização</h3>
+          <p className='text-muted-foreground text-xs'>
+            O que o visitante vê ao enviar o formulário.
+          </p>
+        </div>
         <Field label='Texto do botão'>
           <Input
             maxLength={40}
@@ -243,6 +252,31 @@ export function FormTab({
             }
           />
         </Field>
+        <div className='md:col-span-2'>
+          <Field label='Redirecionar após enviar (opcional)'>
+            <Input
+              type='url'
+              maxLength={2000}
+              placeholder='https://... (vazio = só mostra a mensagem)'
+              value={form.redirectUrl ?? ''}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  redirectUrl: event.target.value,
+                }))
+              }
+            />
+          </Field>
+        </div>
+        <label className='flex items-center gap-2 text-sm md:col-span-2'>
+          <Switch
+            checked={form.successAnimation !== false}
+            onCheckedChange={(checked) =>
+              setForm((current) => ({ ...current, successAnimation: checked }))
+            }
+          />
+          Animação de confirmação (check) após enviar
+        </label>
       </div>
       <p className='text-muted-foreground text-xs'>
         Cada envio guarda as respostas com data, IP, país e dispositivo. Veja em

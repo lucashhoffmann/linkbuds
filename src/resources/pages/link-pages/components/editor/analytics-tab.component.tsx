@@ -3,6 +3,9 @@ import {
   Activity,
   BarChart3,
   CalendarDays,
+  ClipboardCheck,
+  ClipboardList,
+  Hourglass,
   Clock3,
   FileDown,
   FileJson,
@@ -18,6 +21,7 @@ import {
 import { useLinkPageAnalyticsInsightsUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
   LinkPageAnalyticsGroupItem,
+  LinkPageAnalyticsSummary,
   LinkPageAnalyticsTimeseriesPoint,
   LinkPageDetail,
 } from '@/app/modules/link-pages/types/link-pages.types';
@@ -119,6 +123,17 @@ export function AnalyticsSummary({
           label='CTR'
           value={formatPercent(summary?.clickThroughRate ?? 0)}
         />
+        {linkPage.type === 'FORM' && (
+          <>
+            <MetricCard
+              icon={<Clock3 className='size-4' />}
+              label='Duração média'
+              hint='Tempo médio de permanência na página.'
+              value={formatDuration(summary?.averageDurationMs ?? 0)}
+            />
+            <FormMetricCards summary={summary} />
+          </>
+        )}
       </div>
       <AnalyticsPanel
         title='Principais links'
@@ -284,7 +299,9 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
         </div>
       )}
 
-      <div className='grid grid-cols-2 gap-3 @md:grid-cols-3 @4xl:grid-cols-6'>
+      <div
+        className={`grid grid-cols-2 gap-3 @md:grid-cols-3 ${linkPage.type === 'FORM' ? '' : '@4xl:grid-cols-6'}`}
+      >
         <MetricCard
           icon={<Radio className='size-4' />}
           label='Online agora'
@@ -316,6 +333,7 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
           label='Duração média'
           value={formatDuration(summary?.averageDurationMs ?? 0)}
         />
+        {linkPage.type === 'FORM' && <FormMetricCards summary={summary} />}
       </div>
 
       <div className='grid gap-4 @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'>
@@ -459,6 +477,37 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
         )}
       </AnalyticsPanel>
     </div>
+  );
+}
+
+/** Answers and answer rate (answers ÷ visitors) for form pages. */
+function FormMetricCards({
+  summary,
+}: {
+  summary: LinkPageAnalyticsSummary | undefined;
+}) {
+  const answers = summary?.formSubmissions ?? 0;
+  const visitors = summary?.uniqueVisitors ?? 0;
+  return (
+    <>
+      <MetricCard
+        icon={<ClipboardList className='size-4' />}
+        label='Respostas'
+        value={formatNumber(answers)}
+      />
+      <MetricCard
+        icon={<ClipboardCheck className='size-4' />}
+        label='Taxa de resposta'
+        hint='Respostas ÷ visitantes. Quanto menor, mais gente visitou o formulário sem responder.'
+        value={formatPercent(visitors ? answers / visitors : 0)}
+      />
+      <MetricCard
+        icon={<Hourglass className='size-4' />}
+        label='Tempo p/ responder'
+        hint='Tempo médio entre abrir o formulário e enviar a resposta.'
+        value={formatDuration(summary?.averageFormDurationMs ?? 0)}
+      />
+    </>
   );
 }
 

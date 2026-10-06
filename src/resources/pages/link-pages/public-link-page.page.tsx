@@ -1,12 +1,15 @@
 import { isAxiosError } from 'axios';
+import { Asterisk } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import linkPagesService from '@/app/modules/link-pages/service/link-pages.service';
 import { useGetPublicLinkPageUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
   AnalyticsEventType,
   AnalyticsTargetType,
 } from '@/app/modules/link-pages/types/link-pages.types';
+import { Swap } from '@/resources/pages/home/components/agency-promo-dialog.component';
+import { routes } from '@/shared/constants/router.constants';
 import { PublicLinkPageLoader } from './components/public-link-page-loader.component';
 import {
   trackThirdPartyClick,
@@ -77,13 +80,21 @@ function getUtmParams() {
   };
 }
 
-function submitFormHandler(pageId: string, visitorId: string): SubmitFormFn {
+function submitFormHandler(
+  pageId: string,
+  visitorId: string,
+  startedAtRef: { current: number | null },
+): SubmitFormFn {
   return async (answers, website) => {
     try {
       await linkPagesService.submitForm(pageId, {
         answers,
         visitorId,
         website,
+        durationMs:
+          startedAtRef.current === null
+            ? null
+            : Date.now() - startedAtRef.current,
       });
       return { ok: true };
     } catch (error) {
@@ -175,11 +186,32 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   if (isError || !data) {
     return (
       <main className='flex min-h-dvh items-center justify-center bg-slate-100 p-5'>
-        <div className='rounded-md border bg-white p-5 text-center'>
-          <h1 className='font-semibold'>LinkPage não encontrada</h1>
+        <div className='w-full max-w-sm rounded-xl border bg-white p-6 text-center shadow-sm'>
+          <h1 className='font-semibold'>LinkBud não encontrado</h1>
           <p className='mt-2 text-sm text-slate-600'>
             A página pode estar inativa ou o endereço não existe.
           </p>
+          <div className='mt-6 grid gap-3 border-t pt-6'>
+            <span className='mx-auto flex items-center gap-1.5 text-sm font-semibold'>
+              <Asterisk className='size-4' />
+              LinkBuds
+            </span>
+            <p className='text-sm text-slate-600'>
+              Crie a sua página de links em minutos, com a cara da sua marca.
+            </p>
+            <span className='mx-auto flex max-w-full items-center rounded-full px-3 py-1 text-xs ring-1 ring-slate-300'>
+              <Swap
+                from='linkbuds.com/p/sua-marca'
+                to='links.suamarca.com.br'
+              />
+            </span>
+            <RouterLink
+              to={routes.register}
+              className='rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800'
+            >
+              Criar meu LinkBud
+            </RouterLink>
+          </div>
         </div>
       </main>
     );
@@ -188,7 +220,7 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   return (
     <LinkPageRenderer
       linkPage={data}
-      onSubmitForm={submitFormHandler(data.id, visitorId)}
+      onSubmitForm={submitFormHandler(data.id, visitorId, startedAtRef)}
       onTrack={(targetType, targetId) => {
         linkPagesService.trackEventBeacon(data.id, {
           eventId: createId('event'),

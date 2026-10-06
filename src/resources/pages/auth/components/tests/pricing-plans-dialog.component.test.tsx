@@ -22,6 +22,7 @@ const pricingPlansCatalog: PricingPlansResponse = {
       label: 'Inicial',
       description: 'Comece a criar sua presença digital com o Linkbuds.',
       maxClientPages: 1,
+      customDomain: true,
       priceCents: 0,
       priceLabel: null,
       features: ['1 pagina de cliente', 'Dominio personalizado'],
@@ -36,6 +37,7 @@ const pricingPlansCatalog: PricingPlansResponse = {
       description:
         'Gerencie paginas profissionais para seus clientes em um so lugar.',
       maxClientPages: 20,
+      customDomain: true,
       priceCents: 18000,
       priceLabel: null,
       features: ['Ate 20 paginas de clientes'],
@@ -49,6 +51,7 @@ const pricingPlansCatalog: PricingPlansResponse = {
       label: 'Sob medida',
       description: 'Um plano personalizado para agencias que precisam ir alem.',
       maxClientPages: null,
+      customDomain: true,
       priceCents: null,
       priceLabel: 'Sob consulta',
       features: ['A partir de 21 paginas de clientes'],
@@ -146,6 +149,11 @@ describe('PricingPlansDialog', () => {
 
     expect(await screen.findByText('R$ 180 /mês')).toBeInTheDocument();
     expect(screen.getByText('Dominio personalizado')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Domínio próprio em todos os planos, inclusive no Grátis.',
+      ),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Anual' }));
 

@@ -9,6 +9,7 @@ export type FormFieldType =
   | 'TEXTAREA'
   | 'EMAIL'
   | 'PHONE'
+  | 'URL'
   | 'NUMBER'
   | 'DATE'
   | 'SELECT'
@@ -29,6 +30,10 @@ export type FormConfig = {
   fields: FormField[];
   submitLabel: string;
   successMessage: string;
+  /** Animated check with the success message. Absent = on. */
+  successAnimation?: boolean;
+  /** After the success message, the visitor is sent here. */
+  redirectUrl?: string | null;
 };
 
 export type FormAnswerValue = string | boolean | null;
@@ -44,6 +49,7 @@ export type FormSubmission = {
   browser: string | null;
   operatingSystem: string | null;
   /** null = not in the Google Sheet yet (or no sheet configured). */
+  durationMs: number | null;
   webhookDeliveredAt: string | null;
   createdAt: string;
 };
@@ -236,6 +242,10 @@ export type LinkPageAnalyticsSummary = {
   totalClicks: number;
   clickThroughRate: number;
   averageDurationMs: number;
+  /** Form answers in the period; 0 for non-form pages. */
+  formSubmissions: number;
+  /** Avg time from opening the form to submitting; 0 when untracked. */
+  averageFormDurationMs: number;
 };
 
 export type LinkPageAnalyticsTier = 'BASIC' | 'FULL';
