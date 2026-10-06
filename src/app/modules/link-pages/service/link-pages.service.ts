@@ -4,11 +4,13 @@ import type {
   AnalyticsTargetType,
   CompanyDomain,
   FooterSettings,
+  LinkPageAnalyticsGeo,
   LinkPageAnalyticsInsights,
   LinkPageDetail,
   LinkPageImage,
   LinkPageLink,
   LinkPageLinkClicksResponse,
+  LinkPreview,
   LinkPagesListResponse,
   LinkPagesOverview,
   LinkPageSocialLink,
@@ -134,6 +136,15 @@ class LinkPagesService {
     return data.data;
   }
 
+  async getLinkPreview(url: string): Promise<LinkPreview> {
+    const { data } = await HttpAuth.get<ApiResponse<LinkPreview>>(
+      '/link-pages/link-preview',
+      // Preview is optional: a server error must not leave the open form.
+      { params: { url }, keepPageOnServerError: true },
+    );
+    return data.data;
+  }
+
   async updateLink(id: string, linkId: string, payload: Partial<LinkPageLink>) {
     const { data } = await HttpAuth.patch<ApiResponse<LinkPageLink>>(
       `/link-pages/${id}/links/${linkId}`,
@@ -189,6 +200,24 @@ class LinkPagesService {
     const query = searchParams.toString();
     const { data } = await HttpAuth.get<ApiResponse<LinkPageAnalyticsInsights>>(
       `/link-pages/${id}/analytics/insights${query ? `?${query}` : ''}`,
+    );
+
+    return data.data;
+  }
+
+  async analyticsGeo(
+    id: string,
+    params: { realtime: boolean; from?: string; to?: string },
+  ): Promise<LinkPageAnalyticsGeo> {
+    const searchParams = new URLSearchParams({
+      realtime: String(params.realtime),
+    });
+
+    if (params.from) searchParams.set('from', params.from);
+    if (params.to) searchParams.set('to', params.to);
+
+    const { data } = await HttpAuth.get<ApiResponse<LinkPageAnalyticsGeo>>(
+      `/link-pages/${id}/analytics/geo?${searchParams}`,
     );
 
     return data.data;

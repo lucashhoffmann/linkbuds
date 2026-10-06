@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 import {
   Activity,
   BarChart3,
@@ -6,7 +6,10 @@ import {
   Clock3,
   FileDown,
   FileJson,
+  Globe,
+  Info,
   Lock,
+  Maximize2,
   MousePointerClick,
   Radio,
   Users,
@@ -19,7 +22,28 @@ import type {
 } from '@/app/modules/link-pages/types/link-pages.types';
 import { SegmentedControl } from '@/resources/components/base/device-preview/device-preview.component';
 import { Button } from '@/resources/components/ui/button';
-import { Input } from '@/resources/components/ui/input';
+import { Calendar } from '@/resources/components/ui/calendar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/resources/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/resources/components/ui/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/resources/components/ui/tooltip';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import {
   dateInputValue,
@@ -32,6 +56,13 @@ import {
   targetLabel,
 } from './editor.utils';
 import { Field } from './editor-fields.component';
+
+// Lazy: the world map asset only loads when the globe is opened.
+const CountriesGlobeDialog = lazy(() =>
+  import('./countries-globe-dialog.component').then((module) => ({
+    default: module.CountriesGlobeDialog,
+  })),
+);
 
 export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
   const [fromDate, setFromDate] = useState(() => dateInputValue(30));
@@ -46,6 +77,9 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
   const summary = data?.summary;
   const chart = view === 'chart';
   const printRef = useRef<HTMLDivElement>(null);
+  const [globeOpened, setGlobeOpened] = useState(false);
+  const [globeOpen, setGlobeOpen] = useState(false);
+  const [jsonOpen, setJsonOpen] = useState(false);
 
   /** Print only the panel in a clean window; the user saves it as PDF. */
   function exportPdf() {
@@ -73,22 +107,24 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
     });
   }
 
+  const json = jsonOpen
+    ? JSON.stringify(
+        {
+          page: { name: linkPage.name, path: linkPage.publicPath },
+          ...data,
+          topTargets: data?.topTargets.map((target) => ({
+            ...target,
+            label: targetLabel(linkPage, target),
+          })),
+        },
+        null,
+        2,
+      )
+    : '';
+
   async function copyJson() {
     try {
-      await navigator.clipboard.writeText(
-        JSON.stringify(
-          {
-            page: { name: linkPage.name, path: linkPage.publicPath },
-            ...data,
-            topTargets: data?.topTargets.map((target) => ({
-              ...target,
-              label: targetLabel(linkPage, target),
-            })),
-          },
-          null,
-          2,
-        ),
-      );
+      await navigator.clipboard.writeText(json);
       toast.success('JSON copiado — cole na sua IA');
     } catch {
       toast.error('Não foi possível copiar.');
@@ -127,7 +163,7 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
               variant='outline'
               size='sm'
               disabled={!data}
-              onClick={() => void copyJson()}
+              onClick={() => setJsonOpen(true)}
             >
               <FileJson className='size-4' />
               Copiar JSON (IA)
@@ -146,17 +182,15 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
         {isFull && (
           <div className='grid gap-2 @xs:grid-cols-2 print:hidden'>
             <Field label='De'>
-              <Input
-                type='date'
+              <DatePicker
                 value={fromDate}
-                onChange={(event) => setFromDate(event.target.value)}
+                onChange={setFromDate}
               />
             </Field>
             <Field label='Até'>
-              <Input
-                type='date'
+              <DatePicker
                 value={toDate}
-                onChange={(event) => setToDate(event.target.value)}
+                onChange={setToDate}
               />
             </Field>
           </div>
@@ -193,6 +227,7 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
         <MetricCard
           icon={<BarChart3 className='size-4' />}
           label='CTR'
+          hint='Taxa de cliques: cliques ÷ visualizações. Mostra quantas visitas resultaram em clique em algum link.'
           value={formatPercent(summary?.clickThroughRate ?? 0)}
         />
         <MetricCard
@@ -229,7 +264,9 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
               <RankedList
                 emptyLabel='Sem visitas no período.'
                 items={data.timeseries.map((point) => ({
-                  label: new Date(point.date).toLocaleDateString('pt-BR'),
+                  label: new Date(point.date).toLocaleDateString('pt-BR', {
+                    timeZone: 'UTC',
+                  }),
                   count: toNumber(point.count),
                 }))}
               />
@@ -258,17 +295,99 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
           chart={chart}
           items={data?.countries ?? []}
           locked={!data?.limits.advancedDimensionsEnabled}
+          action={
+            isFull && (
+              <Button
+                variant='ghost'
+                size='icon'
+                className='size-7 print:hidden'
+                aria-label='Expandir países no globo'
+                onClick={() => {
+                  setGlobeOpened(true);
+                  setGlobeOpen(true);
+                }}
+              >
+                <Maximize2 className='size-4' />
+              </Button>
+            )
+          }
         />
       </div>
+
+      <Dialog
+        open={jsonOpen}
+        onOpenChange={setJsonOpen}
+      >
+        <DialogContent className='sm:max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>JSON para IA</DialogTitle>
+            <DialogDescription>
+              Copie os dados do período e cole no ChatGPT, Claude ou Gemini com
+              um pedido como: “Analise estas métricas da minha página de links e
+              sugira melhorias para aumentar os cliques”.
+            </DialogDescription>
+          </DialogHeader>
+          <pre className='bg-muted/40 max-h-[50vh] overflow-auto rounded-md border p-3 font-mono text-xs'>
+            {json}
+          </pre>
+          <DialogFooter>
+            <Button onClick={() => void copyJson()}>
+              <FileJson className='size-4' />
+              Copiar JSON
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {globeOpened && (
+        <Suspense fallback={null}>
+          <CountriesGlobeDialog
+            linkPageId={linkPage.id}
+            open={globeOpen}
+            onOpenChange={setGlobeOpen}
+            from={fromDate ? startOfDayIso(fromDate) : undefined}
+            to={toDate ? endOfDayIso(toDate) : undefined}
+          />
+        </Suspense>
+      )}
+
+      <AnalyticsPanel
+        title='IPs dos visitantes'
+        icon={<Globe className='size-4' />}
+      >
+        {data?.visitorIps?.length ? (
+          <div className='grid max-h-80 gap-1 overflow-y-auto text-sm'>
+            {data.visitorIps.map((visitor) => (
+              <div
+                key={visitor.ip}
+                className='bg-muted/30 flex items-center justify-between gap-3 rounded-md px-3 py-2'
+              >
+                <span className='min-w-0 truncate font-mono'>{visitor.ip}</span>
+                <span className='text-muted-foreground shrink-0 text-xs'>
+                  {formatNumber(visitor.count)} visita
+                  {visitor.count === 1 ? '' : 's'} ·{' '}
+                  {new Date(visitor.lastSeenAt).toLocaleString('pt-BR')}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className='text-muted-foreground text-sm'>
+            Nenhum IP registrado no período.
+          </p>
+        )}
+      </AnalyticsPanel>
     </div>
   );
 }
 
 export function MetricCard({
+  hint,
   icon,
   label,
   value,
 }: {
+  hint?: string;
   icon: ReactNode;
   label: string;
   value: string;
@@ -278,6 +397,19 @@ export function MetricCard({
       <div className='text-muted-foreground flex items-center gap-2 text-xs'>
         {icon}
         <span>{label}</span>
+        {hint && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger
+                aria-label={`Sobre ${label}`}
+                className='hover:text-foreground print:hidden'
+              >
+                <Info className='size-3.5' />
+              </TooltipTrigger>
+              <TooltipContent className='max-w-60'>{hint}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
       <p className='mt-2 text-xl font-semibold'>{value}</p>
     </div>
@@ -285,11 +417,13 @@ export function MetricCard({
 }
 
 export function AnalyticsPanel({
+  action,
   children,
   icon,
   locked = false,
   title,
 }: {
+  action?: ReactNode;
   children: ReactNode;
   icon?: ReactNode;
   locked?: boolean;
@@ -302,7 +436,7 @@ export function AnalyticsPanel({
           {icon}
           {title}
         </div>
-        {locked && <Lock className='text-muted-foreground size-4' />}
+        {locked ? <Lock className='text-muted-foreground size-4' /> : action}
       </div>
       <div className='mt-3'>{children}</div>
     </section>
@@ -365,24 +499,34 @@ export function TimeseriesBars({
   }
 
   return (
-    <div className='flex h-44 items-end gap-1'>
+    <div className='flex h-44 gap-1'>
       {points.map((point) => {
         const count = toNumber(point.count);
-        const height = max ? Math.max(6, (count / max) * 100) : 6;
+        // Sqrt scale: small counts stay visible, the max is still the tallest.
+        const height = count && max ? 8 + 92 * Math.sqrt(count / max) : 0;
         const date = new Date(point.date);
 
         return (
           <div
             key={point.date}
-            className='flex min-w-5 flex-1 flex-col items-center gap-2'
-            title={`${date.toLocaleDateString('pt-BR')}: ${formatNumber(count)}`}
+            className='flex h-full min-w-5 flex-1 flex-col items-center gap-1'
+            title={`${date.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}: ${formatNumber(count)}`}
           >
-            <div
-              className='bg-primary w-full rounded-t-sm print:[print-color-adjust:exact]'
-              style={{ height: `${height}%` }}
-            />
-            <span className='text-muted-foreground text-[10px]'>
-              {date.getDate()}
+            <span className='text-[10px] font-medium'>
+              {count ? formatNumber(count) : ''}
+            </span>
+            <div className='relative w-full flex-1'>
+              <div
+                className='bg-primary absolute inset-x-0 bottom-0 mx-auto max-w-8 rounded-t-sm print:[print-color-adjust:exact]'
+                style={{ height: `${height}%` }}
+              />
+            </div>
+            <span className='text-muted-foreground self-stretch border-t pt-1 text-center text-[10px] whitespace-nowrap'>
+              {date.toLocaleDateString('pt-BR', {
+                timeZone: 'UTC',
+                day: '2-digit',
+                month: '2-digit',
+              })}
             </span>
           </div>
         );
@@ -400,11 +544,13 @@ export function LockedAnalyticsLabel() {
 }
 
 export function AnalyticsGroupPanel({
+  action,
   chart = false,
   items,
   locked,
   title,
 }: {
+  action?: ReactNode;
   chart?: boolean;
   items: LinkPageAnalyticsGroupItem[];
   locked: boolean;
@@ -414,6 +560,7 @@ export function AnalyticsGroupPanel({
     <AnalyticsPanel
       title={title}
       locked={locked}
+      action={action}
     >
       {locked ? (
         <LockedAnalyticsLabel />
@@ -428,5 +575,50 @@ export function AnalyticsGroupPanel({
         />
       )}
     </AnalyticsPanel>
+  );
+}
+
+// value/onChange use 'yyyy-MM-dd', same shape the native date input had.
+function DatePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = value ? parseISO(value) : undefined;
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+    >
+      <PopoverTrigger asChild>
+        <Button
+          variant='outline'
+          className='w-full justify-between font-normal'
+        >
+          {selected ? format(selected, 'dd/MM/yyyy') : 'Selecionar data'}
+          <CalendarDays className='size-4 opacity-60' />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className='w-auto p-0'
+        align='start'
+      >
+        <Calendar
+          mode='single'
+          locale={ptBR}
+          selected={selected}
+          defaultMonth={selected}
+          onSelect={(date) => {
+            if (!date) return;
+            onChange(format(date, 'yyyy-MM-dd'));
+            setOpen(false);
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }

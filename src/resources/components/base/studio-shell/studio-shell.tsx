@@ -1,13 +1,16 @@
 import {
+  CreditCard,
+  Globe,
   Home,
   LogOut,
   PanelsTopLeft,
   Settings,
+  UserRound,
   Users,
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useSession } from '@/app/modules/auth/hooks';
 import { ThemeModeToggle } from '@/resources/components/base/theme-mode-toggle/theme-mode-toggle.component';
 import { Avatar, AvatarFallback } from '@/resources/components/ui/avatar';
@@ -19,6 +22,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/resources/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/resources/components/ui/tooltip';
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 
@@ -35,6 +44,12 @@ const NAV_ITEMS: NavItem[] = [
     to: routes.settings,
     icon: Settings,
   },
+];
+
+const ACCOUNT_ITEMS = [
+  { label: 'Minha conta', to: routes.settingsAccount, icon: UserRound },
+  { label: 'Meu plano', to: routes.settings, icon: CreditCard },
+  { label: 'Configurar meu domínio', to: routes.settingsDomain, icon: Globe },
 ];
 
 function initials(name?: string) {
@@ -81,6 +96,18 @@ function UserMenu({ side }: { side: 'right' | 'top' }) {
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {ACCOUNT_ITEMS.map((item) => (
+          <DropdownMenuItem
+            key={item.to}
+            asChild
+          >
+            <Link to={item.to}>
+              <item.icon className='mr-2 size-4' />
+              {item.label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className='mr-2 size-4' />
           Sair
@@ -112,24 +139,35 @@ export function StudioShell({ children }: { children: ReactNode }) {
         className='bg-sidebar hidden w-16 shrink-0 flex-col items-center gap-2 border-r py-3 md:flex'
       >
         <BrandMark />
-        <div className='mt-4 flex flex-col gap-1'>
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              title={item.label}
-              aria-label={item.label}
-              className={({ isActive }) =>
-                cn(
-                  'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground flex size-10 items-center justify-center rounded-xl transition-colors',
-                  isActive && 'bg-sidebar-accent text-foreground shadow-xs',
-                )
-              }
-            >
-              <item.icon className='size-[18px]' />
-            </NavLink>
-          ))}
-        </div>
+        <TooltipProvider>
+          <div className='mt-4 flex flex-col gap-1'>
+            {NAV_ITEMS.map((item) => (
+              <Tooltip key={item.to}>
+                <TooltipTrigger asChild>
+                  <NavLink
+                    to={item.to}
+                    aria-label={item.label}
+                    className={({ isActive }) =>
+                      cn(
+                        'text-muted-foreground hover:bg-sidebar-accent hover:text-foreground flex size-10 items-center justify-center rounded-xl transition-colors',
+                        isActive &&
+                          'bg-sidebar-accent text-foreground shadow-sm',
+                      )
+                    }
+                  >
+                    <item.icon className='size-[18px]' />
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent
+                  side='right'
+                  sideOffset={8}
+                >
+                  {item.label}
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </div>
+        </TooltipProvider>
         <div className='mt-auto flex flex-col items-center gap-2'>
           <ThemeModeToggle />
           <UserMenu side='right' />
@@ -164,8 +202,9 @@ export function StudioShell({ children }: { children: ReactNode }) {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                'text-muted-foreground flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium',
-                isActive && 'text-foreground',
+                'text-muted-foreground relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium',
+                isActive &&
+                  'text-primary before:bg-primary before:absolute before:inset-x-6 before:top-0 before:h-0.5 before:rounded-b-full',
               )
             }
           >

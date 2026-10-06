@@ -49,6 +49,13 @@ export function useGetPublicLinkPageUseCase(slug?: string) {
   });
 }
 
+/** OG data (title/description/image) for a "Link com prévia" card. */
+export function useLinkPreviewUseCase() {
+  return useMutationCache({
+    mutationFn: (url: string) => linkPagesService.getLinkPreview(url),
+  });
+}
+
 export function useLinkPageMutations(id?: string) {
   const queryClient = useQueryClient();
   const invalidate = async () => {
@@ -170,6 +177,27 @@ export function useLinkPageAnalyticsInsightsUseCase(
   });
 }
 
+/** Countries for the globe; realtime polls while the modal is open. */
+export function useLinkPageAnalyticsGeoUseCase(
+  id: string,
+  params: { realtime: boolean; from?: string; to?: string },
+  enabled = true,
+) {
+  return useQueryCache({
+    queryKey: [
+      LinkPagesQueryKeys.ANALYTICS_GEO,
+      id,
+      params.realtime,
+      params.from ?? null,
+      params.to ?? null,
+    ],
+    queryFn: () => linkPagesService.analyticsGeo(id, params),
+    enabled,
+    retry: false,
+    refetchInterval: params.realtime ? 10_000 : false,
+  });
+}
+
 export function useLinkPageLinkClicksUseCase(id?: string, enabled = true) {
   return useQueryCache({
     queryKey: [LinkPagesQueryKeys.ANALYTICS_LINK_CLICKS, id],
@@ -206,6 +234,19 @@ export function useCompanyDomainUseCase(enabled = true) {
   });
 
   return { ...query, create, verify, remove };
+}
+
+/** Origin of public pages: the company's ACTIVE custom domain, else this app. */
+export function usePublicOrigin() {
+  const { data } = useQueryCache({
+    queryKey: [LinkPagesQueryKeys.DOMAIN],
+    queryFn: () => linkPagesService.getDomain(),
+    retry: false,
+  });
+
+  return data?.status === 'ACTIVE'
+    ? `https://${data.hostname}`
+    : window.location.origin;
 }
 
 export function useFooterDefaultUseCase() {

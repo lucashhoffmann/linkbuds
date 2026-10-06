@@ -1,5 +1,6 @@
 import { confirmAction } from '@/resources/components/base';
 import {
+  useRef,
   useState,
   type Dispatch,
   type FormEvent,
@@ -22,7 +23,10 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Archive, GripVertical, MousePointerClick, Pencil } from 'lucide-react';
-import { useLinkPageMutations } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
+import {
+  useLinkPageMutations,
+  useLinkPreviewUseCase,
+} from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
   LinkPageDetail,
   LinkPageLink,
@@ -70,6 +74,9 @@ export function LinksManager({
   const [linkForm, setLinkForm] = useState<LinkFormValues>(() =>
     createLinkForm(),
   );
+  const linkPreview = useLinkPreviewUseCase();
+  // Last URL whose preview was fetched: blur only refetches when it changed.
+  const previewUrlRef = useRef<string | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -88,12 +95,16 @@ export function LinksManager({
 
   const openNewLinkDialog = () => {
     setEditingLink(null);
+    previewUrlRef.current = null;
+    linkPreview.reset();
     setLinkForm(createLinkForm());
     setLinkDialogOpen(true);
   };
 
   const openEditLinkDialog = (link: LinkPageLink) => {
     setEditingLink(link);
+    previewUrlRef.current = link.url;
+    linkPreview.reset();
     setLinkForm({
       placement: link.placement,
       kind: link.kind,
@@ -101,6 +112,8 @@ export function LinksManager({
       url: link.url,
       contactType: link.contactType,
       contactValue: link.contactValue,
+      previewImageUrl: link.previewImageUrl ?? null,
+      previewDescription: link.previewDescription ?? null,
       textColor: link.textColor,
       backgroundColor: link.backgroundColor,
       borderColor: link.borderColor,
@@ -122,11 +135,44 @@ export function LinksManager({
         ...current,
         ...style,
         kind,
-        url: kind === 'LINK' ? value : null,
+        // Preview cards don't fit the small horizontal tiles.
+        placement: kind === 'PREVIEW' ? 'VERTICAL' : current.placement,
+        url: kind === 'CONTACT' ? null : value,
         contactType: kind === 'CONTACT' ? 'WHATSAPP' : null,
         contactValue: kind === 'CONTACT' ? value : null,
       };
     });
+  };
+
+  const loadPreview = async (force = false) => {
+    const url = linkForm.url?.trim();
+
+    if (
+      linkForm.kind !== 'PREVIEW' ||
+      !url ||
+      (!force && url === previewUrlRef.current)
+    ) {
+      return;
+    }
+
+    previewUrlRef.current = url;
+    try {
+      const preview = await linkPreview.mutateAsync(url);
+      // Fills what the site has; every field stays editable.
+      setLinkForm((current) =>
+        current.url?.trim() !== url
+          ? current
+          : {
+              ...current,
+              label: current.label || preview.title || '',
+              previewDescription:
+                preview.description ?? current.previewDescription,
+              previewImageUrl: preview.imageUrl ?? current.previewImageUrl,
+            },
+      );
+    } catch {
+      return;
+    }
   };
 
   // Archived = inactive: hidden from the public page, kept for later.
@@ -248,6 +294,7 @@ export function LinksManager({
                   id='link-placement'
                   className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring h-12 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
                   value={linkForm.placement}
+                  disabled={linkForm.kind === 'PREVIEW'}
                   onChange={(event) =>
                     updateLinkForm({
                       placement: event.target.value as LinkPageLinkPlacement,
@@ -269,12 +316,15 @@ export function LinksManager({
                   }
                 >
                   <option value='LINK'>Link</option>
+                  <option value='PREVIEW'>Link com prévia</option>
                   <option value='CONTACT'>WhatsApp</option>
                 </select>
               </div>
             </div>
             <div className='grid gap-2'>
-              <Label htmlFor='link-label'>Rótulo</Label>
+              <Label htmlFor='link-label'>
+                {linkForm.kind === 'PREVIEW' ? 'Título' : 'Rótulo'}
+              </Label>
               <Input
                 id='link-label'
                 value={linkForm.label}
@@ -302,9 +352,67 @@ export function LinksManager({
                       : { url: event.target.value },
                   )
                 }
+                onBlur={() => void loadPreview()}
                 required
               />
             </div>
+            {linkForm.kind === 'PREVIEW' && (
+              <div className='bg-muted/20 grid gap-4 rounded-md border p-3'>
+                <div className='flex items-center justify-between gap-2'>
+                  <p className='text-sm font-medium'>Prévia</p>
+                  <Button
+                    type='button'
+                    size='sm'
+                    variant='outline'
+                    disabled={!linkForm.url?.trim() || linkPreview.isLoading}
+                    onClick={() => void loadPreview(true)}
+                  >
+                    {linkPreview.isLoading ? 'Buscando...' : 'Buscar do site'}
+                  </Button>
+                </div>
+                {linkPreview.isError && (
+                  <p className='text-muted-foreground text-xs'>
+                    Não foi possível ler a prévia desse site. Preencha os campos
+                    abaixo manualmente.
+                  </p>
+                )}
+                <div className='grid gap-2'>
+                  <Label htmlFor='link-preview-description'>Descrição</Label>
+                  <textarea
+                    id='link-preview-description'
+                    className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring min-h-20 w-full rounded-md border px-3 py-2 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
+                    maxLength={300}
+                    value={linkForm.previewDescription ?? ''}
+                    onChange={(event) =>
+                      updateLinkForm({
+                        previewDescription: event.target.value || null,
+                      })
+                    }
+                  />
+                </div>
+                <div className='grid gap-2'>
+                  <Label htmlFor='link-preview-image'>URL da imagem</Label>
+                  <div className='flex items-center gap-2'>
+                    {linkForm.previewImageUrl && (
+                      <img
+                        src={linkForm.previewImageUrl}
+                        alt=''
+                        className='size-12 shrink-0 rounded-md border object-cover'
+                      />
+                    )}
+                    <Input
+                      id='link-preview-image'
+                      value={linkForm.previewImageUrl ?? ''}
+                      onChange={(event) =>
+                        updateLinkForm({
+                          previewImageUrl: event.target.value.trim() || null,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             <div className='bg-muted/20 grid gap-4 rounded-md border p-3'>
               <p className='text-sm font-medium'>Aparência</p>
               <div className='grid gap-3 sm:grid-cols-2'>
@@ -434,7 +542,12 @@ export function SortableLinkRow({
     transform,
     transition,
   } = useSortable({ id: link.id });
-  const detail = link.kind === 'CONTACT' ? 'WhatsApp' : link.url;
+  const detail =
+    link.kind === 'CONTACT'
+      ? 'WhatsApp'
+      : link.kind === 'PREVIEW'
+        ? `Prévia · ${link.url}`
+        : link.url;
 
   return (
     <div

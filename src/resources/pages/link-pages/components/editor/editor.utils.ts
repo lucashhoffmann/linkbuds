@@ -29,6 +29,8 @@ export function createLinkForm(): LinkFormValues {
     url: '',
     contactType: null,
     contactValue: null,
+    previewImageUrl: null,
+    previewDescription: null,
   };
 }
 

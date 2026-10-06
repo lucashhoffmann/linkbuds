@@ -4,6 +4,7 @@ export enum LinkPagesQueryKeys {
   DETAIL = 'link-pages:detail',
   PUBLIC = 'link-pages:public',
   ANALYTICS_INSIGHTS = 'link-pages:analytics-insights',
+  ANALYTICS_GEO = 'link-pages:analytics-geo',
   ANALYTICS_LINK_CLICKS = 'link-pages:analytics-link-clicks',
   DOMAIN = 'link-pages:domain',
   FOOTER_DEFAULT = 'link-pages:footer-default',

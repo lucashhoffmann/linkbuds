@@ -264,25 +264,81 @@ export function VerticalLinks({
         linkPageDesignTokens.spacing.stack,
       )}
     >
-      {links.map((link) => (
-        <a
-          key={link.id}
-          href={resolveLinkHref(link)}
-          className={cn(
-            linkPageDesignTokens.verticalLink.className,
-            'flex items-center justify-between',
-          )}
-          style={itemStyle(link)}
-          onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
-        >
-          <span>{link.label}</span>
-          <LinkActionIcon
+      {links.map((link) =>
+        link.kind === 'PREVIEW' ? (
+          <PreviewLinkCard
+            key={link.id}
             link={link}
-            className='size-4 opacity-70'
+            onTrack={onTrack}
           />
-        </a>
-      ))}
+        ) : (
+          <a
+            key={link.id}
+            href={resolveLinkHref(link)}
+            className={cn(
+              linkPageDesignTokens.verticalLink.className,
+              'flex items-center justify-between',
+            )}
+            style={itemStyle(link)}
+            onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
+          >
+            <span>{link.label}</span>
+            <LinkActionIcon
+              link={link}
+              className='size-4 opacity-70'
+            />
+          </a>
+        ),
+      )}
     </section>
+  );
+}
+
+function linkHostname(url: string | null) {
+  try {
+    return new URL(url ?? '').hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+function PreviewLinkCard({
+  link,
+  onTrack,
+}: {
+  link: LinkPageLink;
+  onTrack?: TrackFn;
+}) {
+  const hostname = linkHostname(link.url);
+
+  return (
+    <a
+      href={resolveLinkHref(link)}
+      data-testid='preview-link-card'
+      className='block overflow-hidden rounded-lg shadow-sm'
+      style={itemStyle(link)}
+      onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
+    >
+      {link.previewImageUrl && (
+        <img
+          src={link.previewImageUrl}
+          alt=''
+          loading='lazy'
+          className='aspect-[1.91/1] w-full object-cover'
+        />
+      )}
+      <span className='block px-4 py-3'>
+        <span className='block text-sm font-semibold'>{link.label}</span>
+        {link.previewDescription && (
+          <span className='mt-1 line-clamp-2 block text-xs opacity-75'>
+            {link.previewDescription}
+          </span>
+        )}
+        {hostname && (
+          <span className='mt-2 block text-xs opacity-60'>{hostname}</span>
+        )}
+      </span>
+    </a>
   );
 }
 

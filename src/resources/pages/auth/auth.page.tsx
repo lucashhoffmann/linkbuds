@@ -2,13 +2,13 @@ import { ThemeModeToggle } from '@/resources/components/base/theme-mode-toggle/t
 import { Button } from '@/resources/components/ui/button';
 import { BarChart3, Globe2, Link2, MousePointerClick } from 'lucide-react';
 import { Link as RouterLink } from 'react-router-dom';
+import { AuthHeroShowcase } from './components/auth-hero-showcase.component';
 import { LoginView } from './views/login/login.view';
 import { PricingPlansDialog } from './components/pricing-plans-dialog/pricing-plans-dialog.component';
 import { RegisterView } from './views/register/register.view';
 import { ForgotPasswordView } from './views/forgot-password/forgot-password.view';
 import { ResetPasswordView } from './views/reset-password/reset-password.view';
 import { routes } from '@/shared/constants/router.constants';
-import linksLandingImage from '@/shared/images/links-landing.png';
 
 const authHighlights = [
   {
@@ -115,11 +115,9 @@ export function AuthPage({ view = 'login' }: AuthPageProps) {
               </div>
             ))}
           </div>
-          <img
-            src={linksLandingImage}
-            alt='Prévia de páginas de links do LinkBuds'
-            className='h-auto max-h-[42vh] w-auto max-w-full self-start object-contain drop-shadow-xl select-none dark:brightness-90'
-          />
+          <div className='flex max-w-md justify-center'>
+            <AuthHeroShowcase />
+          </div>
         </aside>
 
         <main className='flex justify-center px-4 py-8 md:items-center md:py-12'>

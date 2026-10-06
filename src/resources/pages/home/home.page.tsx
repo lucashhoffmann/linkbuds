@@ -12,6 +12,7 @@ import type { LinkPagesOverviewPage } from '@/app/modules/link-pages/types/link-
 import { useLinkPagesOverviewUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import { Button } from '@/resources/components/ui/button';
 import { routes } from '@/shared/constants/router.constants';
+import { AgencyPromoDialog } from './components/agency-promo-dialog.component';
 
 const number = new Intl.NumberFormat('pt-BR');
 
@@ -102,6 +103,7 @@ export function HomePage() {
 
   return (
     <div className='mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 md:p-8'>
+      <AgencyPromoDialog />
       <header className='flex flex-wrap items-end justify-between gap-3'>
         <div>
           <h1 className='text-xl font-semibold tracking-tight'>

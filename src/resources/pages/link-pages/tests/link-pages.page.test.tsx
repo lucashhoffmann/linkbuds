@@ -6,14 +6,18 @@ import { LinkPagesPage } from '../link-pages.page';
 const mocks = vi.hoisted(() => ({
   useGetLinkPageUseCase: vi.fn(),
   useLinkPageMutations: vi.fn(),
+  useLinkPagesOverviewUseCase: vi.fn(),
   useListLinkPagesUseCase: vi.fn(),
+  usePublicOrigin: vi.fn(),
   useIsMobile: vi.fn(),
 }));
 
 vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useGetLinkPageUseCase: mocks.useGetLinkPageUseCase,
   useLinkPageMutations: mocks.useLinkPageMutations,
+  useLinkPagesOverviewUseCase: mocks.useLinkPagesOverviewUseCase,
   useListLinkPagesUseCase: mocks.useListLinkPagesUseCase,
+  usePublicOrigin: mocks.usePublicOrigin,
 }));
 
 vi.mock('@/shared/hooks/use-mobile', () => ({
@@ -60,6 +64,16 @@ const items = [
     type: 'POST',
     parentPageId: 'bio',
   },
+  {
+    ...base,
+    id: 'post-2',
+    name: 'Black Friday',
+    slug: 'black',
+    publicPath: 'pizzaria/black',
+    type: 'POST',
+    postNetwork: 'INSTAGRAM',
+    parentPageId: 'bio',
+  },
 ];
 
 function renderPage(path = '/link-pages') {
@@ -80,6 +94,10 @@ describe('LinkPagesPage', () => {
     mocks.useLinkPageMutations.mockReturnValue({
       remove: { mutate: vi.fn() },
       createPost,
+    });
+    mocks.usePublicOrigin.mockReturnValue('https://links.agencia.com');
+    mocks.useLinkPagesOverviewUseCase.mockReturnValue({
+      data: { pages: [{ id: 'post-2', pageViews: 7 }] },
     });
     mocks.useListLinkPagesUseCase.mockReturnValue({
       data: {
@@ -140,5 +158,53 @@ describe('LinkPagesPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Novo link de post' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('lists the bio posts by accesses, badges the top one and previews on view', () => {
+    renderPage('/link-pages?p=bio');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Meus posts' }));
+    const names = screen
+      .getAllByRole('button', { name: /^Visualizar / })
+      .map((button) => button.getAttribute('aria-label'));
+    expect(names).toEqual([
+      'Visualizar Black Friday',
+      'Visualizar Promo terça',
+    ]);
+    expect(screen.getByText('7 acessos')).toBeInTheDocument();
+    expect(screen.getAllByText('Mais acessado')).toHaveLength(1);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Visualizar Promo terça' }),
+    );
+    expect(screen.getByText('/p/pizzaria/promo')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('radio', { name: 'Meus posts' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the post network and filters posts by search', () => {
+    renderPage('/link-pages?p=bio');
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Meus posts' }));
+    expect(screen.getByRole('img', { name: 'Instagram' })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Buscar posts'), {
+      target: { value: 'promo' },
+    });
+    expect(
+      screen.queryByRole('button', { name: 'Visualizar Black Friday' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Visualizar Promo terça' }),
+    ).toBeInTheDocument();
+  });
+
+  it('opens public links on the configured custom domain', () => {
+    renderPage();
+
+    expect(
+      screen.getByRole('link', { name: 'Abrir link de Pizzaria' }),
+    ).toHaveAttribute('href', 'https://links.agencia.com/p/pizzaria');
   });
 });

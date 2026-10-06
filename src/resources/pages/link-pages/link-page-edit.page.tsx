@@ -31,7 +31,7 @@ export { reorderLinksForDrop } from './components/editor/editor.utils';
 export function LinkPageEditPage() {
   const { id } = useParams();
   const { data, isLoading } = useGetLinkPageUseCase(id);
-  // Lives here so the editor remount (key below changes on every save) keeps the active tab.
+  // Lives here so the editor remount (key below changes when links/social/images are added or removed) keeps the active tab.
   const [tab, setTab] = useState<Tab>('content');
 
   if (isLoading) {
@@ -48,7 +48,7 @@ export function LinkPageEditPage() {
 
   return (
     <LinkPageEditor
-      key={`${data.id}-${data.updatedAt}-${data.links.length}-${data.socialLinks.length}-${data.images.length}`}
+      key={`${data.id}-${data.links.length}-${data.socialLinks.length}-${data.images.length}`}
       linkPage={data}
       tab={tab}
       setTab={setTab}

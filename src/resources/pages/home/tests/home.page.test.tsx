@@ -31,7 +31,15 @@ const page = (overrides: Record<string, unknown>) => ({
 describe('HomePage', () => {
   beforeEach(() => {
     mocks.useSession.mockReturnValue({
-      company: { name: 'Agência Sol' },
+      company: {
+        id: 'c',
+        name: 'Agência Sol',
+        entitlements: {
+          planCode: 'AGENCY',
+          customDomain: true,
+          whiteLabel: true,
+        },
+      },
       userAuthenticated: { name: 'Ana Souza' },
     });
   });

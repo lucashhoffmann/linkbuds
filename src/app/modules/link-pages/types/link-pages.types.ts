@@ -12,7 +12,8 @@ export type FooterSettings = {
   footerLogoUrl: string | null;
 };
 export type LinkPageLinkPlacement = 'HORIZONTAL' | 'VERTICAL';
-export type LinkPageLinkKind = 'LINK' | 'CONTACT';
+/** PREVIEW = vertical card with image + description (from the site's OG tags). */
+export type LinkPageLinkKind = 'LINK' | 'CONTACT' | 'PREVIEW';
 export type LinkPageContactType = 'WHATSAPP' | 'EMAIL' | 'PHONE';
 export type SocialPlatform =
   | 'INSTAGRAM'
@@ -39,6 +40,8 @@ export type LinkPageLink = {
   url: string | null;
   contactType: LinkPageContactType | null;
   contactValue: string | null;
+  previewImageUrl?: string | null;
+  previewDescription?: string | null;
   textColor: string;
   backgroundColor: string;
   borderColor: string;
@@ -151,6 +154,12 @@ export type LinkPageAnalyticsGroupItem = {
   count: number | string;
 };
 
+export type LinkPageAnalyticsVisitorIp = {
+  ip: string;
+  count: number;
+  lastSeenAt: string;
+};
+
 export type LinkPageAnalyticsInsights = {
   tier: LinkPageAnalyticsTier;
   range: {
@@ -163,10 +172,32 @@ export type LinkPageAnalyticsInsights = {
   sources: LinkPageAnalyticsGroupItem[];
   devices: LinkPageAnalyticsGroupItem[];
   countries: LinkPageAnalyticsGroupItem[];
+  /** Most recent first; available on every plan. */
+  visitorIps: LinkPageAnalyticsVisitorIp[];
   limits: {
     maxRangeDays: number | null;
     advancedDimensionsEnabled: boolean;
   };
+};
+
+export type LinkPageAnalyticsGeoVisit = {
+  createdAt: string;
+  ipAddress: string | null;
+  deviceType: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+  source: string | null;
+};
+
+export type LinkPageAnalyticsGeo = {
+  realtime: boolean;
+  total: number;
+  /** countryCode is ISO alpha-2 or 'unknown'; visits are the latest ones. */
+  locations: Array<{
+    countryCode: string;
+    count: number;
+    visits: LinkPageAnalyticsGeoVisit[];
+  }>;
 };
 
 export type LinkPageLinkClickCount = {
@@ -208,4 +239,10 @@ export type LinkPagesOverview = {
   range: { from: string; to: string };
   totals: { pageViews: number; visitors: number; clicks: number };
   pages: LinkPagesOverviewPage[];
+};
+
+export type LinkPreview = {
+  title: string | null;
+  description: string | null;
+  imageUrl: string | null;
 };

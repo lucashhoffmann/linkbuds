@@ -1,7 +1,7 @@
 import type { LinkPageLink } from '../types/link-pages.types';
 
 export function resolveLinkHref(link: LinkPageLink) {
-  if (link.kind === 'LINK') {
+  if (link.kind !== 'CONTACT') {
     return link.url ?? '#';
   }
 

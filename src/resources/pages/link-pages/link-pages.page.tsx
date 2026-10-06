@@ -2,11 +2,13 @@ import { confirmAction } from '@/resources/components/base';
 import {
   ChevronRight,
   Copy,
+  Eye,
   ExternalLink,
   Link2,
   Pencil,
   Plus,
   Trash2,
+  Trophy,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -19,7 +21,9 @@ import type { LinkPageSummary } from '@/app/modules/link-pages/types/link-pages.
 import {
   useGetLinkPageUseCase,
   useLinkPageMutations,
+  useLinkPagesOverviewUseCase,
   useListLinkPagesUseCase,
+  usePublicOrigin,
 } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import {
   DevicePreview,
@@ -28,11 +32,16 @@ import {
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
+import { Select } from '@/resources/components/ui/select';
 import { routes } from '@/shared/constants/router.constants';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
 import { AnalyticsTab } from './components/editor/analytics-tab.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
+import {
+  socialPlatformIcons,
+  socialPlatformLabels,
+} from './renderer/social-platform-icons';
 
 const BADGE_COLORS = [
   'bg-[#efd9f5] text-[#6b2b80]',
@@ -74,8 +83,8 @@ function PageIcon({ page }: { page: LinkPageSummary }) {
   );
 }
 
-function publicUrl(page: LinkPageSummary) {
-  return `${window.location.origin}${routes.publicLinkPage(page.publicPath)}`;
+function publicUrl(origin: string, page: LinkPageSummary) {
+  return `${origin}${routes.publicLinkPage(page.publicPath)}`;
 }
 
 function ListGroup({
@@ -114,6 +123,7 @@ function PageListItem({
   onSelect: () => void;
   onRemove?: () => void;
 }) {
+  const publicOrigin = usePublicOrigin();
   const action =
     'text-muted-foreground hover:text-foreground hover:bg-background flex size-7 shrink-0 items-center justify-center rounded-md';
 
@@ -158,7 +168,7 @@ function PageListItem({
       {/* Desktop: reveal on hover/focus; touch has no hover, so always shown. */}
       <div className='flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100'>
         <a
-          href={publicUrl(page)}
+          href={publicUrl(publicOrigin, page)}
           target='_blank'
           rel='noreferrer'
           title='Abrir link'
@@ -387,7 +397,11 @@ export function LinkPagesPage() {
       <section className='hidden min-w-0 flex-1 flex-col overflow-y-auto md:flex'>
         {selected ? (
           <PageCanvas
+            key={selected.id}
             page={selected}
+            posts={postsOf(selected.id)}
+            onSelect={select}
+            onRemovePost={(post) => void remove(post)}
             onRemove={
               selected.type === 'AGENCY' ? undefined : () => remove(selected)
             }
@@ -407,10 +421,16 @@ export function LinkPagesPage() {
 
 function PageCanvas({
   page,
+  posts,
+  onSelect,
+  onRemovePost,
   onRemove,
   onCreatePost,
 }: {
   page: LinkPageSummary;
+  posts: LinkPageSummary[];
+  onSelect: (page: LinkPageSummary) => void;
+  onRemovePost: (post: LinkPageSummary) => void;
   onRemove?: () => void;
   onCreatePost?: (payload: {
     name: string;
@@ -419,8 +439,10 @@ function PageCanvas({
   }) => void;
 }) {
   const detail = useGetLinkPageUseCase(page.id);
-  const url = publicUrl(page);
-  const [view, setView] = useState<'preview' | 'analytics'>('preview');
+  const url = publicUrl(usePublicOrigin(), page);
+  const [view, setView] = useState<'preview' | 'analytics' | 'posts'>(
+    'preview',
+  );
 
   async function copy() {
     try {
@@ -503,10 +525,19 @@ function PageCanvas({
         options={[
           { value: 'preview', label: 'Prévia' },
           { value: 'analytics', label: 'Análises' },
+          ...(page.type === 'POST'
+            ? []
+            : [{ value: 'posts' as const, label: 'Meus posts' }]),
         ]}
       />
 
-      {detail.data ? (
+      {view === 'posts' ? (
+        <PostsTab
+          posts={posts}
+          onView={onSelect}
+          onRemove={onRemovePost}
+        />
+      ) : detail.data ? (
         view === 'analytics' ? (
           <AnalyticsTab linkPage={detail.data} />
         ) : (
@@ -521,6 +552,162 @@ function PageCanvas({
         <p className='text-muted-foreground text-sm'>Carregando prévia...</p>
       )}
     </div>
+  );
+}
+
+/** A bio's post links, most accessed first (views in the plan's analytics window). */
+function PostsTab({
+  posts,
+  onView,
+  onRemove,
+}: {
+  posts: LinkPageSummary[];
+  onView: (post: LinkPageSummary) => void;
+  onRemove: (post: LinkPageSummary) => void;
+}) {
+  const overview = useLinkPagesOverviewUseCase();
+  const views = new Map(
+    (overview.data?.pages ?? []).map((page) => [page.id, page.pageViews]),
+  );
+  const viewsOf = (post: LinkPageSummary) => views.get(post.id) ?? 0;
+  const [query, setQuery] = useState('');
+  // '' = all networks, 'NONE' = posts without a network.
+  const [network, setNetwork] = useState('');
+  const sorted = [...posts].sort((a, b) => viewsOf(b) - viewsOf(a));
+  const topId = sorted[0] && viewsOf(sorted[0]) > 0 ? sorted[0].id : undefined;
+  const networks = [
+    ...new Set(posts.flatMap((post) => post.postNetwork ?? [])),
+  ];
+  const term = query.trim().toLowerCase();
+  const visible = sorted.filter(
+    (post) =>
+      (!term ||
+        `${post.name} ${post.publicPath}`.toLowerCase().includes(term)) &&
+      (!network || (post.postNetwork ?? 'NONE') === network),
+  );
+  const action =
+    'text-muted-foreground hover:text-foreground hover:bg-muted flex size-8 shrink-0 items-center justify-center rounded-md';
+
+  if (posts.length === 0) {
+    return (
+      <p className='text-muted-foreground text-sm'>
+        Nenhum link de post ainda.
+      </p>
+    );
+  }
+
+  return (
+    <div className='grid gap-3'>
+      <div className='flex flex-col gap-2 sm:flex-row'>
+        <Input
+          type='search'
+          aria-label='Buscar posts'
+          placeholder='Buscar por nome ou link'
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className='sm:flex-1'
+        />
+        <Select
+          aria-label='Filtrar por rede'
+          value={network}
+          onChange={(event) => setNetwork(event.target.value)}
+          className='sm:w-48'
+        >
+          <option value=''>Todas as redes</option>
+          {networks.map((value) => (
+            <option
+              key={value}
+              value={value}
+            >
+              {socialPlatformLabels[value]}
+            </option>
+          ))}
+          {posts.some((post) => !post.postNetwork) && (
+            <option value='NONE'>Sem rede</option>
+          )}
+        </Select>
+      </div>
+      {visible.length === 0 ? (
+        <p className='text-muted-foreground text-sm'>Nenhum post encontrado.</p>
+      ) : (
+        <ul className='bg-card divide-y rounded-xl border'>
+          {visible.map((post) => (
+            <li
+              key={post.id}
+              className='flex items-center gap-3 px-3 py-2'
+            >
+              <PostNetworkIcon post={post} />
+              <div className='min-w-0 flex-1'>
+                <div className='flex items-center gap-2'>
+                  <span className='truncate text-sm font-medium'>
+                    {post.name}
+                  </span>
+                  {post.id === topId && (
+                    <span className='inline-flex shrink-0 items-center gap-1 rounded-full bg-[#f5e3c8] px-2 py-0.5 text-xs font-medium text-[#7a4d0f]'>
+                      <Trophy className='size-3' />
+                      Mais acessado
+                    </span>
+                  )}
+                </div>
+                <p className='text-muted-foreground truncate text-xs'>
+                  /p/{post.publicPath}
+                </p>
+              </div>
+              <span className='text-muted-foreground shrink-0 text-sm tabular-nums'>
+                {viewsOf(post)} {viewsOf(post) === 1 ? 'acesso' : 'acessos'}
+              </span>
+              <div className='flex items-center'>
+                <button
+                  type='button'
+                  onClick={() => onView(post)}
+                  title='Visualizar'
+                  aria-label={`Visualizar ${post.name}`}
+                  className={action}
+                >
+                  <Eye className='size-4' />
+                </button>
+                <RouterLink
+                  to={routes.linkPages.edit(post.id)}
+                  title='Editar'
+                  aria-label={`Editar ${post.name}`}
+                  className={action}
+                >
+                  <Pencil className='size-4' />
+                </RouterLink>
+                <button
+                  type='button'
+                  onClick={() => onRemove(post)}
+                  title='Excluir'
+                  aria-label={`Excluir ${post.name}`}
+                  className={cn(action, 'hover:text-destructive')}
+                >
+                  <Trash2 className='size-4' />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** The post's configured network icon; generic post icon when none is set. */
+function PostNetworkIcon({ post }: { post: LinkPageSummary }) {
+  if (!post.postNetwork) return <PageIcon page={post} />;
+
+  const Icon = socialPlatformIcons[post.postNetwork];
+  const label = socialPlatformLabels[post.postNetwork];
+
+  return (
+    <span
+      role='img'
+      title={label}
+      aria-label={label}
+      className='bg-muted text-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
+    >
+      <Icon className='size-3.5' />
+    </span>
   );
 }
 

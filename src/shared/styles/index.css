@@ -363,6 +363,11 @@
 @theme {
   --animate-lb-link: lb-link 3.2s ease-out infinite both;
   --animate-lb-tap: lb-tap 3.2s ease-out infinite both;
+  --animate-lb-swap-out: lb-swap-out 4s ease-in-out infinite both;
+  --animate-lb-swap-in: lb-swap-in 4s ease-in-out infinite both;
+  --animate-lb-float: lb-float 6s ease-in-out infinite;
+  --animate-lb-bar: lb-bar 2.4s ease-in-out infinite;
+  --animate-lb-step: lb-step 3.2s ease-out infinite both;
 
   @keyframes lb-link {
     0%,
@@ -395,6 +400,66 @@
     100% {
       opacity: 0;
       transform: scale(1.6);
+    }
+  }
+
+  /* Promo mockup: default value fades out, the agency's own fades in. */
+  @keyframes lb-swap-out {
+    0%,
+    35%,
+    95%,
+    100% {
+      opacity: 1;
+      transform: none;
+    }
+    45%,
+    85% {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+  }
+
+  @keyframes lb-swap-in {
+    0%,
+    35%,
+    95%,
+    100% {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    45%,
+    85% {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Auth hero showcase: phones bob, metric bars breathe, funnel steps light up. */
+  @keyframes lb-float {
+    50% {
+      transform: translateY(-0.6em);
+    }
+  }
+
+  @keyframes lb-bar {
+    0%,
+    100% {
+      transform: scaleY(0.45);
+    }
+    50% {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes lb-step {
+    0%,
+    45%,
+    100% {
+      opacity: 0.35;
+    }
+    10%,
+    30% {
+      opacity: 1;
     }
   }
 }

@@ -70,6 +70,45 @@ describe('LinkPageRenderer', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders preview links as a card with image, description and host', () => {
+    render(
+      <LinkPageRenderer
+        linkPage={{
+          ...page,
+          links: [
+            {
+              id: 'preview-link',
+              placement: 'VERTICAL',
+              kind: 'PREVIEW',
+              label: 'Loja Roma',
+              url: 'https://www.loja.example.com/promo',
+              contactType: null,
+              contactValue: null,
+              previewImageUrl: 'https://loja.example.com/og.png',
+              previewDescription: 'Pizzas com 25% off',
+              textColor: '#111827',
+              backgroundColor: '#FFFFFF',
+              borderColor: '#E5E7EB',
+              borderEnabled: true,
+              sortOrder: 0,
+              active: true,
+            },
+          ],
+        }}
+      />,
+    );
+
+    const card = screen.getByTestId('preview-link-card');
+    expect(card).toHaveAttribute('href', 'https://www.loja.example.com/promo');
+    expect(card.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://loja.example.com/og.png',
+    );
+    expect(card).toHaveTextContent('Loja Roma');
+    expect(card).toHaveTextContent('Pizzas com 25% off');
+    expect(card).toHaveTextContent('loja.example.com');
+  });
+
   it('uses a WhatsApp icon for WhatsApp contact links', () => {
     render(
       <LinkPageRenderer

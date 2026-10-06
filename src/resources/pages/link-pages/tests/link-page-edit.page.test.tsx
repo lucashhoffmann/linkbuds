@@ -10,7 +10,9 @@ const mocks = vi.hoisted(() => ({
   useGetLinkPageUseCase: vi.fn(),
   useLinkPageAnalyticsInsightsUseCase: vi.fn(),
   useLinkPageLinkClicksUseCase: vi.fn(),
+  useLinkPageAnalyticsGeoUseCase: vi.fn(),
   useLinkPageMutations: vi.fn(),
+  useLinkPreviewUseCase: vi.fn(),
 }));
 
 vi.mock('@/app/modules/auth/hooks/use-entitlements', () => ({
@@ -22,7 +24,9 @@ vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useLinkPageAnalyticsInsightsUseCase:
     mocks.useLinkPageAnalyticsInsightsUseCase,
   useLinkPageLinkClicksUseCase: mocks.useLinkPageLinkClicksUseCase,
+  useLinkPageAnalyticsGeoUseCase: mocks.useLinkPageAnalyticsGeoUseCase,
   useLinkPageMutations: mocks.useLinkPageMutations,
+  useLinkPreviewUseCase: mocks.useLinkPreviewUseCase,
 }));
 
 const page: LinkPageDetail = {
@@ -188,6 +192,13 @@ describe('LinkPageEditPage', () => {
         sources: [],
         devices: [],
         countries: [],
+        visitorIps: [
+          {
+            ip: '203.0.113.7',
+            count: 3,
+            lastSeenAt: '2026-01-07T12:00:00.000Z',
+          },
+        ],
         limits: {
           maxRangeDays: 7,
           advancedDimensionsEnabled: false,
@@ -200,6 +211,12 @@ describe('LinkPageEditPage', () => {
         items: [{ linkId: 'link-a', clicks: 7 }],
       },
       isLoading: false,
+    });
+    mocks.useLinkPreviewUseCase.mockReturnValue({
+      ...createMutationMock(),
+      isError: false,
+      isLoading: false,
+      reset: vi.fn(),
     });
   });
 
@@ -321,10 +338,69 @@ describe('LinkPageEditPage', () => {
       kind: 'LINK',
       label: 'Reservar',
       placement: 'VERTICAL',
+      previewDescription: null,
+      previewImageUrl: null,
       sortOrder: 3,
       textColor: '#111827',
       url: 'https://example.com',
     });
+  });
+
+  it('fills a preview link from the site and keeps it editable', async () => {
+    const mutations = createMutationsMock();
+    mocks.useLinkPageMutations.mockReturnValue(mutations);
+    const getPreview = vi.fn().mockResolvedValue({
+      title: 'Loja Roma',
+      description: 'Pizzas com 25% off',
+      imageUrl: 'https://loja.example.com/og.png',
+    });
+    mocks.useLinkPreviewUseCase.mockReturnValue({
+      ...createMutationMock(),
+      mutateAsync: getPreview,
+      isError: false,
+      isLoading: false,
+      reset: vi.fn(),
+    });
+
+    renderLinkPageEditPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Adicionar link' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Tipo'), {
+      target: { value: 'PREVIEW' },
+    });
+    expect(within(dialog).getByLabelText('Posição')).toBeDisabled();
+    const url = within(dialog).getByLabelText('URL');
+    fireEvent.change(url, { target: { value: 'https://loja.example.com' } });
+    await act(async () => {
+      fireEvent.blur(url);
+    });
+
+    expect(getPreview).toHaveBeenCalledWith('https://loja.example.com');
+    expect(within(dialog).getByLabelText('Título')).toHaveValue('Loja Roma');
+    fireEvent.change(within(dialog).getByLabelText('Descrição'), {
+      target: { value: 'Promoção da semana' },
+    });
+    // Blur again with the same URL must not overwrite manual edits.
+    await act(async () => {
+      fireEvent.blur(url);
+    });
+    expect(getPreview).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Adicionar link' }),
+    );
+
+    expect(mutations.createLink.mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: 'PREVIEW',
+        label: 'Loja Roma',
+        placement: 'VERTICAL',
+        url: 'https://loja.example.com',
+        previewDescription: 'Promoção da semana',
+        previewImageUrl: 'https://loja.example.com/og.png',
+      }),
+    );
   });
 
   it('keeps the live preview as a contained sticky panel', () => {
@@ -374,6 +450,8 @@ describe('LinkPageEditPage', () => {
       kind: 'CONTACT',
       label: 'WhatsApp',
       placement: 'VERTICAL',
+      previewDescription: null,
+      previewImageUrl: null,
       sortOrder: 3,
       textColor: '#FFFFFF',
       url: null,
@@ -423,6 +501,8 @@ describe('LinkPageEditPage', () => {
         kind: 'LINK',
         label: 'A',
         placement: 'VERTICAL',
+        previewDescription: null,
+        previewImageUrl: null,
         textColor: '#111827',
         url: 'https://a.example.com',
       },
@@ -532,6 +612,10 @@ describe('LinkPageEditPage', () => {
 
     expect(screen.getByText(/plano grátis/i)).toBeInTheDocument();
     expect(screen.getByText('Online agora')).toBeInTheDocument();
+    expect(screen.getByText('203.0.113.7')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Expandir países no globo' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(
       screen.getAllByText(/disponível nos planos agência e personalizado/i)
@@ -539,7 +623,9 @@ describe('LinkPageEditPage', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('shows full analytics dimensions for agency and custom plans', () => {
+  it('shows full analytics dimensions for agency and custom plans', async () => {
+    // Lazy globe dialog + findBy need real timers.
+    vi.useRealTimers();
     const mutations = createMutationsMock();
     mocks.useLinkPageMutations.mockReturnValue(mutations);
     mocks.useLinkPageAnalyticsInsightsUseCase.mockReturnValue({
@@ -568,6 +654,7 @@ describe('LinkPageEditPage', () => {
         sources: [{ label: 'google', count: '30' }],
         devices: [{ label: 'mobile', count: '60' }],
         countries: [{ label: 'BR', count: '80' }],
+        visitorIps: [],
         limits: {
           maxRangeDays: null,
           advancedDimensionsEnabled: true,
@@ -585,6 +672,47 @@ describe('LinkPageEditPage', () => {
     expect(screen.getByText(/google/)).toBeInTheDocument();
     expect(screen.getByText(/mobile/)).toBeInTheDocument();
     expect(screen.getByText(/BR/)).toBeInTheDocument();
+
+    mocks.useLinkPageAnalyticsGeoUseCase.mockReturnValue({
+      data: {
+        realtime: false,
+        total: 1,
+        locations: [
+          {
+            countryCode: 'BR',
+            count: 1,
+            visits: [
+              {
+                createdAt: '2026-01-02T10:00:00.000Z',
+                ipAddress: '198.51.100.9',
+                deviceType: 'mobile',
+                browser: 'Chrome',
+                operatingSystem: 'Android',
+                source: 'instagram',
+              },
+            ],
+          },
+        ],
+      },
+      isLoading: false,
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Expandir países no globo' }),
+    );
+
+    expect(
+      await screen.findByRole('radio', { name: 'Tempo real' }),
+    ).toBeInTheDocument();
+    // Starts zoomed into the top country; user can zoom out to the world.
+    const zoomOut = screen.getByRole('button', { name: /ver mundo todo/i });
+    const zoomLayer = document.querySelector<SVGGElement>('svg > g');
+    expect(zoomLayer?.style.transform).toContain('scale(4)');
+    fireEvent.click(zoomOut);
+    expect(zoomLayer?.style.transform).toContain('scale(1)');
+    fireEvent.click(screen.getByRole('button', { name: /zoom em brasil/i }));
+    expect(zoomLayer?.style.transform).toContain('scale(4)');
+    fireEvent.click(screen.getByRole('button', { name: 'Brasil: 1 visita' }));
+    expect(await screen.findByText('198.51.100.9')).toBeInTheDocument();
   });
 });
 
