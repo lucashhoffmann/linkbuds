@@ -5,12 +5,20 @@ export type LinkPageLayout = 'LAYOUT_1' | 'LAYOUT_2' | 'LAYOUT_3';
 export type LinkPageBackgroundType = 'SOLID' | 'IMAGE' | 'GRADIENT';
 export type LinkPageFooterMode = 'LINKBUDS' | 'CUSTOM' | 'HIDDEN';
 export type LinkPageFooterStyle = 'TEXT' | 'PILL' | 'BOX';
+export type LinkPageFooterSize = 'SMALL' | 'MEDIUM' | 'LARGE';
 
 export type FooterSettings = {
   footerMode: LinkPageFooterMode;
   footerText: string | null;
   footerUrl: string | null;
   footerLogoUrl: string | null;
+  footerStyle?: LinkPageFooterStyle;
+  footerBackgroundColor?: string | null;
+  footerBorderColor?: string | null;
+  footerColor?: string | null;
+  footerBold?: boolean;
+  footerFontSize?: LinkPageFooterSize;
+  footerLogoSize?: LinkPageFooterSize;
 };
 export type LinkPageLinkPlacement = 'HORIZONTAL' | 'VERTICAL';
 /** PREVIEW = vertical card with image + description (from the site's OG tags). */
@@ -122,6 +130,8 @@ export type LinkPageDetail = LinkPageSummary & {
   footerStyle?: LinkPageFooterStyle;
   footerBackgroundColor?: string | null;
   footerBorderColor?: string | null;
+  footerFontSize?: LinkPageFooterSize;
+  footerLogoSize?: LinkPageFooterSize;
   avatarUrl: string | null;
   footerMode: LinkPageFooterMode;
   footerText: string | null;

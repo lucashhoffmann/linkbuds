@@ -104,7 +104,7 @@ export function DomainPanel({
           <Button
             type='button'
             size='sm'
-            variant='outline'
+            variant='destructive'
             onClick={async () => {
               if (
                 await confirmAction({

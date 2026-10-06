@@ -23,7 +23,7 @@ export function RegisterView() {
   return (
     <div className='animate-in fade-in slide-in-from-bottom-6 mx-auto flex w-full flex-col gap-6 duration-300'>
       <div className='space-y-2'>
-        <h1 className='text-foreground text-2xl leading-tight sm:text-3xl font-semibold tracking-tight'>
+        <h1 className='text-foreground text-2xl leading-tight font-semibold tracking-tight sm:text-3xl'>
           Criar uma conta
         </h1>
         <p className='text-muted-foreground text-sm'>

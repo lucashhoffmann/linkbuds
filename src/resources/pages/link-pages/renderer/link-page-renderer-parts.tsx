@@ -10,6 +10,7 @@ import {
 import { FaWhatsapp } from 'react-icons/fa';
 import { resolveLinkHref } from '@/app/modules/link-pages/utils/contact-url.util';
 import type {
+  FooterSettings,
   AnalyticsTargetType,
   LinkPageImage,
   LinkPageLink,
@@ -117,7 +118,7 @@ export function LinkPageShell({
       className={cn(
         'w-full bg-cover bg-center text-slate-950',
         preview
-          ? cn(linkPageDesignTokens.page.minHeightClass, 'flex flex-col p-5')
+          ? 'flex min-h-full flex-col p-5'
           : 'min-h-dvh px-4 py-6 sm:px-6 sm:py-10',
       )}
       style={style}
@@ -523,7 +524,24 @@ function VideoCard({ video }: { video: LinkPageVideo }) {
   );
 }
 
-export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
+const footerFontClass = {
+  SMALL: 'text-xs',
+  MEDIUM: 'text-sm',
+  LARGE: 'text-base',
+} as const;
+
+const footerLogoClass = {
+  SMALL: 'size-5',
+  MEDIUM: 'size-7',
+  LARGE: 'size-10',
+} as const;
+
+export function LinkPageFooter({
+  linkPage,
+}: {
+  linkPage: FooterSettings &
+    Pick<LinkPageViewModel, 'title' | 'footerColor' | 'footerBold'>;
+}) {
   if (linkPage.footerMode === 'HIDDEN') return null;
 
   if (linkPage.footerMode === 'CUSTOM') {
@@ -535,7 +553,8 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
     return (
       <footer
         className={cn(
-          'mt-8 text-center text-xs',
+          'mt-auto pt-8 text-center',
+          footerFontClass[linkPage.footerFontSize ?? 'SMALL'],
           boxed ? 'text-slate-950' : 'text-slate-500',
           linkPage.footerBold && 'font-semibold',
         )}
@@ -561,7 +580,10 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
             <img
               src={linkPage.footerLogoUrl}
               alt=''
-              className='size-5 rounded object-cover'
+              className={cn(
+                'rounded object-cover',
+                footerLogoClass[linkPage.footerLogoSize ?? 'SMALL'],
+              )}
             />
           )}
           {linkPage.footerText || 'Com LinkBuds'}

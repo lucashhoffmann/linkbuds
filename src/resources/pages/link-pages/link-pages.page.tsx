@@ -8,10 +8,12 @@ import {
   Link2,
   Pencil,
   Plus,
+  QrCode,
   Trash2,
   Trophy,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import {
   Link as RouterLink,
   useNavigate,
@@ -445,7 +447,7 @@ function PageCanvas({
 }) {
   const detail = useGetLinkPageUseCase(page.id);
   const url = publicUrl(usePublicOrigin(), page);
-  const [view, setView] = useState<'preview' | 'analytics' | 'posts'>(
+  const [view, setView] = useState<'preview' | 'analytics' | 'posts' | 'share'>(
     'preview',
   );
   const { analyticsOpen, toggleAnalytics } = usePreviewStore();
@@ -534,10 +536,16 @@ function PageCanvas({
           ...(page.type === 'POST'
             ? []
             : [{ value: 'posts' as const, label: 'Meus posts' }]),
+          { value: 'share', label: 'Compartilhar' },
         ]}
       />
 
-      {view === 'posts' ? (
+      {view === 'share' ? (
+        <ShareTab
+          defaultUrl={url}
+          name={page.publicPath}
+        />
+      ) : view === 'posts' ? (
         <PostsTab
           posts={posts}
           onView={onSelect}
@@ -578,6 +586,94 @@ function PageCanvas({
         )
       ) : (
         <p className='text-muted-foreground text-sm'>Carregando prévia...</p>
+      )}
+    </div>
+  );
+}
+
+/** QR code for the page link (or any URL the user types), downloadable as a high-res PNG. */
+function ShareTab({ defaultUrl, name }: { defaultUrl: string; name: string }) {
+  const [value, setValue] = useState(defaultUrl);
+  const [transparent, setTransparent] = useState(false);
+  const [dataUrl, setDataUrl] = useState('');
+  const text = value.trim();
+  // Stale while the next one renders; empty input shows nothing.
+  const qr = text ? dataUrl : '';
+
+  useEffect(() => {
+    if (!text) return;
+    let active = true;
+    void QRCode.toDataURL(text, {
+      width: 2048,
+      margin: 2,
+      color: { light: transparent ? '#0000' : '#ffffff' },
+    }).then((generated) => {
+      if (active) setDataUrl(generated);
+    });
+    return () => {
+      active = false;
+    };
+  }, [text, transparent]);
+
+  return (
+    <div className='grid max-w-md gap-4'>
+      <div className='grid gap-2'>
+        <Label htmlFor='share-url'>Link</Label>
+        <div className='flex gap-2'>
+          <Input
+            id='share-url'
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder='https://'
+          />
+          {value !== defaultUrl && (
+            <Button
+              variant='outline'
+              onClick={() => setValue(defaultUrl)}
+            >
+              Restaurar
+            </Button>
+          )}
+        </div>
+      </div>
+      <label className='flex items-center gap-2 text-sm'>
+        <input
+          type='checkbox'
+          checked={transparent}
+          onChange={(event) => setTransparent(event.target.checked)}
+        />
+        Fundo transparente
+      </label>
+      {qr ? (
+        <>
+          <img
+            src={qr}
+            alt={`QR code de ${text}`}
+            className={cn(
+              'aspect-square w-full max-w-72 rounded-lg border',
+              // Checkerboard shows the transparency in the preview.
+              transparent
+                ? 'bg-[repeating-conic-gradient(#e5e5e5_0_25%,#fff_0_50%)] bg-size-[16px_16px]'
+                : 'bg-white',
+            )}
+          />
+          <Button
+            asChild
+            className='w-fit'
+          >
+            <a
+              href={qr}
+              download={`qrcode-${name}.png`}
+            >
+              <QrCode className='size-4' />
+              Baixar QR code (PNG 2048px)
+            </a>
+          </Button>
+        </>
+      ) : (
+        <p className='text-muted-foreground text-sm'>
+          Digite um link para gerar o QR code.
+        </p>
       )}
     </div>
   );

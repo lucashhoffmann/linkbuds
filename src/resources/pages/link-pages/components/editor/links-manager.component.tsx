@@ -638,7 +638,7 @@ export function LinksManager({
               <Button
                 type='button'
                 size='sm'
-                variant='ghost'
+                variant='destructive'
                 onClick={() => removeLink(link)}
               >
                 Excluir
@@ -728,7 +728,7 @@ export function SortableLinkRow({
         <Button
           type='button'
           size='sm'
-          variant='outline'
+          variant='info'
           aria-label='Arquivar'
           className='size-9 px-0 sm:w-auto sm:px-3'
           onClick={onArchive}
@@ -846,7 +846,7 @@ function SortableMediaRow({
         <Button
           type='button'
           size='sm'
-          variant='outline'
+          variant='destructive'
           aria-label='Excluir'
           className='size-9 px-0 sm:w-auto sm:px-3'
           onClick={onRemove}

@@ -1,15 +1,14 @@
 import { useState } from 'react';
 import { Loader2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSession } from '@/app/modules/auth/hooks';
 import { useEntitlements } from '@/app/modules/auth/hooks/use-entitlements';
-import type {
-  FooterSettings,
-  LinkPageFooterMode,
-} from '@/app/modules/link-pages/types/link-pages.types';
+import { LinkPageFooter } from '@/resources/pages/link-pages/renderer/link-page-renderer-parts';
+import type { FooterSettings } from '@/app/modules/link-pages/types/link-pages.types';
 import { useFooterDefaultUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
+import { FooterEditor } from '@/resources/pages/link-pages/components/editor/footer-editor.component';
+import { confirmAction } from '@/resources/components/base';
 import { Button } from '@/resources/components/ui/button';
-import { Input } from '@/resources/components/ui/input';
-import { Select } from '@/resources/components/ui/select';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 
 export function FooterDefaultSection() {
@@ -35,10 +34,17 @@ function FooterDefaultForm({
   update: ReturnType<typeof useFooterDefaultUseCase>['update'];
 }) {
   const { whiteLabel } = useEntitlements();
+  const { company } = useSession();
   const [draft, setDraft] = useState(initial);
-  const [applyToExisting, setApplyToExisting] = useState(false);
 
   async function save() {
+    const applyToExisting = await confirmAction({
+      title: 'Aplicar a todas as páginas?',
+      description:
+        'O rodapé padrão vale para páginas novas. Quer substituir também o rodapé de todas as páginas existentes?',
+      confirmLabel: 'Aplicar a todas',
+      cancelLabel: 'Só páginas novas',
+    });
     try {
       await update.mutateAsync({ ...draft, applyToExisting });
       toast.success(
@@ -50,23 +56,6 @@ function FooterDefaultForm({
       axiosErrorHandler(error);
     }
   }
-
-  const textField = (
-    key: 'footerText' | 'footerUrl' | 'footerLogoUrl',
-    placeholder: string,
-  ) => (
-    <Input
-      placeholder={placeholder}
-      disabled={!whiteLabel}
-      value={draft[key] ?? ''}
-      onChange={(event) =>
-        setDraft((current) => ({
-          ...current,
-          [key]: event.target.value || null,
-        }))
-      }
-    />
-  );
 
   return (
     <section className='bg-card flex flex-col gap-4 rounded-2xl border p-4'>
@@ -85,38 +74,17 @@ function FooterDefaultForm({
         </div>
       )}
 
-      <Select
-        value={draft.footerMode}
-        disabled={!whiteLabel}
-        onChange={(event) =>
-          setDraft((current) => ({
-            ...current,
-            footerMode: event.target.value as LinkPageFooterMode,
-          }))
-        }
-      >
-        <option value='LINKBUDS'>Com LinkBuds</option>
-        <option value='CUSTOM'>Rodapé personalizado</option>
-        <option value='HIDDEN'>Ocultar rodapé</option>
-      </Select>
+      <FooterEditor
+        value={draft}
+        whiteLabel={whiteLabel}
+        onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+      />
 
-      {draft.footerMode === 'CUSTOM' && (
-        <div className='grid gap-3 md:grid-cols-3'>
-          {textField('footerText', 'Texto')}
-          {textField('footerUrl', 'URL')}
-          {textField('footerLogoUrl', 'URL do logo')}
+      {draft.footerMode !== 'HIDDEN' && (
+        <div className='bg-muted/60 flex justify-center rounded-xl border p-6 [&>footer]:m-0 [&>footer]:p-0'>
+          <LinkPageFooter linkPage={{ ...draft, title: company?.name ?? '' }} />
         </div>
       )}
-
-      <label className='flex items-center gap-2 text-sm'>
-        <input
-          type='checkbox'
-          checked={applyToExisting}
-          disabled={!whiteLabel}
-          onChange={(event) => setApplyToExisting(event.target.checked)}
-        />
-        Aplicar também às páginas existentes (substitui o rodapé de cada uma)
-      </label>
 
       <Button
         className='self-end'

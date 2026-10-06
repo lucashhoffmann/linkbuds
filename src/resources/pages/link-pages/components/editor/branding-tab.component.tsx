@@ -1,16 +1,12 @@
 import { type Dispatch, type SetStateAction } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Globe2, Lock } from 'lucide-react';
-import type {
-  LinkPageDetail,
-  LinkPageFooterMode,
-} from '@/app/modules/link-pages/types/link-pages.types';
+import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
 import { Button } from '@/resources/components/ui/button';
-import { Input } from '@/resources/components/ui/input';
-import { Select } from '@/resources/components/ui/select';
 import { routes } from '@/shared/constants/router.constants';
 import type { AutosaveStatus } from './editor.types';
-import { Field, EditorSection } from './editor-fields.component';
+import { EditorSection } from './editor-fields.component';
+import { FooterEditor } from './footer-editor.component';
 
 export function BrandingTab({
   draft,
@@ -54,63 +50,11 @@ export function BrandingTab({
           modo Com LinkBuds permanece permitido.
         </div>
       )}
-      <Field label='Rodapé'>
-        <Select
-          value={draft.footerMode}
-          onChange={(event) =>
-            setDraft((current) => ({
-              ...current,
-              footerMode: event.target.value as LinkPageFooterMode,
-            }))
-          }
-        >
-          <option value='LINKBUDS'>Com LinkBuds</option>
-          <option
-            value='CUSTOM'
-            disabled={!enabled}
-          >
-            Rodapé personalizado
-          </option>
-          <option
-            value='HIDDEN'
-            disabled={!enabled}
-          >
-            Ocultar rodapé
-          </option>
-        </Select>
-      </Field>
-      <div className='grid gap-3 md:grid-cols-3'>
-        <Input
-          placeholder='Texto'
-          value={draft.footerText ?? ''}
-          onChange={(event) =>
-            setDraft((current) => ({
-              ...current,
-              footerText: event.target.value || null,
-            }))
-          }
-        />
-        <Input
-          placeholder='URL'
-          value={draft.footerUrl ?? ''}
-          onChange={(event) =>
-            setDraft((current) => ({
-              ...current,
-              footerUrl: event.target.value || null,
-            }))
-          }
-        />
-        <Input
-          placeholder='URL do logo'
-          value={draft.footerLogoUrl ?? ''}
-          onChange={(event) =>
-            setDraft((current) => ({
-              ...current,
-              footerLogoUrl: event.target.value || null,
-            }))
-          }
-        />
-      </div>
+      <FooterEditor
+        value={draft}
+        whiteLabel={enabled}
+        onChange={(patch) => setDraft((current) => ({ ...current, ...patch }))}
+      />
     </EditorSection>
   );
 }

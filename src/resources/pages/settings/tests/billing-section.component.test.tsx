@@ -185,9 +185,7 @@ describe('BillingSection', () => {
     expect(screen.getByText('Analytics completo')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('radio', { name: /^Anual/ }));
-    expect(
-      screen.getByText(/R\$\s1\.670,48$/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s1\.670,48$/)).toBeInTheDocument();
     expect(screen.getByText(/ou até 12x no cartão/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /^Assinar/ }));

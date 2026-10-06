@@ -163,7 +163,7 @@ export function SocialManager({
                 <Button
                   type='button'
                   size='sm'
-                  variant='outline'
+                  variant='destructive'
                   onClick={() =>
                     mutations.deleteSocialLink.mutate(socialLink.id)
                   }

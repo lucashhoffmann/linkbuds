@@ -366,14 +366,9 @@ describe('LinkPageEditPage', () => {
       layout: 'LAYOUT_2',
       titleColor: null,
       subtitleColor: null,
-      footerColor: null,
       backgroundGradientColor: '#FFFFFF',
       titleBold: true,
       subtitleBold: false,
-      footerBold: false,
-      footerStyle: 'TEXT',
-      footerBackgroundColor: null,
-      footerBorderColor: null,
     });
 
     fireEvent.click(screen.getByRole('radio', { name: 'Configurações' }));
@@ -408,6 +403,13 @@ describe('LinkPageEditPage', () => {
       footerMode: 'HIDDEN',
       footerText: null,
       footerUrl: null,
+      footerColor: null,
+      footerBold: false,
+      footerStyle: 'TEXT',
+      footerBackgroundColor: null,
+      footerBorderColor: null,
+      footerFontSize: 'SMALL',
+      footerLogoSize: 'SMALL',
     });
   });
 

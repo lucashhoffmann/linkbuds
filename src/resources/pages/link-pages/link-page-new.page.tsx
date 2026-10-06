@@ -11,6 +11,7 @@ import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { cn } from '@/shared/lib/utils';
 import { routes } from '@/shared/constants/router.constants';
+import { linkPageDesignTokens } from './design-system/link-page-design-tokens';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 
 function slugify(value: string) {
@@ -266,7 +267,12 @@ export function LinkPageNewPage() {
       <aside className='rounded-md border bg-slate-100 p-4 dark:bg-slate-950'>
         <p className='mb-3 text-sm font-medium'>Prévia</p>
         <div className='h-[500px] overflow-hidden rounded-md sm:h-[530px]'>
-          <div className='mx-auto w-full max-w-[390px] origin-top scale-[0.68] sm:scale-[0.72]'>
+          <div
+            className={cn(
+              'mx-auto flex w-full max-w-[390px] origin-top scale-[0.68] flex-col sm:scale-[0.72] [&>*]:flex-1',
+              linkPageDesignTokens.page.minHeightClass,
+            )}
+          >
             <LinkPageRenderer
               linkPage={previewLinkPage}
               preview

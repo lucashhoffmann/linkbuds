@@ -48,7 +48,7 @@ describe('LinkPageRenderer', () => {
     expect(shell).toHaveAttribute('data-preview', 'true');
     expect(shell).toHaveClass('w-full');
     expect(shell).not.toHaveClass('max-w-[430px]');
-    expect(shell).toHaveClass('min-h-[720px]');
+    expect(shell).toHaveClass('min-h-full');
     expect(shell).not.toHaveClass('rounded-[28px]');
     expect(shell).not.toHaveClass('shadow-2xl');
   });

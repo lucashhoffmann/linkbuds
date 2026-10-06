@@ -84,7 +84,9 @@ describe('PricingPlansDialog', () => {
 
     renderPricingPlansDialog();
     await user.click(screen.getByRole('button', { name: 'Planos' }));
-    await user.click(await screen.findByRole('link', { name: 'Assinar Agencia' }));
+    await user.click(
+      await screen.findByRole('link', { name: 'Assinar Agencia' }),
+    );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('location')).toHaveTextContent(routes.register);

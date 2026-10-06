@@ -1,8 +1,5 @@
 import { type Dispatch, type SetStateAction } from 'react';
-import type {
-  LinkPageDetail,
-  LinkPageFooterStyle,
-} from '@/app/modules/link-pages/types/link-pages.types';
+import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
 import { ColorPicker } from '@/resources/components/ui/color-picker';
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
@@ -14,7 +11,7 @@ import {
   EditorSection,
 } from './editor-fields.component';
 
-// Renderer defaults (text-slate-950/600/500, title bold), shown while unset.
+// Renderer defaults (text-slate-950/600, title bold), shown while unset.
 const textColorFields = [
   {
     key: 'titleColor',
@@ -30,19 +27,6 @@ const textColorFields = [
     fallback: '#475569',
     boldFallback: false,
   },
-  {
-    key: 'footerColor',
-    boldKey: 'footerBold',
-    label: 'Cor do rodapé',
-    fallback: '#64748B',
-    boldFallback: false,
-  },
-] as const;
-
-// Renderer defaults: white background, subtle ring instead of a border.
-const footerBoxFields = [
-  { key: 'footerBackgroundColor', label: 'Fundo', fallback: '#FFFFFF' },
-  { key: 'footerBorderColor', label: 'Borda', fallback: '#E2E8F0' },
 ] as const;
 
 export function AppearanceTab({
@@ -182,58 +166,6 @@ export function AppearanceTab({
           ),
         )}
       </div>
-      {draft.footerMode === 'CUSTOM' && (
-        <div className='grid gap-4 border-t pt-4 md:grid-cols-3'>
-          <h3 className='text-muted-foreground text-sm font-medium md:col-span-3'>
-            Rodapé personalizado
-          </h3>
-          <Field label='Estilo'>
-            <Select
-              value={draft.footerStyle ?? 'TEXT'}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  footerStyle: event.target.value as LinkPageFooterStyle,
-                }))
-              }
-            >
-              <option value='TEXT'>Só texto</option>
-              <option value='PILL'>Pílula</option>
-              <option value='BOX'>Caixa</option>
-            </Select>
-          </Field>
-          {draft.footerStyle &&
-            draft.footerStyle !== 'TEXT' &&
-            footerBoxFields.map(({ key, label, fallback }) => (
-              <Field
-                key={key}
-                label={label}
-              >
-                <div className='flex gap-2'>
-                  <ColorPicker
-                    label={label}
-                    value={draft[key] ?? fallback}
-                    onChange={(color) =>
-                      setDraft((current) => ({ ...current, [key]: color }))
-                    }
-                    className='flex-1'
-                  />
-                  <Button
-                    type='button'
-                    variant='outline'
-                    className='h-12'
-                    disabled={!draft[key]}
-                    onClick={() =>
-                      setDraft((current) => ({ ...current, [key]: null }))
-                    }
-                  >
-                    Padrão
-                  </Button>
-                </div>
-              </Field>
-            ))}
-        </div>
-      )}
     </EditorSection>
   );
 }
