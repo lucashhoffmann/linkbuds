@@ -12,6 +12,7 @@ export interface IUserSession {
 /** What the company can use: plan merged with an active special condition. */
 export interface ICompanyEntitlements {
   planCode: string;
+  freePlan: boolean;
   maxClientPages: number;
   maxMembers: number;
   maxForms: number;

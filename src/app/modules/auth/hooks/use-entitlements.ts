@@ -3,6 +3,7 @@ import { useSession } from './use-session';
 
 const NO_ENTITLEMENTS: ICompanyEntitlements = {
   planCode: '',
+  freePlan: false,
   maxClientPages: 0,
   maxMembers: 1,
   maxForms: 0,

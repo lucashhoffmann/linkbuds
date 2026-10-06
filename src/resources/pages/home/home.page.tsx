@@ -138,7 +138,7 @@ export function HomePage() {
         </Button>
       </header>
 
-      {company?.entitlements.planCode === 'FREE' && (
+      {company?.entitlements.freePlan && (
         <section className='from-primary/15 via-primary/5 border-primary/30 flex flex-wrap items-center gap-4 rounded-2xl border bg-gradient-to-r p-4 md:p-5'>
           <div className='bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-xl'>
             <Sparkles className='size-5' />
