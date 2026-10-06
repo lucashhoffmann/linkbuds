@@ -1,9 +1,11 @@
 import { type Dispatch, type SetStateAction } from 'react';
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react';
 import type {
   FormConfig,
   FormField,
   FormFieldType,
+  FormMode,
+  FormScoring,
   LinkPageDetail,
 } from '@/app/modules/link-pages/types/link-pages.types';
 import { Button } from '@/resources/components/ui/button';
@@ -22,29 +24,172 @@ const fieldTypeLabels: Record<FormFieldType, string> = {
   NUMBER: 'Número',
   DATE: 'Data',
   SELECT: 'Lista de opções',
+  CHOICE: 'Escolha única',
+  MULTI_CHOICE: 'Múltipla escolha',
   CHECKBOX: 'Caixa de seleção (aceite)',
 };
+
+const optionTypes: FormFieldType[] = ['SELECT', 'CHOICE', 'MULTI_CHOICE'];
 
 function newFieldId() {
   return `campo-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** What autosave sends: options typed one per line, blanks dropped. */
+/** What autosave sends: blank options dropped (with their points). */
 export function cleanFormConfig(form: FormConfig): FormConfig {
   return {
     ...form,
     redirectUrl: form.redirectUrl?.trim() || null,
-    fields: form.fields.map(({ options, ...field }) =>
-      field.type === 'SELECT'
-        ? {
-            ...field,
-            options: (options ?? [])
-              .map((option) => option.trim())
-              .filter(Boolean),
-          }
-        : field,
-    ),
+    fields: form.fields.map(({ options, points, allowOther, ...field }) => {
+      if (!optionTypes.includes(field.type)) return field;
+      const kept = (options ?? []).flatMap((option, index) =>
+        option.trim()
+          ? [{ option: option.trim(), point: points?.[index] ?? 0 }]
+          : [],
+      );
+      return {
+        ...field,
+        options: kept.map(({ option }) => option),
+        points: kept.map(({ point }) => point),
+        ...(field.type !== 'SELECT' && { allowOther }),
+      };
+    }),
   };
+}
+
+/**
+ * One row per option: text, score control (when scoring is on) and remove.
+ * `points` stays aligned with `options` by index.
+ */
+function OptionsEditor({
+  field,
+  kind,
+  onChange,
+}: {
+  field: FormField;
+  kind: FormScoring['kind'] | null;
+  onChange: (patch: Pick<FormField, 'options' | 'points'>) => void;
+}) {
+  const options = field.options ?? [];
+  const points = options.map((_, index) => field.points?.[index] ?? 0);
+  const multiple = field.type === 'MULTI_CHOICE';
+  const setPoint = (index: number, point: number) =>
+    onChange({
+      options,
+      points: points.map((current, i) =>
+        i === index
+          ? point
+          : // Single answer: only one option can be the right one.
+            kind === 'CORRECT' && !multiple && point
+            ? 0
+            : current,
+      ),
+    });
+
+  return (
+    <Field
+      label={
+        kind === 'CORRECT'
+          ? 'Opções (marque a correta)'
+          : kind === 'POINTS'
+            ? 'Opções e pontos'
+            : 'Opções'
+      }
+    >
+      <ul className='grid gap-2'>
+        {options.map((option, index) => (
+          <li
+            key={index}
+            className='flex items-center gap-2'
+          >
+            {kind === 'CORRECT' && (
+              <input
+                type={multiple ? 'checkbox' : 'radio'}
+                name={`correta-${field.id}`}
+                aria-label={`Opção ${index + 1} é correta`}
+                title='Correta'
+                className='size-4 shrink-0'
+                checked={points[index] > 0}
+                onChange={(event) =>
+                  setPoint(index, event.target.checked ? 1 : 0)
+                }
+              />
+            )}
+            <Input
+              aria-label={`Opção ${index + 1}`}
+              placeholder={`Opção ${index + 1}`}
+              maxLength={120}
+              value={option}
+              onChange={(event) =>
+                onChange({
+                  options: options.map((current, i) =>
+                    i === index ? event.target.value : current,
+                  ),
+                  points,
+                })
+              }
+            />
+            {kind === 'POINTS' && (
+              <Input
+                type='number'
+                aria-label={`Pontos da opção ${index + 1}`}
+                title='Pontos'
+                min={-1000}
+                max={1000}
+                className='w-24 shrink-0'
+                value={points[index]}
+                onChange={(event) =>
+                  setPoint(
+                    index,
+                    Math.max(
+                      -1000,
+                      Math.min(1000, Math.trunc(Number(event.target.value))),
+                    ) || 0,
+                  )
+                }
+              />
+            )}
+            <Button
+              type='button'
+              variant='ghost'
+              size='icon'
+              aria-label={`Remover opção ${index + 1}`}
+              disabled={options.length <= 1}
+              onClick={() =>
+                onChange({
+                  options: options.filter((_, i) => i !== index),
+                  points: points.filter((_, i) => i !== index),
+                })
+              }
+            >
+              <X className='size-4' />
+            </Button>
+          </li>
+        ))}
+      </ul>
+      <Button
+        type='button'
+        variant='outline'
+        size='sm'
+        className='justify-self-start'
+        disabled={options.length >= 30}
+        onClick={() =>
+          onChange({
+            options: [...options, `Opção ${options.length + 1}`],
+            points: [...points, 0],
+          })
+        }
+      >
+        <Plus className='size-4' />
+        Adicionar opção
+      </Button>
+      {kind === 'CORRECT' && multiple && (
+        <p className='text-muted-foreground text-xs'>
+          Acerta quem marcar exatamente as corretas.
+        </p>
+      )}
+    </Field>
+  );
 }
 
 /** FORM pages: build the fields; answers live in the page canvas (Respostas). */
@@ -82,6 +227,77 @@ export function FormTab({
       title='Formulário'
       status={status}
     >
+      <div className='grid gap-4 md:grid-cols-2'>
+        <Field label='Exibição'>
+          <Select
+            aria-label='Exibição'
+            value={form.mode ?? 'LIST'}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                mode: event.target.value as FormMode,
+              }))
+            }
+          >
+            <option value='LIST'>Lista (todos os campos numa tela)</option>
+            <option value='QUESTIONNAIRE'>
+              Questionário (uma pergunta por vez)
+            </option>
+          </Select>
+        </Field>
+        <Field label='Pontuação'>
+          <Select
+            aria-label='Pontuação'
+            value={
+              form.scoring ? (form.scoring.show ? 'SHOWN' : 'HIDDEN') : 'OFF'
+            }
+            onChange={(event) => {
+              const value = event.target.value;
+              setForm((current) => ({
+                ...current,
+                scoring:
+                  value === 'OFF'
+                    ? null
+                    : {
+                        kind: current.scoring?.kind ?? 'CORRECT',
+                        show: value === 'SHOWN',
+                      },
+              }));
+            }}
+          >
+            <option value='OFF'>Só coletar respostas</option>
+            <option value='HIDDEN'>Pontuar sem mostrar ao visitante</option>
+            <option value='SHOWN'>Pontuar e mostrar a nota no final</option>
+          </Select>
+        </Field>
+        {form.scoring && (
+          <Field label='Como pontuar'>
+            <Select
+              aria-label='Como pontuar'
+              value={form.scoring.kind}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  scoring: {
+                    show: current.scoring?.show ?? false,
+                    kind: event.target.value as FormScoring['kind'],
+                  },
+                }))
+              }
+            >
+              <option value='CORRECT'>
+                Opção correta (acertos / perguntas)
+              </option>
+              <option value='POINTS'>Pontos por opção (soma)</option>
+            </Select>
+            <p className='text-muted-foreground text-xs'>
+              Vale para Lista, Escolha única e Múltipla escolha. Perguntas sem
+              pontos não contam. A nota aparece em Respostas, CSV, planilha e
+              Análises.
+            </p>
+          </Field>
+        )}
+      </div>
       <ol className='grid gap-3'>
         {form.fields.map((field, index) => (
           <li
@@ -103,12 +319,21 @@ export function FormTab({
                 value={field.type}
                 onChange={(event) => {
                   const type = event.target.value as FormFieldType;
+                  const withOptions = optionTypes.includes(type);
                   patchField(field.id, {
                     type,
-                    options:
-                      type === 'SELECT'
-                        ? (field.options ?? ['Opção 1'])
+                    options: withOptions
+                      ? (field.options ?? ['Opção 1'])
+                      : undefined,
+                    points: withOptions ? field.points : undefined,
+                    allowOther:
+                      type === 'CHOICE' || type === 'MULTI_CHOICE'
+                        ? field.allowOther
                         : undefined,
+                    unique:
+                      type === 'CHECKBOX' || type === 'MULTI_CHOICE'
+                        ? undefined
+                        : field.unique,
                   });
                 }}
               >
@@ -128,7 +353,9 @@ export function FormTab({
                 placeholder={
                   field.type === 'SELECT'
                     ? 'Texto antes de escolher (opcional)'
-                    : 'Texto de exemplo (opcional)'
+                    : field.type === 'CHOICE' || field.type === 'MULTI_CHOICE'
+                      ? 'Texto do campo "Outro" (opcional)'
+                      : 'Texto de exemplo (opcional)'
                 }
                 maxLength={120}
                 value={field.placeholder ?? ''}
@@ -139,32 +366,55 @@ export function FormTab({
                 }
               />
             )}
-            {field.type === 'SELECT' && (
-              <Field label='Opções (uma por linha)'>
-                <textarea
-                  aria-label={`Opções do campo ${index + 1}`}
-                  rows={3}
-                  className='border-input bg-background rounded-md border px-3 py-2 text-sm'
-                  value={(field.options ?? []).join('\n')}
-                  onChange={(event) =>
-                    patchField(field.id, {
-                      options: event.target.value.split('\n'),
-                    })
-                  }
-                />
-              </Field>
+            {optionTypes.includes(field.type) && (
+              <OptionsEditor
+                field={field}
+                kind={form.scoring?.kind ?? null}
+                onChange={(patch) => patchField(field.id, patch)}
+              />
             )}
             <div className='flex flex-wrap items-center gap-2'>
-              <label className='mr-auto flex items-center gap-2 text-sm'>
-                <input
-                  type='checkbox'
-                  checked={field.required}
-                  onChange={(event) =>
-                    patchField(field.id, { required: event.target.checked })
-                  }
-                />
-                Obrigatório
-              </label>
+              <div className='mr-auto flex flex-wrap items-center gap-x-4 gap-y-1'>
+                <label className='flex items-center gap-2 text-sm'>
+                  <input
+                    type='checkbox'
+                    checked={field.required}
+                    onChange={(event) =>
+                      patchField(field.id, { required: event.target.checked })
+                    }
+                  />
+                  Obrigatório
+                </label>
+                {(field.type === 'CHOICE' || field.type === 'MULTI_CHOICE') && (
+                  <label className='flex items-center gap-2 text-sm'>
+                    <input
+                      type='checkbox'
+                      checked={field.allowOther ?? false}
+                      onChange={(event) =>
+                        patchField(field.id, {
+                          allowOther: event.target.checked,
+                        })
+                      }
+                    />
+                    Permitir &quot;Outro&quot; (texto livre)
+                  </label>
+                )}
+                {field.type !== 'CHECKBOX' && field.type !== 'MULTI_CHOICE' && (
+                  <label
+                    className='flex items-center gap-2 text-sm'
+                    title='Recusa um novo envio com o mesmo valor neste corte (ex.: um por email)'
+                  >
+                    <input
+                      type='checkbox'
+                      checked={field.unique ?? false}
+                      onChange={(event) =>
+                        patchField(field.id, { unique: event.target.checked })
+                      }
+                    />
+                    Resposta única
+                  </label>
+                )}
+              </div>
               <Button
                 type='button'
                 variant='outline'
@@ -268,6 +518,27 @@ export function FormTab({
             />
           </Field>
         </div>
+        <Field label='Limite de respostas (opcional)'>
+          <Input
+            type='number'
+            aria-label='Limite de respostas'
+            min={1}
+            max={1000000}
+            placeholder='Sem limite'
+            value={form.maxResponses ?? ''}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                maxResponses: event.target.value
+                  ? Math.max(1, Math.trunc(Number(event.target.value)))
+                  : null,
+              }))
+            }
+          />
+          <p className='text-muted-foreground text-xs'>
+            Ao atingir, o formulário fecha. Reabra em Respostas.
+          </p>
+        </Field>
         <label className='flex items-center gap-2 text-sm md:col-span-2'>
           <Switch
             checked={form.successAnimation !== false}

@@ -64,8 +64,8 @@ export function PricingPlansDialog({ trigger }: IPricingPlansDialogProps) {
                 </DialogTitle>
               </div>
               <DialogDescription className='max-w-2xl text-sm'>
-                Escolha o plano ideal para metrificar, controlar e gerenciar
-                seus links e de seus clientes.
+                Escolha o plano ideal para gerenciar links, formulários e
+                questionários, seus e de seus clientes, com métricas de tudo.
               </DialogDescription>
             </div>
 

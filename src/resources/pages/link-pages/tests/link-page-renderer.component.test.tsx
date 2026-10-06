@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PublicLinkPage } from '@/app/modules/link-pages/types/link-pages.types';
 import { LinkPageRenderer } from '../renderer/link-page-renderer.component';
@@ -392,5 +392,109 @@ describe('LinkPageRenderer', () => {
 
     expect(share).not.toHaveBeenCalled();
     expect(writeText).not.toHaveBeenCalled();
+  });
+
+  it('steps through a questionnaire, sends choices and shows the score', async () => {
+    const onSubmitForm = vi
+      .fn()
+      .mockResolvedValue({ ok: true, score: { score: 1, max: 2 } });
+
+    render(
+      <LinkPageRenderer
+        linkPage={{
+          ...page,
+          form: {
+            mode: 'QUESTIONNAIRE',
+            scoring: { kind: 'CORRECT', show: true },
+            submitLabel: 'Enviar',
+            successMessage: 'Valeu!',
+            fields: [
+              {
+                id: 'capital',
+                type: 'CHOICE',
+                label: 'Capital?',
+                required: true,
+                options: ['Rio', 'Brasília'],
+                allowOther: true,
+              },
+              {
+                id: 'primos',
+                type: 'MULTI_CHOICE',
+                label: 'Primos?',
+                required: false,
+                options: ['2', '3', '4'],
+              },
+            ],
+          },
+        }}
+        onSubmitForm={onSubmitForm}
+      />,
+    );
+
+    expect(screen.getByText('Pergunta 1 de 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Brasília'));
+    fireEvent.click(screen.getByRole('button', { name: 'Próxima' }));
+    fireEvent.click(await screen.findByLabelText('2'));
+    fireEvent.click(screen.getByLabelText('3'));
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar' }));
+
+    await waitFor(() =>
+      expect(onSubmitForm).toHaveBeenCalledWith(
+        { capital: 'Brasília', primos: ['2', '3'] },
+        '',
+      ),
+    );
+    expect(await screen.findByText('Sua nota: 1/2')).toBeInTheDocument();
+  });
+
+  it('renders a centered pill text block with its background', () => {
+    render(
+      <LinkPageRenderer
+        linkPage={{
+          ...page,
+          texts: [
+            {
+              id: 'text-id',
+              content: [{ text: 'Promoção' }],
+              style: 'PILL',
+              align: 'CENTER',
+              backgroundColor: '#EF4444',
+              borderColor: null,
+              sortOrder: 0,
+              active: true,
+            },
+          ],
+        }}
+      />,
+    );
+
+    const block = screen.getByTestId('text-block');
+
+    expect(block).toHaveTextContent('Promoção');
+    expect(block).toHaveClass('rounded-3xl', 'inline-block');
+    expect(block).toHaveStyle({ backgroundColor: '#EF4444' });
+    expect(block.parentElement).toHaveClass('text-center');
+  });
+
+  it('stretches a full-width box text block', () => {
+    render(
+      <LinkPageRenderer
+        linkPage={{
+          ...page,
+          texts: [
+            {
+              id: 'text-id',
+              content: [{ text: 'Aviso' }],
+              style: 'BOX',
+              fullWidth: true,
+              sortOrder: 0,
+              active: true,
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('text-block')).not.toHaveClass('inline-block');
   });
 });

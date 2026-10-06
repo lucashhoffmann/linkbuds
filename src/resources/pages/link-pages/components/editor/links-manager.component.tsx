@@ -30,6 +30,7 @@ import {
   MousePointerClick,
   Pencil,
   Trash2,
+  Type,
 } from 'lucide-react';
 import {
   useLinkPageMutations,
@@ -40,6 +41,7 @@ import type {
   LinkPageImage,
   LinkPageLink,
   LinkPageVideo,
+  LinkPageText,
   LinkPageLinkKind,
   LinkPageLinkPlacement,
 } from '@/app/modules/link-pages/types/link-pages.types';
@@ -60,6 +62,7 @@ import {
   type ContentItem,
 } from '@/app/modules/link-pages/utils/content-order.util';
 import { mediaSizeOptions } from '@/app/modules/link-pages/utils/media.util';
+import { textRunsToPlain } from '@/app/modules/link-pages/utils/text-runs.util';
 import { cn } from '@/shared/lib/utils';
 import type { LinkClickCountMap, LinkFormValues } from './editor.types';
 import {
@@ -72,8 +75,10 @@ import {
 } from './editor.utils';
 import {
   ImageDialog,
+  TextDialog,
   VideoDialog,
   type ImagePayload,
+  type TextPayload,
   type VideoPayload,
 } from './media-dialogs.component';
 import {
@@ -100,6 +105,10 @@ export function LinksManager({
     video: LinkPageVideo | null;
   } | null>(null);
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  // null = closed; { text: null } = new text block.
+  const [textDialog, setTextDialog] = useState<{
+    text: LinkPageText | null;
+  } | null>(null);
   const [editingLink, setEditingLink] = useState<LinkPageLink | null>(null);
   const [linkForm, setLinkForm] = useState<LinkFormValues>(() =>
     createLinkForm(),
@@ -240,8 +249,34 @@ export function LinksManager({
 
   const activeLinks = draft.links.filter((link) => link.active);
   const archivedLinks = draft.links.filter((link) => !link.active);
-  // One draggable list: links, images and videos share the page order.
-  const contentItems = orderContent(activeLinks, draft.images, draft.videos);
+  // One draggable list: links, images, videos and texts share the page order.
+  const contentItems = orderContent(
+    activeLinks,
+    draft.images,
+    draft.videos,
+    draft.texts,
+  );
+
+  const saveText = async (payload: TextPayload) => {
+    const editing = textDialog?.text;
+    if (!editing) {
+      await mutations.createText.mutateAsync({
+        ...payload,
+        sortOrder: nextSortOrder(draft),
+        active: true,
+      });
+      return;
+    }
+
+    await mutations.updateText.mutateAsync({ textId: editing.id, payload });
+    // Same count = no editor remount, so sync the local draft here.
+    setDraft((current) => ({
+      ...current,
+      texts: current.texts?.map((text) =>
+        text.id === editing.id ? { ...text, ...payload } : text,
+      ),
+    }));
+  };
 
   const saveVideo = async (payload: VideoPayload) => {
     const editing = videoDialog?.video;
@@ -273,16 +308,22 @@ export function LinksManager({
   };
 
   const removeMedia = async (entry: ContentItem) => {
-    const isVideo = entry.type === 'VIDEO';
+    const titles = {
+      VIDEO: 'Excluir vídeo?',
+      TEXT: 'Excluir texto?',
+      IMAGE: 'Excluir imagem?',
+      LINK: '',
+    };
     if (
       await confirmAction({
-        title: isVideo ? 'Excluir vídeo?' : 'Excluir imagem?',
+        title: titles[entry.type],
         description: 'Essa ação não pode ser desfeita.',
         confirmLabel: 'Excluir',
         destructive: true,
       })
     ) {
-      if (isVideo) mutations.deleteVideo.mutate(entry.item.id);
+      if (entry.type === 'VIDEO') mutations.deleteVideo.mutate(entry.item.id);
+      else if (entry.type === 'TEXT') mutations.deleteText.mutate(entry.item.id);
       else mutations.deleteImage.mutate(entry.item.id);
     }
   };
@@ -361,6 +402,13 @@ export function LinksManager({
             <Film className='size-4' />
             Vídeo
           </Button>
+          <Button
+            variant='outline'
+            onClick={() => setTextDialog({ text: null })}
+          >
+            <Type className='size-4' />
+            Texto
+          </Button>
         </div>
       }
     >
@@ -369,6 +417,13 @@ export function LinksManager({
           video={videoDialog.video}
           onSave={saveVideo}
           onClose={() => setVideoDialog(null)}
+        />
+      )}
+      {textDialog && (
+        <TextDialog
+          text={textDialog.text}
+          onSave={saveText}
+          onClose={() => setTextDialog(null)}
         />
       )}
       {imageDialogOpen && (
@@ -600,7 +655,9 @@ export function LinksManager({
                     onEdit={
                       entry.type === 'VIDEO'
                         ? () => setVideoDialog({ video: entry.item })
-                        : undefined
+                        : entry.type === 'TEXT'
+                          ? () => setTextDialog({ text: entry.item })
+                          : undefined
                     }
                     onRemove={() => void removeMedia(entry)}
                   />
@@ -611,7 +668,7 @@ export function LinksManager({
         </DndContext>
       ) : (
         <p className='text-muted-foreground rounded-md border border-dashed p-3 text-sm'>
-          Nenhum link, imagem ou vídeo ativo.
+          Nenhum link, imagem, vídeo ou texto ativo.
         </p>
       )}
       {archivedLinks.length > 0 && (
@@ -766,6 +823,11 @@ function mediaRowText(entry: Exclude<ContentItem, { type: 'LINK' }>) {
     };
   }
 
+  if (entry.type === 'TEXT') {
+    const plain = textRunsToPlain(entry.item.content).replace(/\s+/g, ' ');
+    return { title: plain.trim() || 'Texto', detail: 'Texto' };
+  }
+
   const video = entry.item;
   const size =
     mediaSizeOptions.find((option) => option.value === video.size)?.label +
@@ -801,7 +863,8 @@ function SortableMediaRow({
     transition,
   } = useSortable({ id: contentKey(entry) });
   const { title, detail } = mediaRowText(entry);
-  const Icon = entry.type === 'VIDEO' ? Film : ImageIcon;
+  const Icon =
+    entry.type === 'VIDEO' ? Film : entry.type === 'TEXT' ? Type : ImageIcon;
 
   return (
     <div

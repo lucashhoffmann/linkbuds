@@ -10,6 +10,7 @@ import type {
   LinkPageDetail,
   LinkPageImage,
   LinkPageVideo,
+  LinkPageText,
   LinkPageLink,
   LinkPageLinkClicksResponse,
   LinkPreview,
@@ -109,6 +110,22 @@ class LinkPagesService {
     return data.data;
   }
 
+  /** Close now, or reopen (optionally as a new cohort with a new limit). */
+  async setFormState(
+    id: string,
+    payload: {
+      closed: boolean;
+      cohort?: string;
+      maxResponses?: number | null;
+    },
+  ): Promise<LinkPageDetail> {
+    const { data } = await HttpAuth.patch<ApiResponse<LinkPageDetail>>(
+      `/link-pages/${id}/form/state`,
+      payload,
+    );
+    return data.data;
+  }
+
   async deleteSubmission(id: string, submissionId: string) {
     await HttpAuth.delete(`/link-pages/${id}/submissions/${submissionId}`);
   }
@@ -117,13 +134,16 @@ class LinkPagesService {
   async submitForm(
     id: string,
     payload: {
-      answers: Record<string, string | boolean>;
+      answers: Record<string, string | boolean | string[]>;
       visitorId?: string | null;
       website?: string;
       durationMs?: number | null;
     },
   ) {
-    await Http.post(`/public/link-pages/${id}/submissions`, payload);
+    const { data } = await Http.post<
+      ApiResponse<{ score: { score: number; max: number } | null }>
+    >(`/public/link-pages/${id}/submissions`, payload);
+    return data.data;
   }
 
   async create(payload: {
@@ -205,7 +225,7 @@ class LinkPagesService {
     await HttpAuth.delete(`/link-pages/${id}/links/${linkId}`);
   }
 
-  /** One shared order for links, images and videos. */
+  /** One shared order for links, images, videos and texts. */
   async reorderContent(
     id: string,
     payload: Array<{ type: ContentType; id: string; sortOrder: number }>,
@@ -271,6 +291,30 @@ class LinkPagesService {
 
   async deleteVideo(id: string, videoId: string) {
     await HttpAuth.delete(`/link-pages/${id}/videos/${videoId}`);
+  }
+
+  async createText(id: string, payload: Omit<LinkPageText, 'id'>) {
+    const { data } = await HttpAuth.post<ApiResponse<LinkPageText>>(
+      `/link-pages/${id}/texts`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async updateText(
+    id: string,
+    textId: string,
+    payload: Partial<Omit<LinkPageText, 'id'>>,
+  ) {
+    const { data } = await HttpAuth.patch<ApiResponse<LinkPageText>>(
+      `/link-pages/${id}/texts/${textId}`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async deleteText(id: string, textId: string) {
+    await HttpAuth.delete(`/link-pages/${id}/texts/${textId}`);
   }
 
   async analyticsInsights(

@@ -48,6 +48,7 @@ import {
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { Select } from '@/resources/components/ui/select';
+import { Switch } from '@/resources/components/ui/switch';
 import { routes } from '@/shared/constants/router.constants';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
@@ -677,7 +678,7 @@ function PageCanvas({
       ) : view === 'responses' ? (
         <ResponsesTab
           form={page}
-          fields={detail.data?.form?.fields ?? []}
+          config={detail.data?.form}
           sheetConnected={Boolean(detail.data?.formWebhookUrl)}
         />
       ) : detail.data ? (
@@ -770,11 +771,7 @@ function ShareTab({ defaultUrl, name }: { defaultUrl: string; name: string }) {
         </div>
       </div>
       <label className='flex items-center gap-2 text-sm'>
-        <input
-          type='checkbox'
-          checked={transparent}
-          onChange={(event) => setTransparent(event.target.checked)}
-        />
+        <Switch checked={transparent} onCheckedChange={setTransparent} />
         Fundo transparente
       </label>
       {qr ? (

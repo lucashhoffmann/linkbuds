@@ -1,5 +1,6 @@
 export { AuthPage } from './auth/auth.page';
 export { HomePage } from './home/home.page';
+export { TermsPage } from './legal/terms.page';
 export { InvitePage } from './invite/invite.page';
 export {
   AccountSettingsPage,

@@ -40,6 +40,7 @@ export function LinkPageLayoutOne({
         links={verticalLinks}
         images={linkPage.images}
         videos={linkPage.videos}
+        texts={linkPage.texts}
         onTrack={onTrack}
       />
       <LinkPageFooter linkPage={linkPage} />

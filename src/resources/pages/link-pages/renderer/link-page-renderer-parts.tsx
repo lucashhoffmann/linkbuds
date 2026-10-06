@@ -17,6 +17,8 @@ import type {
   LinkPageImage,
   LinkPageLink,
   LinkPageSocialLink,
+  LinkPageText,
+  LinkPageTextAlign,
   LinkPageVideo,
   LinkPageViewModel,
 } from '@/app/modules/link-pages/types/link-pages.types';
@@ -28,9 +30,12 @@ import {
   contentKey,
   orderContent,
 } from '@/app/modules/link-pages/utils/content-order.util';
+import { textRunStyle } from '@/app/modules/link-pages/utils/text-runs.util';
+import { formatPhone } from '@/resources/pages/settings/components/subscribe-dialog/payment-format.util';
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 import { linkPageDesignTokens } from '../design-system/link-page-design-tokens';
+import { FormQuestionnaire } from './form-questionnaire';
 import {
   socialPlatformIcons,
   socialPlatformLabels,
@@ -277,21 +282,23 @@ export function HorizontalLinkCards({
 }
 
 /**
- * Vertical links, images and videos in the one order the owner set in the
- * editor (horizontal links keep their own carousel).
+ * Vertical links, images, videos and texts in the one order the owner set in
+ * the editor (horizontal links keep their own carousel).
  */
 export function ContentStream({
   images,
   links,
   onTrack,
+  texts,
   videos,
 }: {
   images?: LinkPageImage[];
   links: LinkPageLink[];
   onTrack?: TrackFn;
+  texts?: LinkPageText[];
   videos?: LinkPageVideo[];
 }) {
-  const items = orderContent(links, images, videos);
+  const items = orderContent(links, images, videos, texts);
   if (!items.length) return null;
 
   return (
@@ -313,6 +320,11 @@ export function ContentStream({
             key={contentKey(entry)}
             video={entry.item}
           />
+        ) : entry.type === 'TEXT' ? (
+          <TextBlock
+            key={contentKey(entry)}
+            text={entry.item}
+          />
         ) : (
           <VerticalLinkItem
             key={contentKey(entry)}
@@ -324,6 +336,52 @@ export function ContentStream({
     </section>
   );
 }
+
+/** Runs render as React text nodes: stored content can never become markup. */
+function TextBlock({ text }: { text: LinkPageText }) {
+  const style = text.style ?? 'TEXT';
+  const boxed = style !== 'TEXT';
+  const border = boxed ? text.borderColor : null;
+
+  return (
+    <div
+      className={cn(!boxed && 'px-1', textAlignClass[text.align ?? 'LEFT'])}
+    >
+      <p
+        data-testid='text-block'
+        className={cn(
+          'text-base leading-relaxed break-words whitespace-pre-wrap',
+          boxed && 'px-4 py-2 text-slate-950 shadow-lg',
+          boxed && !border && 'ring-1 ring-black/5',
+          boxed && !text.fullWidth && 'inline-block max-w-full',
+          style === 'PILL' && 'rounded-3xl',
+          style === 'BOX' && 'rounded-lg py-3',
+        )}
+        style={{
+          backgroundColor: boxed
+            ? (text.backgroundColor ?? '#FFFFFF')
+            : undefined,
+          border: border ? `1px solid ${border}` : undefined,
+        }}
+      >
+        {text.content.map((run, index) => (
+          <span
+            key={index}
+            style={textRunStyle(run)}
+          >
+            {run.text}
+          </span>
+        ))}
+      </p>
+    </div>
+  );
+}
+
+const textAlignClass: Record<LinkPageTextAlign, string> = {
+  LEFT: 'text-left',
+  CENTER: 'text-center',
+  RIGHT: 'text-right',
+};
 
 function VerticalLinkItem({
   link,
@@ -607,16 +665,99 @@ export function LinkPageFooter({
 }
 
 export type FormSubmitResult =
-  { ok: true } | { ok: false; message: string; invalid: string[] };
+  | { ok: true; score?: { score: number; max: number } | null }
+  | { ok: false; message: string; invalid: string[] };
+
+export type FormValue = string | boolean | string[];
 
 export type SubmitFormFn = (
-  answers: Record<string, string | boolean>,
+  answers: Record<string, FormValue>,
   /** Honeypot value; real visitors leave it empty. */
   website: string,
 ) => Promise<FormSubmitResult>;
 
+// Mirrors the API: DDD + landline (8 digits) or mobile (9 + 8).
+const PHONE_PATTERN = String.raw`\([1-9]{2}\) (9\d{4}|[2-8]\d{3})-\d{4}`;
+
 const formInputClass =
   'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-slate-500 aria-invalid:border-red-500';
+
+/** CHOICE / MULTI_CHOICE in list mode: native radios/checkboxes + optional "Outro". */
+function ChoiceControl({
+  field,
+  value,
+  invalid,
+  onChange,
+}: {
+  field: FormField;
+  value: FormValue | undefined;
+  invalid: boolean;
+  onChange: (value: FormValue) => void;
+}) {
+  const multiple = field.type === 'MULTI_CHOICE';
+  const options = (field.options ?? []).filter(Boolean);
+  const chosen = Array.isArray(value)
+    ? value
+    : typeof value === 'string' && value
+      ? [value]
+      : [];
+  const other = chosen.find((item) => !options.includes(item)) ?? '';
+  const picked = chosen.filter((item) => options.includes(item));
+  const emit = (next: string[]) =>
+    onChange(multiple ? next : (next.at(-1) ?? ''));
+
+  return (
+    <fieldset
+      className='grid gap-1.5'
+      aria-invalid={invalid || undefined}
+    >
+      <legend className='mb-1 text-sm font-medium'>
+        {field.label}
+        {field.required && ' *'}
+      </legend>
+      {options.map((option) => (
+        <label
+          key={option}
+          className={cn(
+            'flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 py-2.5 text-sm',
+            invalid ? 'border-red-500' : 'border-slate-200',
+          )}
+        >
+          <input
+            type={multiple ? 'checkbox' : 'radio'}
+            name={field.id}
+            value={option}
+            required={field.required && !multiple && !other}
+            checked={picked.includes(option)}
+            onChange={(event) =>
+              emit(
+                multiple
+                  ? event.target.checked
+                    ? [...chosen, option]
+                    : chosen.filter((item) => item !== option)
+                  : [option],
+              )
+            }
+          />
+          {option}
+        </label>
+      ))}
+      {field.allowOther && (
+        <input
+          aria-label={`${field.label}: outra resposta`}
+          maxLength={500}
+          placeholder={field.placeholder || 'Outra resposta...'}
+          className={formInputClass}
+          value={other}
+          onChange={(event) => {
+            const text = event.target.value;
+            emit(multiple ? [...picked, ...(text ? [text] : [])] : [text]);
+          }}
+        />
+      )}
+    </fieldset>
+  );
+}
 
 function FormFieldControl({
   field,
@@ -625,11 +766,23 @@ function FormFieldControl({
   onChange,
 }: {
   field: FormField;
-  value: string | boolean | undefined;
+  value: FormValue | undefined;
   invalid: boolean;
-  onChange: (value: string | boolean) => void;
+  onChange: (value: FormValue) => void;
 }) {
   const id = `form-field-${field.id}`;
+
+  if (field.type === 'CHOICE' || field.type === 'MULTI_CHOICE') {
+    return (
+      <ChoiceControl
+        field={field}
+        value={value}
+        invalid={invalid}
+        onChange={onChange}
+      />
+    );
+  }
+
   const common = {
     id,
     name: field.id,
@@ -698,10 +851,25 @@ function FormFieldControl({
           }[field.type]
         }
         maxLength={field.type === 'TEXT' ? 500 : undefined}
-        placeholder={field.placeholder ?? undefined}
+        placeholder={
+          field.placeholder ??
+          (field.type === 'PHONE' ? '(00) 00000-0000' : undefined)
+        }
+        {...(field.type === 'PHONE' && {
+          inputMode: 'tel' as const,
+          autoComplete: 'tel-national',
+          pattern: PHONE_PATTERN,
+          title: 'Telefone com DDD, ex.: (42) 98811-2334',
+        })}
         className={formInputClass}
         value={text}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) =>
+          onChange(
+            field.type === 'PHONE'
+              ? formatPhone(event.target.value)
+              : event.target.value,
+          )
+        }
       />
     );
 
@@ -729,12 +897,26 @@ export function FormBlock({
   preview?: boolean;
   onSubmit?: SubmitFormFn;
 }) {
-  const [values, setValues] = useState<Record<string, string | boolean>>({});
+  const [values, setValues] = useState<Record<string, FormValue>>({});
   const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<Extract<FormSubmitResult, { ok: true }>>();
   const [error, setError] = useState<{ message: string; invalid: string[] }>();
 
   if (!form) return null;
+
+  if (form.closedAt && !sent) {
+    return (
+      <section
+        role='status'
+        className={cn(
+          linkPageDesignTokens.spacing.section,
+          'rounded-2xl bg-white/90 p-6 text-center text-sm font-medium text-slate-700 shadow-sm',
+        )}
+      >
+        Este formulário não está mais recebendo respostas.
+      </section>
+    );
+  }
 
   if (sent) {
     const animated = form.successAnimation !== false;
@@ -778,6 +960,16 @@ export function FormBlock({
         <p className={cn(animated && 'animate-lb-pop [animation-delay:0.6s]')}>
           {form.successMessage}
         </p>
+        {sent.score && (
+          <p
+            className={cn(
+              animated && 'animate-lb-pop [animation-delay:0.7s]',
+              'text-2xl font-bold tabular-nums',
+            )}
+          >
+            Sua nota: {sent.score.score}/{sent.score.max}
+          </p>
+        )}
         {form.redirectUrl && (
           <a
             href={form.redirectUrl}
@@ -793,19 +985,15 @@ export function FormBlock({
     );
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function send(answers: Record<string, FormValue>, website: string) {
     if (preview || !onSubmit) return;
 
-    const website = String(
-      new FormData(event.currentTarget).get('website') ?? '',
-    );
     setSending(true);
-    const result = await onSubmit(values, website);
+    const result = await onSubmit(answers, website);
     setSending(false);
 
     if (result.ok) {
-      setSent(true);
+      setSent(result);
       // Let the check animation play before leaving the page.
       if (form?.redirectUrl) {
         const url = form.redirectUrl;
@@ -816,9 +1004,29 @@ export function FormBlock({
     }
   }
 
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const website = String(
+      new FormData(event.currentTarget).get('website') ?? '',
+    );
+    void send(values, website);
+  }
+
+  if (form.mode === 'QUESTIONNAIRE') {
+    return (
+      <FormQuestionnaire
+        form={form}
+        preview={preview}
+        sending={sending}
+        error={error}
+        onSubmit={(answers, website) => void send(answers, website)}
+      />
+    );
+  }
+
   return (
     <form
-      onSubmit={(event) => void submit(event)}
+      onSubmit={submit}
       className={cn(
         linkPageDesignTokens.spacing.section,
         'grid gap-3 rounded-2xl bg-white/90 p-4 shadow-sm',

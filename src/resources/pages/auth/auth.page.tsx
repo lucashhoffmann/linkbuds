@@ -1,6 +1,13 @@
 import { ThemeModeToggle } from '@/resources/components/base/theme-mode-toggle/theme-mode-toggle.component';
 import { Button } from '@/resources/components/ui/button';
-import { BarChart3, Globe2, Link2, MousePointerClick } from 'lucide-react';
+import Footer4Col from '@/resources/components/ui/footer-column';
+import {
+  BarChart3,
+  ClipboardList,
+  Globe2,
+  Link2,
+  MousePointerClick,
+} from 'lucide-react';
 import { Link as RouterLink } from 'react-router-dom';
 import { AuthHeroShowcase } from './components/auth-hero-showcase.component';
 import { LoginView } from './views/login/login.view';
@@ -22,6 +29,11 @@ const authHighlights = [
     value: 'marca própria',
   },
   {
+    icon: ClipboardList,
+    label: 'Formulários',
+    value: 'leads e quizzes',
+  },
+  {
     icon: MousePointerClick,
     label: 'Clientes',
     value: 'links em escala',
@@ -30,7 +42,7 @@ const authHighlights = [
 
 const authHeadline = 'Todos os links dos seus clientes. Um painel.';
 const authSubheadline =
-  'Bio, links de post, domínio próprio e métricas que mostram qual publicação gera contato.';
+  'Bio, links de post, formulários e questionários com domínio próprio, e métricas que mostram o que gera contato.';
 
 const AUTH_VIEWS = {
   login: LoginView,
@@ -102,7 +114,7 @@ export function AuthPage({ view = 'login' }: AuthPageProps) {
             </h1>
             <p className='text-muted-foreground'>{authSubheadline}</p>
           </div>
-          <div className='grid max-w-md grid-cols-3 gap-2'>
+          <div className='grid max-w-md grid-cols-2 gap-2'>
             {authHighlights.map(({ icon: Icon, label, value }) => (
               <div
                 key={label}
@@ -143,6 +155,8 @@ export function AuthPage({ view = 'login' }: AuthPageProps) {
           </div>
         </main>
       </div>
+
+      <Footer4Col />
     </div>
   );
 }

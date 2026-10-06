@@ -87,7 +87,7 @@ function submitFormHandler(
 ): SubmitFormFn {
   return async (answers, website) => {
     try {
-      await linkPagesService.submitForm(pageId, {
+      const { score } = await linkPagesService.submitForm(pageId, {
         answers,
         visitorId,
         website,
@@ -96,7 +96,7 @@ function submitFormHandler(
             ? null
             : Date.now() - startedAtRef.current,
       });
-      return { ok: true };
+      return { ok: true, score };
     } catch (error) {
       const data = isAxiosError<{
         message?: string;

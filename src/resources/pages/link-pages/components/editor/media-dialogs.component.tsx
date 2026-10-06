@@ -1,7 +1,10 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
 import type {
+  LinkPageFooterStyle,
   LinkPageImage,
   LinkPageMediaSize,
+  LinkPageText,
+  LinkPageTextAlign,
   LinkPageVideo,
 } from '@/app/modules/link-pages/types/link-pages.types';
 import { videoEmbed } from '@/app/modules/link-pages/utils/media.util';
@@ -15,11 +18,27 @@ import {
 } from '@/resources/components/ui/dialog';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
-import { BorderEnabledField, MediaSizeField } from './editor-fields.component';
+import { Select } from '@/resources/components/ui/select';
+import {
+  BorderEnabledField,
+  ColorField,
+  Field,
+  MediaSizeField,
+} from './editor-fields.component';
+import { RichTextEditor } from './rich-text-editor.component';
 
 export type VideoPayload = Pick<
   LinkPageVideo,
   'url' | 'title' | 'autoplay' | 'controls' | 'size' | 'customHeight'
+>;
+export type TextPayload = Pick<
+  LinkPageText,
+  | 'content'
+  | 'style'
+  | 'align'
+  | 'backgroundColor'
+  | 'borderColor'
+  | 'fullWidth'
 >;
 export type ImagePayload = Pick<
   LinkPageImage,
@@ -236,6 +255,119 @@ export function ImageDialog({
           onChange={(event) => setTargetUrl(event.target.value)}
         />
       </div>
+    </MediaDialog>
+  );
+}
+
+export function TextDialog({
+  onClose,
+  onSave,
+  text,
+}: {
+  onClose: () => void;
+  onSave: (payload: TextPayload) => Promise<void>;
+  /** null = new text block. */
+  text: LinkPageText | null;
+}) {
+  const [content, setContent] = useState(text?.content ?? []);
+  const length = content.reduce((total, run) => total + run.text.length, 0);
+  const tooLong = length > 5000;
+  const empty = !content.some((run) => run.text.trim());
+  const [triedEmpty, setTriedEmpty] = useState(false);
+  const [style, setStyle] = useState<LinkPageFooterStyle>(
+    text?.style ?? 'TEXT',
+  );
+  const [align, setAlign] = useState<LinkPageTextAlign>(text?.align ?? 'LEFT');
+  const [backgroundColor, setBackgroundColor] = useState(
+    text?.backgroundColor ?? null,
+  );
+  const [borderColor, setBorderColor] = useState(text?.borderColor ?? null);
+  const [fullWidth, setFullWidth] = useState(text?.fullWidth ?? false);
+  const boxed = style !== 'TEXT';
+
+  return (
+    <MediaDialog
+      title={text ? 'Editar texto' : 'Adicionar texto'}
+      submitLabel={text ? 'Salvar alterações' : 'Adicionar texto'}
+      onClose={onClose}
+      onSubmit={async () => {
+        if (empty || tooLong) {
+          setTriedEmpty(empty);
+          throw new Error('invalid text');
+        }
+        await onSave({
+          content,
+          style,
+          align,
+          backgroundColor,
+          borderColor,
+          fullWidth,
+        });
+      }}
+    >
+      <div className='grid gap-4 sm:grid-cols-2'>
+        <Field label='Estilo'>
+          <Select
+            value={style}
+            onChange={(event) =>
+              setStyle(event.target.value as LinkPageFooterStyle)
+            }
+          >
+            <option value='TEXT'>Só texto</option>
+            <option value='PILL'>Pílula</option>
+            <option value='BOX'>Caixa</option>
+          </Select>
+        </Field>
+        <Field label='Alinhamento'>
+          <Select
+            value={align}
+            onChange={(event) =>
+              setAlign(event.target.value as LinkPageTextAlign)
+            }
+          >
+            <option value='LEFT'>Esquerda</option>
+            <option value='CENTER'>Centro</option>
+            <option value='RIGHT'>Direita</option>
+          </Select>
+        </Field>
+        {boxed && (
+          <>
+            <ColorField
+              label='Fundo'
+              value={backgroundColor ?? '#FFFFFF'}
+              onChange={setBackgroundColor}
+            />
+            <ColorField
+              label='Borda'
+              value={borderColor ?? '#E2E8F0'}
+              onChange={setBorderColor}
+            />
+            <Field label='Largura'>
+              <BorderEnabledField
+                label='Preencher toda a largura'
+                checked={fullWidth}
+                onChange={setFullWidth}
+              />
+            </Field>
+          </>
+        )}
+      </div>
+      <RichTextEditor
+        initialContent={content}
+        onChange={setContent}
+        editorStyle={{
+          textAlign: align.toLowerCase() as 'left' | 'center' | 'right',
+          backgroundColor: boxed ? (backgroundColor ?? '#FFFFFF') : undefined,
+        }}
+      />
+      {triedEmpty && empty && (
+        <p className='text-destructive text-xs'>Digite um texto.</p>
+      )}
+      {tooLong && (
+        <p className='text-destructive text-xs'>
+          Máximo de 5000 caracteres ({length}).
+        </p>
+      )}
     </MediaDialog>
   );
 }

@@ -36,7 +36,7 @@ export { reorderContentForDrop } from './components/editor/editor.utils';
 export function LinkPageEditPage() {
   const { id } = useParams();
   const { data, isLoading } = useGetLinkPageUseCase(id);
-  // Lives here so the editor remount (key below changes when links/social/images/videos are added or removed) keeps the active tab.
+  // Lives here so the editor remount (key below changes when links/social/images/videos/texts are added or removed) keeps the active tab.
   // Unset = page default: forms open on their fields.
   const [tab, setTab] = useState<Tab>();
 
@@ -54,7 +54,7 @@ export function LinkPageEditPage() {
 
   return (
     <LinkPageEditor
-      key={`${data.id}-${data.links.length}-${data.socialLinks.length}-${data.images.length}-${data.videos?.length ?? 0}`}
+      key={`${data.id}-${data.links.length}-${data.socialLinks.length}-${data.images.length}-${data.videos?.length ?? 0}-${data.texts?.length ?? 0}`}
       linkPage={data}
       tab={tab ?? (data.type === 'FORM' ? 'form' : 'content')}
       setTab={setTab}

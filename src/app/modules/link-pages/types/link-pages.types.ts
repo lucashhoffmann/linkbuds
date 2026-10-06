@@ -13,7 +13,9 @@ export type FormFieldType =
   | 'NUMBER'
   | 'DATE'
   | 'SELECT'
-  | 'CHECKBOX';
+  | 'CHECKBOX'
+  | 'CHOICE'
+  | 'MULTI_CHOICE';
 
 export type FormField = {
   /** Stable key: answers are keyed by it. */
@@ -22,24 +24,55 @@ export type FormField = {
   label: string;
   required: boolean;
   placeholder?: string | null;
-  /** SELECT only. */
+  /** SELECT, CHOICE and MULTI_CHOICE. */
   options?: string[];
+  /** Score per option, same order as `options` (never sent to the public page). */
+  points?: number[];
+  /** CHOICE/MULTI_CHOICE: free-text "Outro" answer. */
+  allowOther?: boolean;
+  /** One answer per value within the cohort (e.g. one per email). */
+  unique?: boolean;
 };
+
+export type FormMode = 'LIST' | 'QUESTIONNAIRE';
+
+/** POINTS = sum of chosen options' points; CORRECT = questions right (points > 0 = right option). */
+export type FormScoring = { kind: 'POINTS' | 'CORRECT'; show: boolean };
 
 export type FormConfig = {
   fields: FormField[];
+  /** Absent = LIST (all fields on one screen). */
+  mode?: FormMode;
+  /** null/absent = only collect. */
+  scoring?: FormScoring | null;
   submitLabel: string;
   successMessage: string;
   /** Animated check with the success message. Absent = on. */
   successAnimation?: boolean;
   /** After the success message, the visitor is sent here. */
   redirectUrl?: string | null;
+  /** Answers per cohort; reaching it closes the form. null = no limit. */
+  maxResponses?: number | null;
+  /** Server-owned (close/reopen). Absent = '1'. */
+  cohort?: string;
+  /** Server-owned: set when closed (by hand or by the limit). */
+  closedAt?: string | null;
 };
 
-export type FormAnswerValue = string | boolean | null;
+/** Current cohort progress toward `maxResponses`; null = no limit. */
+export type FormLimit = {
+  max: number;
+  current: number;
+  cohort: string;
+  closed: boolean;
+};
+
+export type FormAnswerValue = string | boolean | string[] | null;
 
 export type FormSubmission = {
   id: string;
+  /** Form's cohort when answered. */
+  cohort: string;
   /** Label copied at submit time. */
   answers: Array<{ id: string; label: string; value: FormAnswerValue }>;
   visitorId: string | null;
@@ -50,6 +83,9 @@ export type FormSubmission = {
   operatingSystem: string | null;
   /** null = not in the Google Sheet yet (or no sheet configured). */
   durationMs: number | null;
+  /** Questionnaire score; null when the form only collects. */
+  score: number | null;
+  scoreMax: number | null;
   webhookDeliveredAt: string | null;
   createdAt: string;
 };
@@ -58,6 +94,8 @@ export type FormSubmissionsResponse = {
   /** Newest first, capped at 500. */
   items: FormSubmission[];
   total: number;
+  /** Answers in the current cohort (what the limit counts). */
+  cohortTotal: number;
 };
 export type LinkPageStatus = 'ACTIVE' | 'INACTIVE';
 export type LinkPageLayout = 'LAYOUT_1' | 'LAYOUT_2' | 'LAYOUT_3';
@@ -153,6 +191,34 @@ export type LinkPageVideo = {
   active: boolean;
 };
 
+export type TextRunSize = 'SM' | 'MD' | 'LG' | 'XL';
+
+/** One formatted piece of a text block; `\n` in `text` = line break. */
+export type TextRun = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  /** `#RRGGBB`; absent = page text color. */
+  color?: string;
+  size?: TextRunSize;
+};
+
+export type LinkPageTextAlign = 'LEFT' | 'CENTER' | 'RIGHT';
+
+export type LinkPageText = {
+  id: string;
+  content: TextRun[];
+  /** Same shapes as the footer; background/border apply to PILL and BOX. */
+  style?: LinkPageFooterStyle;
+  align?: LinkPageTextAlign;
+  backgroundColor?: string | null;
+  borderColor?: string | null;
+  /** PILL/BOX: fill the content width instead of hugging the text. */
+  fullWidth?: boolean;
+  sortOrder: number;
+  active: boolean;
+};
+
 export type LinkPageSummary = {
   id: string;
   companyId: string;
@@ -207,6 +273,8 @@ export type LinkPageDetail = LinkPageSummary & {
   socialLinks: LinkPageSocialLink[];
   images: LinkPageImage[];
   videos: LinkPageVideo[];
+  /** Absent in public responses cached before text blocks existed. */
+  texts?: LinkPageText[];
 };
 
 export type PublicLinkPage = Omit<
@@ -246,6 +314,8 @@ export type LinkPageAnalyticsSummary = {
   formSubmissions: number;
   /** Avg time from opening the form to submitting; 0 when untracked. */
   averageFormDurationMs: number;
+  /** Questionnaire score in the period; null = no scored answers. */
+  averageFormScore: { score: number; max: number } | null;
 };
 
 export type LinkPageAnalyticsTier = 'BASIC' | 'FULL';
@@ -279,6 +349,8 @@ export type LinkPageAnalyticsInsights = {
     to: string;
   };
   summary: LinkPageAnalyticsSummary;
+  /** FORM pages with a response limit only. */
+  formLimit: FormLimit | null;
   topTargets: LinkPageAnalyticsTarget[];
   timeseries: LinkPageAnalyticsTimeseriesPoint[];
   sources: LinkPageAnalyticsGroupItem[];
@@ -345,6 +417,7 @@ export type LinkPagesOverviewPage = LinkPageSummary & {
   clicks: number;
   /** Form responses, all-time. */
   submissions: number;
+  formLimit: FormLimit | null;
 };
 
 /** Agency dashboard: traffic per page in the plan's analytics window. */

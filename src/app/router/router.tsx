@@ -20,6 +20,7 @@ import {
   FooterSettingsPage,
   AccountSettingsPage,
   TeamPage,
+  TermsPage,
   LinkPageEditPage,
   LinkPageNewPage,
   LinkPagesPage,
@@ -82,6 +83,11 @@ export function Router() {
         <Route
           path={routes.resetPassword}
           element={<AuthPage view='resetPassword' />}
+        />
+
+        <Route
+          path={routes.terms}
+          element={<TermsPage />}
         />
 
         <Route

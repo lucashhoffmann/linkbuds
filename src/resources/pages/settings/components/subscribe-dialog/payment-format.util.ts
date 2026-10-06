@@ -92,7 +92,10 @@ export function formatCpfCnpj(value: string) {
 }
 
 export function formatPhone(value: string) {
-  const digits = onlyDigits(value).slice(0, 11);
+  // Pasted "+55 42 ...": drop the country code before masking.
+  const digits = onlyDigits(value)
+    .replace(/^55(?=\d{10,11}$)/, '')
+    .slice(0, 11);
 
   if (digits.length <= 2) return digits;
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;

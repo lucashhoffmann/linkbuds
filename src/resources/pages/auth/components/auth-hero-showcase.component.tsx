@@ -2,7 +2,7 @@ import { cn } from '@/shared/lib/utils';
 import { ArrowUpRight, Check, ChevronRight, Globe2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-const centerLinks = ['Agendar horário', 'Promoção do post', 'Ver cardápio'];
+const centerLinks = ['Agendar horário', 'Promoção do post', 'Responder quiz'];
 const funnelSteps = ['Bio', 'Post', 'Contato'];
 const barHeights = ['h-[40%]', 'h-[65%]', 'h-[50%]', 'h-[85%]', 'h-full'];
 
@@ -35,7 +35,7 @@ export function AuthHeroShowcase() {
   return (
     <div
       role='img'
-      aria-label='Prévia animada: páginas de links de clientes, link de post, domínio próprio e métricas de cliques'
+      aria-label='Prévia animada: páginas de links de clientes, link de post, formulário, domínio próprio e métricas de cliques'
       className='relative h-[26em] w-[34em] max-w-full shrink-0 self-start text-[clamp(8px,min(1.45vh,1.15vw),14px)] select-none'
     >
       {/* Client bio (left) */}

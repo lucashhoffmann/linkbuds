@@ -6,9 +6,11 @@ import {
   ClipboardCheck,
   ClipboardList,
   Hourglass,
+  Trophy,
   Clock3,
   FileDown,
   FileJson,
+  FileSpreadsheet,
   Globe,
   Info,
   Lock,
@@ -16,10 +18,12 @@ import {
   MousePointerClick,
   PanelLeftClose,
   Radio,
+  Target,
   Users,
 } from 'lucide-react';
 import { useLinkPageAnalyticsInsightsUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
+  FormLimit,
   LinkPageAnalyticsGroupItem,
   LinkPageAnalyticsSummary,
   LinkPageAnalyticsTimeseriesPoint,
@@ -50,6 +54,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { downloadCsv } from '@/app/modules/link-pages/utils/csv.util';
 import {
   dateInputValue,
   startOfDayIso,
@@ -61,6 +66,7 @@ import {
   targetLabel,
 } from './editor.utils';
 import { Field } from './editor-fields.component';
+import { FormLimitBar } from '../form-limit-bar.component';
 
 // Lazy: the world map asset only loads when the globe is opened.
 const CountriesGlobeDialog = lazy(() =>
@@ -131,7 +137,10 @@ export function AnalyticsSummary({
               hint='Tempo médio de permanência na página.'
               value={formatDuration(summary?.averageDurationMs ?? 0)}
             />
-            <FormMetricCards summary={summary} />
+            <FormMetricCards
+              summary={summary}
+              limit={data?.formLimit}
+            />
           </>
         )}
       </div>
@@ -201,6 +210,61 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
       win.print();
       win.close();
     });
+  }
+
+  /** One sheet, long format (Seção; Item; Valor): opens in Excel as-is. */
+  function exportCsv() {
+    if (!data) return;
+    const s = data.summary;
+    const group = (section: string, items: LinkPageAnalyticsGroupItem[]) =>
+      items.map((item) => [section, item.label, toNumber(item.count)]);
+    downloadCsv(`analises-${linkPage.slug}-${fromDate}_${toDate}.csv`, [
+      ['Seção', 'Item', 'Valor'],
+      ['Período', 'De', fromDate],
+      ['Período', 'Até', toDate],
+      ['Resumo', 'Visualizações', toNumber(s.pageViews)],
+      ['Resumo', 'Visitantes', toNumber(s.uniqueVisitors)],
+      ['Resumo', 'Cliques', toNumber(s.totalClicks)],
+      ['Resumo', 'CTR', formatPercent(s.clickThroughRate ?? 0)],
+      ['Resumo', 'Duração média', formatDuration(s.averageDurationMs ?? 0)],
+      ...(linkPage.type === 'FORM'
+        ? [
+            ['Resumo', 'Respostas', s.formSubmissions ?? 0],
+            [
+              'Resumo',
+              'Tempo p/ responder',
+              formatDuration(s.averageFormDurationMs ?? 0),
+            ],
+            ...(s.averageFormScore
+              ? [
+                  [
+                    'Resumo',
+                    'Nota média',
+                    `${s.averageFormScore.score}/${s.averageFormScore.max}`,
+                  ],
+                ]
+              : []),
+          ]
+        : []),
+      ...data.topTargets.map((target) => [
+        'Principais links',
+        targetLabel(linkPage, target),
+        toNumber(target.clicks),
+      ]),
+      ...data.timeseries.map((point) => [
+        'Visitas por dia',
+        point.date.slice(0, 10),
+        toNumber(point.count),
+      ]),
+      ...group('Origens', data.sources),
+      ...group('Dispositivos', data.devices),
+      ...group('Países', data.countries),
+      ...(data.visitorIps ?? []).map((visitor) => [
+        'IPs dos visitantes',
+        visitor.ip,
+        visitor.count,
+      ]),
+    ]);
   }
 
   const json = jsonOpen
@@ -273,6 +337,15 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
               <FileDown className='size-4' />
               PDF
             </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={!data}
+              onClick={exportCsv}
+            >
+              <FileSpreadsheet className='size-4' />
+              CSV
+            </Button>
           </div>
         )}
         {isFull && (
@@ -333,7 +406,12 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
           label='Duração média'
           value={formatDuration(summary?.averageDurationMs ?? 0)}
         />
-        {linkPage.type === 'FORM' && <FormMetricCards summary={summary} />}
+        {linkPage.type === 'FORM' && (
+          <FormMetricCards
+            summary={summary}
+            limit={data?.formLimit}
+          />
+        )}
       </div>
 
       <div className='grid gap-4 @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'>
@@ -483,8 +561,10 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
 /** Answers and answer rate (answers ÷ visitors) for form pages. */
 function FormMetricCards({
   summary,
+  limit,
 }: {
   summary: LinkPageAnalyticsSummary | undefined;
+  limit: FormLimit | null | undefined;
 }) {
   const answers = summary?.formSubmissions ?? 0;
   const visitors = summary?.uniqueVisitors ?? 0;
@@ -507,6 +587,29 @@ function FormMetricCards({
         hint='Tempo médio entre abrir o formulário e enviar a resposta.'
         value={formatDuration(summary?.averageFormDurationMs ?? 0)}
       />
+      {summary?.averageFormScore && (
+        <MetricCard
+          icon={<Trophy className='size-4' />}
+          label='Nota média'
+          hint='Média da pontuação das respostas no período (questionário com pontuação).'
+          value={`${summary.averageFormScore.score.toLocaleString('pt-BR')}/${summary.averageFormScore.max.toLocaleString('pt-BR')}`}
+        />
+      )}
+      {limit && (
+        <div className='rounded-md border p-3'>
+          <div className='text-muted-foreground flex items-center gap-2 text-xs'>
+            <Target className='size-4' />
+            <span>Limite de respostas</span>
+          </div>
+          <p className='mt-2 text-xl font-semibold'>
+            {formatPercent(limit.current / limit.max)}
+          </p>
+          <FormLimitBar
+            limit={limit}
+            className='mt-2'
+          />
+        </div>
+      )}
     </>
   );
 }

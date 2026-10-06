@@ -11,6 +11,7 @@ import { useSession } from '@/app/modules/auth/hooks';
 import type { LinkPagesOverviewPage } from '@/app/modules/link-pages/types/link-pages.types';
 import { useLinkPagesOverviewUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import { Button } from '@/resources/components/ui/button';
+import { FormLimitBar } from '@/resources/pages/link-pages/components/form-limit-bar.component';
 import { routes } from '@/shared/constants/router.constants';
 import { AgencyPromoDialog } from './components/agency-promo-dialog.component';
 
@@ -71,6 +72,13 @@ function PageRanking({
                   <p className='text-muted-foreground truncate text-xs'>
                     /p/{page.publicPath}
                   </p>
+                  {metric === 'submissions' && page.formLimit && (
+                    <FormLimitBar
+                      limit={page.formLimit}
+                      className='mt-2 max-w-xs'
+                      showPercent
+                    />
+                  )}
                 </div>
                 <span className='text-muted-foreground hidden text-xs sm:inline'>
                   {count(page.pageViews, 'view', 'views')} ·{' '}

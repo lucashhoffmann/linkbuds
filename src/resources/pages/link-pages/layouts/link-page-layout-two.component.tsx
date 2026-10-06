@@ -34,6 +34,7 @@ export function LinkPageLayoutTwo({
         links={verticalLinks}
         images={linkPage.images}
         videos={linkPage.videos}
+        texts={linkPage.texts}
         onTrack={onTrack}
       />
       <HorizontalLinkCards

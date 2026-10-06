@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useMutationCache } from '@/app/cache/use-mutation-cache';
+import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { useQueryCache } from '@/app/cache/use-query-cache';
 import linkPagesService from '../service/link-pages.service';
 import { LinkPagesQueryKeys } from '../keys/link-pages.keys';
@@ -8,6 +9,7 @@ import type {
   LinkPageDetail,
   LinkPageImage,
   LinkPageVideo,
+  LinkPageText,
   LinkPageLink,
   LinkPageSocialLink,
 } from '../types/link-pages.types';
@@ -182,6 +184,26 @@ export function useLinkPageMutations(id?: string) {
       linkPagesService.deleteVideo(id ?? '', videoId),
     onSuccess: invalidate,
   });
+  const createText = useMutationCache({
+    mutationFn: (payload: Omit<LinkPageText, 'id'>) =>
+      linkPagesService.createText(id ?? '', payload),
+    onSuccess: invalidate,
+  });
+  const updateText = useMutationCache({
+    mutationFn: ({
+      textId,
+      payload,
+    }: {
+      textId: string;
+      payload: Partial<Omit<LinkPageText, 'id'>>;
+    }) => linkPagesService.updateText(id ?? '', textId, payload),
+    onSuccess: invalidate,
+  });
+  const deleteText = useMutationCache({
+    mutationFn: (textId: string) =>
+      linkPagesService.deleteText(id ?? '', textId),
+    onSuccess: invalidate,
+  });
 
   return {
     create,
@@ -202,6 +224,9 @@ export function useLinkPageMutations(id?: string) {
     createVideo,
     updateVideo,
     deleteVideo,
+    createText,
+    updateText,
+    deleteText,
   };
 }
 
@@ -348,5 +373,23 @@ export function useFormSubmissionsUseCase(id: string) {
       }),
   });
 
-  return { ...query, remove, resend };
+  const setState = useMutationCache({
+    mutationFn: (
+      payload: Parameters<typeof linkPagesService.setFormState>[1],
+    ) => linkPagesService.setFormState(id, payload),
+    onSuccess: async (detail) => {
+      queryClient.setQueryData([LinkPagesQueryKeys.DETAIL, id], detail);
+      // Limit bars on home and analytics read the new cohort/limit.
+      await Promise.all(
+        [
+          [LinkPagesQueryKeys.SUBMISSIONS, id],
+          [LinkPagesQueryKeys.OVERVIEW],
+          [LinkPagesQueryKeys.ANALYTICS_INSIGHTS],
+        ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+      );
+    },
+    onError: axiosErrorHandler,
+  });
+
+  return { ...query, remove, resend, setState };
 }

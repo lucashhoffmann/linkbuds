@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import {
   ChevronDown,
   ClipboardList,
+  Copy,
   Download,
   Eye,
   Inbox,
@@ -13,17 +14,18 @@ import { toast } from 'sonner';
 import { Link as RouterLink } from 'react-router-dom';
 import type {
   FormAnswerValue,
-  FormField,
+  FormConfig,
   LinkPageSummary,
 } from '@/app/modules/link-pages/types/link-pages.types';
 import {
   useFormSubmissionsUseCase,
   useLinkPagesOverviewUseCase,
 } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
-import { toCsv } from '@/app/modules/link-pages/utils/csv.util';
+import { downloadCsv } from '@/app/modules/link-pages/utils/csv.util';
 import { confirmAction } from '@/resources/components/base';
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
+import { Select } from '@/resources/components/ui/select';
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 
@@ -154,7 +156,12 @@ export function FormsTab({
 function formatValue(value: FormAnswerValue | undefined) {
   if (value === true) return 'Sim';
   if (value === false) return 'Não';
+  if (Array.isArray(value)) return value.join(', ');
   return value ?? '';
+}
+
+function formatScore(item: { score: number | null; scoreMax: number | null }) {
+  return item.score === null ? '' : `${item.score}/${item.scoreMax ?? '?'}`;
 }
 
 const MAX_COLUMNS = 3;
@@ -164,26 +171,148 @@ const dateFormat = new Intl.DateTimeFormat('pt-BR', {
   timeStyle: 'short',
 });
 
+/** Next cohort name suggested on reopen: '1' → '2'; free text → none. */
+function nextCohort(cohort: string) {
+  return /^\d+$/.test(cohort) ? String(Number(cohort) + 1) : '';
+}
+
+/** Open/closed state of the current cohort, close now / reopen. */
+function FormStatus({
+  config,
+  cohortTotal,
+  setState,
+}: {
+  config: FormConfig;
+  cohortTotal: number;
+  setState: ReturnType<typeof useFormSubmissionsUseCase>['setState'];
+}) {
+  const cohort = config.cohort ?? '1';
+  const [newCohort, setNewCohort] = useState(() => nextCohort(cohort));
+  const [newLimit, setNewLimit] = useState('');
+  const count = `${cohortTotal}${config.maxResponses ? `/${config.maxResponses}` : ''}`;
+
+  async function close() {
+    const confirmed = await confirmAction({
+      title: 'Encerrar o formulário?',
+      description: 'Novos envios serão recusados até você reabrir.',
+      confirmLabel: 'Encerrar',
+    });
+
+    if (confirmed) setState.mutate({ closed: true });
+  }
+
+  if (!config.closedAt) {
+    return (
+      <div className='flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm'>
+        <span className='size-2 rounded-full bg-emerald-500' />
+        <p className='mr-auto'>
+          Recebendo respostas · corte <strong>{cohort}</strong> · {count}
+        </p>
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={setState.isPending}
+          onClick={() => void close()}
+        >
+          Encerrar
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      className='grid gap-2 rounded-xl border px-3 py-2 text-sm'
+      onSubmit={(event) => {
+        event.preventDefault();
+        setState.mutate(
+          {
+            closed: false,
+            cohort: newCohort.trim() || undefined,
+            maxResponses: newLimit ? Number(newLimit) : null,
+          },
+          {
+            onSuccess: (detail) => {
+              setNewCohort(nextCohort(detail.form?.cohort ?? '1'));
+              setNewLimit('');
+              toast.success('Formulário reaberto.');
+            },
+          },
+        );
+      }}
+    >
+      <p className='flex items-center gap-2'>
+        <span className='bg-destructive size-2 rounded-full' />
+        Encerrado em {dateFormat.format(new Date(config.closedAt))} · corte{' '}
+        <strong>{cohort}</strong> · {count}
+      </p>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Input
+          aria-label='Novo corte'
+          placeholder={`Mesmo corte (${cohort})`}
+          maxLength={60}
+          value={newCohort}
+          onChange={(event) => setNewCohort(event.target.value)}
+          className='min-w-40 flex-1'
+        />
+        <Input
+          type='number'
+          aria-label='Novo limite de respostas'
+          placeholder='Sem limite'
+          min={1}
+          max={1000000}
+          value={newLimit}
+          onChange={(event) => setNewLimit(event.target.value)}
+          className='w-36'
+        />
+        <Button
+          type='submit'
+          size='sm'
+          disabled={setState.isPending}
+        >
+          Reabrir
+        </Button>
+      </div>
+      <p className='text-muted-foreground text-xs'>
+        Corte novo zera a contagem do limite e libera quem já respondeu
+        (resposta única vale por corte).
+      </p>
+    </form>
+  );
+}
+
 /** Answers of one form, newest first, with visitor data and CSV export. */
 export function ResponsesTab({
   form,
-  fields,
+  config,
   sheetConnected,
 }: {
   form: LinkPageSummary;
-  /** Current fields: column order. Answers to removed fields still show. */
-  fields: FormField[];
+  /** Current fields give column order; answers to removed fields still show. */
+  config: FormConfig | null | undefined;
   /** Google Sheets webhook set in the editor. */
   sheetConnected: boolean;
 }) {
+  const fields = config?.fields ?? [];
   const submissions = useFormSubmissionsUseCase(form.id);
   const allItems = submissions.data?.items ?? [];
+  // Current cohort listed even before its first answer.
+  const cohorts = [
+    ...new Set([
+      ...(config?.cohort ? [config.cohort] : []),
+      ...allItems.map((item) => item.cohort),
+    ]),
+  ];
+  const [cohortFilter, setCohortFilter] = useState('');
   const [query, setQuery] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [minScore, setMinScore] = useState('');
+  const [sort, setSort] = useState<'recent' | 'high' | 'low'>('recent');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const total = submissions.data?.total ?? 0;
   const pending = allItems.filter((item) => !item.webhookDeliveredAt).length;
+  const scored = allItems.some((item) => item.score !== null);
 
   function resend() {
     submissions.resend.mutate(undefined, {
@@ -213,6 +342,7 @@ export function ResponsesTab({
 
       return {
         item,
+        cohort: item.cohort,
         values: columns.map((column) =>
           formatValue(byId.get(column.id)?.value),
         ),
@@ -225,15 +355,23 @@ export function ResponsesTab({
     })
     .filter(
       ({ item, values, device, day }) =>
+        (!cohortFilter || item.cohort === cohortFilter) &&
         (!from || day >= from) &&
         (!to || day <= to) &&
+        (!minScore || (item.score ?? -Infinity) >= Number(minScore)) &&
         (!term ||
           [...values, item.ipAddress, item.countryCode, device]
             .join(' ')
             .toLowerCase()
             .includes(term)),
+    )
+    .sort((a, b) =>
+      sort === 'recent'
+        ? 0
+        : ((a.item.score ?? -Infinity) - (b.item.score ?? -Infinity)) *
+          (sort === 'high' ? -1 : 1),
     );
-  const filtered = Boolean(term || from || to);
+  const filtered = Boolean(term || from || to || cohortFilter || minScore);
   // Table shows the first fields; the rest open per row.
   const shown = columns.slice(0, MAX_COLUMNS);
   const hidden = columns.length - shown.length;
@@ -247,9 +385,11 @@ export function ResponsesTab({
   }
 
   function exportCsv() {
-    const csv = toCsv([
+    downloadCsv(`respostas-${form.slug}.csv`, [
       [
         'Data',
+        'Corte',
+        ...(scored ? ['Nota'] : []),
         ...columns.map((column) => column.label),
         'IP',
         'País',
@@ -257,20 +397,29 @@ export function ResponsesTab({
       ],
       ...rows.map(({ item, values, device }) => [
         dateFormat.format(new Date(item.createdAt)),
+        item.cohort,
+        ...(scored ? [formatScore(item)] : []),
         ...values,
         item.ipAddress,
         item.countryCode,
         device,
       ]),
     ]);
-    const url = URL.createObjectURL(
-      new Blob([csv], { type: 'text/csv;charset=utf-8' }),
-    );
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `respostas-${form.slug}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  }
+
+  async function copyJson() {
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(
+          rows.map(({ item }) => item),
+          null,
+          2,
+        ),
+      );
+      toast.success(`${rows.length} resposta(s) copiada(s) em JSON.`);
+    } catch {
+      toast.error('Não foi possível copiar.');
+    }
   }
 
   async function remove(id: string) {
@@ -288,16 +437,28 @@ export function ResponsesTab({
     return <p className='text-muted-foreground text-sm'>Carregando...</p>;
   }
 
+  const status = config && (
+    <FormStatus
+      config={config}
+      cohortTotal={submissions.data?.cohortTotal ?? 0}
+      setState={submissions.setState}
+    />
+  );
+
   if (allItems.length === 0) {
     return (
-      <p className='text-muted-foreground text-sm'>
-        Nenhuma resposta ainda. Compartilhe o link do formulário.
-      </p>
+      <div className='grid gap-3'>
+        {status}
+        <p className='text-muted-foreground text-sm'>
+          Nenhuma resposta ainda. Compartilhe o link do formulário.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className='grid gap-3'>
+      {status}
       <div className='flex flex-wrap items-center gap-2'>
         <p className='text-muted-foreground mr-auto text-sm'>
           {filtered && `${rows.length} de `}
@@ -322,6 +483,15 @@ export function ResponsesTab({
           variant='outline'
           size='sm'
           disabled={rows.length === 0}
+          onClick={() => void copyJson()}
+        >
+          <Copy className='size-4' />
+          Copiar JSON
+        </Button>
+        <Button
+          variant='outline'
+          size='sm'
+          disabled={rows.length === 0}
           onClick={exportCsv}
         >
           <Download className='size-4' />
@@ -337,6 +507,46 @@ export function ResponsesTab({
           onChange={(event) => setQuery(event.target.value)}
           className='min-w-48 flex-1'
         />
+        {cohorts.length > 0 && (
+          <Select
+            aria-label='Corte'
+            value={cohortFilter}
+            onChange={(event) => setCohortFilter(event.target.value)}
+            className='w-auto'
+          >
+            <option value=''>Todos os cortes</option>
+            {cohorts.map((cohort) => (
+              <option
+                key={cohort}
+                value={cohort}
+              >
+                Corte {cohort}
+              </option>
+            ))}
+          </Select>
+        )}
+        {scored && (
+          <>
+            <Input
+              type='number'
+              aria-label='Nota mínima'
+              placeholder='Nota mín.'
+              value={minScore}
+              onChange={(event) => setMinScore(event.target.value)}
+              className='w-28'
+            />
+            <Select
+              aria-label='Ordenar'
+              value={sort}
+              onChange={(event) => setSort(event.target.value as typeof sort)}
+              className='w-auto'
+            >
+              <option value='recent'>Mais recentes</option>
+              <option value='high'>Maior nota</option>
+              <option value='low'>Menor nota</option>
+            </Select>
+          </>
+        )}
         <Input
           type='date'
           aria-label='De'
@@ -361,8 +571,10 @@ export function ResponsesTab({
             size='sm'
             onClick={() => {
               setQuery('');
+              setCohortFilter('');
               setFrom('');
               setTo('');
+              setMinScore('');
             }}
           >
             Limpar
@@ -381,6 +593,14 @@ export function ResponsesTab({
                 <th className='px-3 py-2 font-medium whitespace-nowrap'>
                   Data
                 </th>
+                <th className='px-3 py-2 font-medium whitespace-nowrap'>
+                  Corte
+                </th>
+                {scored && (
+                  <th className='px-3 py-2 font-medium whitespace-nowrap'>
+                    Nota
+                  </th>
+                )}
                 {shown.map((column) => (
                   <th
                     key={column.id}
@@ -407,6 +627,14 @@ export function ResponsesTab({
                       <td className='px-3 py-2 whitespace-nowrap tabular-nums'>
                         {dateFormat.format(new Date(item.createdAt))}
                       </td>
+                      <td className='px-3 py-2 whitespace-nowrap'>
+                        {item.cohort}
+                      </td>
+                      {scored && (
+                        <td className='px-3 py-2 font-medium whitespace-nowrap tabular-nums'>
+                          {formatScore(item) || '—'}
+                        </td>
+                      )}
                       {values.slice(0, MAX_COLUMNS).map((value, index) => (
                         <td
                           key={columns[index].id}
@@ -463,7 +691,7 @@ export function ResponsesTab({
                     {open && (
                       <tr className='bg-muted/40'>
                         <td
-                          colSpan={shown.length + 5}
+                          colSpan={shown.length + (scored ? 7 : 6)}
                           className='px-3 py-3'
                         >
                           <dl className='grid gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3'>

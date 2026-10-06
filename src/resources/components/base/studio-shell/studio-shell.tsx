@@ -47,6 +47,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const ACCOUNT_ITEMS = [
+  { label: 'Configurações', to: routes.settings, icon: Settings },
   { label: 'Minha conta', to: routes.settingsAccount, icon: UserRound },
   { label: 'Meu plano', to: routes.settings, icon: CreditCard },
   { label: 'Configurar meu domínio', to: routes.settingsDomain, icon: Globe },
@@ -98,7 +99,7 @@ function UserMenu({ side }: { side: 'right' | 'top' }) {
         <DropdownMenuSeparator />
         {ACCOUNT_ITEMS.map((item) => (
           <DropdownMenuItem
-            key={item.to}
+            key={item.label}
             asChild
           >
             <Link to={item.to}>

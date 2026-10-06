@@ -130,7 +130,7 @@ export function reorderContentForDrop(
   );
 }
 
-/** Copies the list's positions back into the draft's links/images/videos. */
+/** Copies the list's positions back into the draft's links/images/videos/texts. */
 export function applyContentOrder(
   draft: LinkPageDetail,
   items: ContentItem[],
@@ -151,6 +151,7 @@ export function applyContentOrder(
     links: draft.links.map((item) => withOrder('LINK', item)),
     images: draft.images.map((item) => withOrder('IMAGE', item)),
     videos: draft.videos.map((item) => withOrder('VIDEO', item)),
+    texts: draft.texts?.map((item) => withOrder('TEXT', item)),
   };
 }
 

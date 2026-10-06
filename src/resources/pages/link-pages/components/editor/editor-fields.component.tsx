@@ -5,6 +5,7 @@ import { Input } from '@/resources/components/ui/input';
 import { Button } from '@/resources/components/ui/button';
 import { ColorPicker } from '@/resources/components/ui/color-picker';
 import { Label } from '@/resources/components/ui/label';
+import { cn } from '@/shared/lib/utils';
 import type { AutosaveStatus } from './editor.types';
 
 export function Field({
@@ -144,7 +145,13 @@ export function EditorSection({
 }) {
   return (
     <section className='space-y-4 border-b pb-6 last:border-b-0 last:pb-0'>
-      <div className='flex min-h-8 items-center justify-between gap-3'>
+      <div
+        className={cn(
+          'flex min-h-8 items-center justify-between gap-3',
+          // Keeps autosave status visible while scrolling long sections.
+          status && 'bg-card sticky top-0 z-10 py-2',
+        )}
+      >
         <h2 className='font-semibold'>{title}</h2>
         {status ? <AutosaveStatusButton status={status} /> : action}
       </div>

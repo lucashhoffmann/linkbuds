@@ -139,6 +139,17 @@ export function RegisterView() {
             )}
             Começar agora
           </Button>
+
+          <p className='text-muted-foreground text-center text-xs'>
+            Ao criar sua conta, você concorda com os{' '}
+            <Link
+              to={routes.terms}
+              className='text-foreground underline underline-offset-4 hover:opacity-80'
+            >
+              Termos de uso
+            </Link>
+            .
+          </p>
         </form>
       </FormProvider>
 
