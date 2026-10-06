@@ -1,12 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import pricingPlansService from '@/app/modules/pricing-plans/service/pricing-plans.service';
 import type { PricingPlansResponse } from '@/app/modules/pricing-plans/types/pricing-plans.types';
+import { routes } from '@/shared/constants/router.constants';
 import { PricingPlansDialog } from '../pricing-plans-dialog/pricing-plans-dialog.component';
+
+function LocationProbe() {
+  return <span data-testid='location'>{useLocation().pathname}</span>;
+}
 
 const pricingPlansCatalog: PricingPlansResponse = {
   yearlyDiscountPercent: 25,
@@ -67,17 +72,67 @@ function renderPricingPlansDialog() {
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
         <PricingPlansDialog trigger={<button type='button'>Planos</button>} />
+        <LocationProbe />
       </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
 describe('PricingPlansDialog', () => {
+  it('closes the dialog and goes to register when a plan is chosen', async () => {
+    const user = userEvent.setup();
+
+    renderPricingPlansDialog();
+    await user.click(screen.getByRole('button', { name: 'Planos' }));
+    await user.click(await screen.findByRole('link', { name: 'Assinar Agencia' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(routes.register);
+  });
+
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(pricingPlansService, 'getPricingPlans').mockResolvedValue(
       pricingPlansCatalog,
     );
+    // No quote (billing off): catalog prices.
+    vi.spyOn(pricingPlansService, 'getPublicQuote').mockRejectedValue(
+      new Error('offline'),
+    );
+  });
+
+  it('shows the charged price (card fee included) when a quote exists', async () => {
+    const user = userEvent.setup();
+    const quote = (billingCycle: 'MONTHLY' | 'YEARLY', totalCents: number) => ({
+      planCode: 'AGENCY',
+      planName: 'Agencia',
+      billingCycle,
+      baseCents: 0,
+      feeCents: 0,
+      totalCents,
+      installments:
+        billingCycle === 'YEARLY'
+          ? [
+              { count: 1, totalCents, installmentCents: totalCents },
+              { count: 12, totalCents: 170036, installmentCents: 14169 },
+            ]
+          : [],
+    });
+    vi.spyOn(pricingPlansService, 'getPublicQuote').mockResolvedValue({
+      method: 'CREDIT_CARD',
+      quotes: [quote('MONTHLY', 18607), quote('YEARLY', 167048)],
+    });
+
+    renderPricingPlansDialog();
+    await user.click(screen.getByRole('button', { name: 'Planos' }));
+
+    expect(await screen.findByText('R$ 186,07 /mês')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Anual' }));
+    expect(screen.getByText('R$ 139,21 /mês')).toBeInTheDocument();
+    expect(
+      screen.getByText('cobrado R$ 1.670,48/ano · ou 12x de R$ 141,69'),
+    ).toBeInTheDocument();
   });
 
   it('toggles billing cycle and shows the custom card without a calculator', async () => {

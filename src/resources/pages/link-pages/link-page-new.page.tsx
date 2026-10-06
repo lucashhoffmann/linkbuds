@@ -5,6 +5,7 @@ import type {
   LinkPageDetail,
   LinkPageLayout,
 } from '@/app/modules/link-pages/types/link-pages.types';
+import { BackButton } from '@/resources/components/base/back-button/back-button.component';
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
@@ -77,6 +78,8 @@ function buildPreviewLinkPage({
     footerText: null,
     footerUrl: null,
     footerLogoUrl: null,
+    gtmContainerId: null,
+    ga4MeasurementId: null,
     links: [
       {
         id: 'preview-horizontal',
@@ -185,9 +188,15 @@ export function LinkPageNewPage() {
         className='flex min-w-0 flex-col gap-4 rounded-md border p-5'
         onSubmit={submit}
       >
-        <div>
-          <p className='text-muted-foreground text-sm'>Nova LinkPage</p>
-          <h1 className='text-2xl font-semibold'>Criar página de cliente</h1>
+        <div className='flex items-center gap-3'>
+          <BackButton
+            to={routes.linkPages.list}
+            label='Voltar para Páginas'
+          />
+          <div>
+            <p className='text-muted-foreground text-sm'>Nova LinkPage</p>
+            <h1 className='text-2xl font-semibold'>Criar página de cliente</h1>
+          </div>
         </div>
         <div className='grid gap-2'>
           <Label htmlFor='name'>Nome interno</Label>

@@ -95,36 +95,27 @@ export function LinkPageShell({
         }
       : { backgroundColor: linkPage.backgroundColor };
 
-  if (preview) {
-    return (
-      <main
-        data-testid='link-page-shell'
-        data-preview='true'
-        className={cn(
-          linkPageDesignTokens.page.widthClass,
-          linkPageDesignTokens.page.minHeightClass,
-          linkPageDesignTokens.radius.page,
-          'mx-auto flex flex-col overflow-hidden bg-cover bg-center p-5 text-slate-950 shadow-2xl',
-        )}
-        style={style}
-      >
-        <LinkBudsBrandingBar
-          linkPage={linkPage}
-          preview={preview}
-        />
-        {children}
-      </main>
-    );
-  }
-
+  // Background fills the whole frame, content stays a centered column, same
+  // as the public page — so Desktop/Tablet previews match reality.
   return (
     <main
       data-testid='link-page-shell'
-      data-preview='false'
-      className='min-h-dvh w-full bg-cover bg-center px-4 py-6 text-slate-950 sm:px-6 sm:py-10'
+      data-preview={preview ? 'true' : 'false'}
+      className={cn(
+        'w-full bg-cover bg-center text-slate-950',
+        preview
+          ? cn(linkPageDesignTokens.page.minHeightClass, 'flex flex-col p-5')
+          : 'min-h-dvh px-4 py-6 sm:px-6 sm:py-10',
+      )}
       style={style}
     >
-      <div className='mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-[430px] flex-col sm:min-h-[calc(100dvh-5rem)]'>
+      <div
+        className={cn(
+          linkPageDesignTokens.page.widthClass,
+          'mx-auto flex flex-1 flex-col',
+          !preview && 'min-h-[calc(100dvh-3rem)] sm:min-h-[calc(100dvh-5rem)]',
+        )}
+      >
         <LinkBudsBrandingBar
           linkPage={linkPage}
           preview={preview}

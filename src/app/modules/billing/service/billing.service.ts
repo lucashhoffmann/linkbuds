@@ -1,5 +1,10 @@
 import { HttpAuth } from '@/app/api/api';
-import type { BillingCycle, IBillingOverview } from '../types/billing.types';
+import type {
+  IBillingLedgerEntry,
+  IBillingOverview,
+  IBillingQuotes,
+  ISubscribeInput,
+} from '../types/billing.types';
 
 type ApiResponse<T> = { data: T };
 
@@ -10,25 +15,32 @@ class BillingService {
     return data.data;
   }
 
-  /** One idempotency key per user action: retries never open a 2nd checkout. */
-  async checkout(
-    planCode: string,
-    billingCycle: BillingCycle,
-    idempotencyKey: string,
-  ) {
+  async ledgerEntry(id: string): Promise<IBillingLedgerEntry> {
+    const { data } = await HttpAuth.get<ApiResponse<IBillingLedgerEntry>>(
+      `/billing/ledger/${id}`,
+    );
+    return data.data;
+  }
+
+  async quote(): Promise<IBillingQuotes> {
+    const { data } =
+      await HttpAuth.get<ApiResponse<IBillingQuotes>>('/billing/quote');
+    return data.data;
+  }
+
+  /** Same key on a network retry: the API answers once, never charges twice. */
+  async subscribe(input: ISubscribeInput, idempotencyKey: string) {
     const { data } = await HttpAuth.post<
       ApiResponse<{
         checkoutId: string;
-        checkoutUrl: string;
+        status: 'ACTIVE' | 'PENDING';
+        planCode: string;
         amountCents: number;
       }>
-    >(
-      '/billing/checkout',
-      { planCode, billingCycle },
-      {
-        headers: { 'Idempotency-Key': idempotencyKey },
-      },
-    );
+    >('/billing/subscribe', input, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+      keepPageOnServerError: true,
+    });
     return data.data;
   }
 
@@ -41,10 +53,6 @@ class BillingService {
       ApiResponse<{ code: string; alreadyRedeemed: boolean }>
     >('/billing/coupons/redeem', { code });
     return data.data;
-  }
-
-  async completeFakeCheckout(sessionId: string) {
-    await HttpAuth.post(`/billing/fake/checkouts/${sessionId}/complete`);
   }
 }
 

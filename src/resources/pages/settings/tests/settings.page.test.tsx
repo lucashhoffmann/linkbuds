@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SettingsPage } from '../settings.page';
+import { DomainSettingsPage, SettingsPage } from '../settings.page';
 
 const mocks = vi.hoisted(() => ({
   useEntitlements: vi.fn(),
@@ -54,12 +54,15 @@ describe('SettingsPage', () => {
     );
 
     expect(screen.getByText('billing-section')).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText('www.suaagencia.com'),
+    ).not.toBeInTheDocument();
   });
 
   it('shows the custom domain panel when the plan includes it', () => {
     render(
       <MemoryRouter>
-        <SettingsPage />
+        <DomainSettingsPage />
       </MemoryRouter>,
     );
 
@@ -101,7 +104,7 @@ describe('SettingsPage', () => {
 
     render(
       <MemoryRouter>
-        <SettingsPage />
+        <DomainSettingsPage />
       </MemoryRouter>,
     );
 
@@ -128,7 +131,7 @@ describe('SettingsPage', () => {
 
     render(
       <MemoryRouter>
-        <SettingsPage />
+        <DomainSettingsPage />
       </MemoryRouter>,
     );
 

@@ -34,8 +34,7 @@ export function BrandingTab({
           <div>
             <p className='font-medium'>Domínio próprio</p>
             <p className='text-muted-foreground mt-1'>
-              O apontamento DNS fica em LinkPages, no painel Domínio customizado
-              da empresa.
+              O apontamento DNS fica em Configurações, na aba Domínio.
             </p>
           </div>
         </div>
@@ -45,7 +44,7 @@ export function BrandingTab({
           variant='outline'
           className='shrink-0'
         >
-          <RouterLink to={routes.linkPages.list}>Configurar domínio</RouterLink>
+          <RouterLink to={routes.settingsDomain}>Configurar domínio</RouterLink>
         </Button>
       </div>
       {!enabled && (

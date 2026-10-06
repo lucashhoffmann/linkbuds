@@ -1,3 +1,4 @@
+import { confirmAction } from '@/resources/components/base';
 import { Copy } from 'lucide-react';
 import { type FormEvent } from 'react';
 import { toast } from 'sonner';
@@ -104,8 +105,16 @@ export function DomainPanel({
             type='button'
             size='sm'
             variant='outline'
-            onClick={() => {
-              if (window.confirm(`Remover ${currentDomain.hostname}?`)) {
+            onClick={async () => {
+              if (
+                await confirmAction({
+                  title: `Remover ${currentDomain.hostname}?`,
+                  description:
+                    'A página deixa de responder neste domínio imediatamente.',
+                  confirmLabel: 'Remover',
+                  destructive: true,
+                })
+              ) {
                 domain.remove.mutate(currentDomain.id);
               }
             }}

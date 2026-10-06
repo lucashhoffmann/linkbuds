@@ -5,6 +5,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { Button } from '@/resources/components/ui/button';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -23,6 +24,7 @@ export function PricingPlansDialog({ trigger }: IPricingPlansDialogProps) {
   const {
     billingCycle,
     errorPricingPlans,
+    formatPlanInstallments,
     formatPlanMonthlyPrice,
     formatPlanYearlyTotal,
     isLoadingPricingPlans,
@@ -155,20 +157,24 @@ export function PricingPlansDialog({ trigger }: IPricingPlansDialogProps) {
                         plan.priceCents !== null && (
                           <p className='text-muted-foreground -mt-2 text-xs'>
                             cobrado {formatPlanYearlyTotal(plan)}/ano
+                            {formatPlanInstallments(plan) &&
+                              ` · ${formatPlanInstallments(plan)}`}
                           </p>
                         )}
                     </div>
 
                     {/* ponytail: custom conditions start from an account; swap for a contact channel when one exists. */}
-                    <Button
-                      asChild
-                      className='mt-3 h-8 w-full'
-                      variant={plan.featured ? 'default' : 'outline'}
-                    >
-                      <RouterLink to={routes.register}>
-                        {plan.action}
-                      </RouterLink>
-                    </Button>
+                    <DialogClose asChild>
+                      <Button
+                        asChild
+                        className='mt-3 h-8 w-full'
+                        variant={plan.featured ? 'default' : 'outline'}
+                      >
+                        <RouterLink to={routes.register}>
+                          {plan.action}
+                        </RouterLink>
+                      </Button>
+                    </DialogClose>
 
                     <ul className='mt-3 space-y-1.5 text-xs leading-tight'>
                       {plan.features.map((feature) => (

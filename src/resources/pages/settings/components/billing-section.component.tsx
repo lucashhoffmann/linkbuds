@@ -1,21 +1,25 @@
-import { Sparkles, Ticket } from 'lucide-react';
+import { confirmAction } from '@/resources/components/base';
+import { Check, ChevronRight, Sparkles, Ticket } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useSession } from '@/app/modules/auth/hooks';
-import type { BillingCycle } from '@/app/modules/billing/types/billing.types';
+import type {
+  BillingCycle,
+  IBillingQuote,
+} from '@/app/modules/billing/types/billing.types';
 import {
   useBillingMutations,
   useBillingOverviewUseCase,
+  useBillingQuoteUseCase,
 } from '@/app/modules/billing/use-cases/use-billing.use-case';
+import { useGetPricingPlansUseCase } from '@/app/modules/pricing-plans/use-cases/use-get-pricing-plans.use-case';
 import { SegmentedControl } from '@/resources/components/base/device-preview/device-preview.component';
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
-
-const money = (cents: number) =>
-  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-    cents / 100,
-  );
+import { cn } from '@/shared/lib/utils';
+import { formatMoney as money } from './subscribe-dialog/payment-format.util';
+import { LedgerEntryDialog } from './ledger-entry-dialog.component';
+import { SubscribeDialog } from './subscribe-dialog/subscribe-dialog.component';
 const date = (value: string | null) =>
   value ? new Date(value).toLocaleDateString('pt-BR') : '—';
 
@@ -50,11 +54,11 @@ export function BillingSection() {
   const mutations = useBillingMutations();
   const [cycle, setCycle] = useState<BillingCycle>('MONTHLY');
   const [coupon, setCoupon] = useState('');
-  const [searchParams, setSearchParams] = useSearchParams();
-  const fakeSession =
-    searchParams.get('checkout') === 'fake'
-      ? searchParams.get('session')
-      : null;
+  const [selected, setSelected] = useState<IBillingQuote | null>(null);
+  const [openEntry, setOpenEntry] = useState<string | null>(null);
+  const quote = useBillingQuoteUseCase(isOwner);
+  // Catalog copy (description, features) so the upgrade shows what it unlocks.
+  const { pricingPlansCatalog } = useGetPricingPlansUseCase();
 
   if (!data) {
     return (
@@ -69,8 +73,9 @@ export function BillingSection() {
   const effectivePlanName =
     data.prices.find((price) => price.code === entitlements.planCode)?.name ??
     data.plan.name;
-  const upgrades = data.prices.filter(
-    (price) => price.code !== data.plan.code && price.monthlyCents > 0,
+  // Prices as charged (card fee included), for plans other than the current one.
+  const upgrades = (quote.data?.quotes ?? []).filter(
+    (item) => item.planCode !== data.plan.code && item.billingCycle === cycle,
   );
   const canCancel =
     isOwner &&
@@ -128,6 +133,8 @@ export function BillingSection() {
             Assinatura {subscription.plan.name} ·{' '}
             {subscription.billingCycle === 'YEARLY' ? 'anual' : 'mensal'} ·{' '}
             {money(subscription.amountCents)}
+            {subscription.installmentCount > 1 &&
+              ` em ${subscription.installmentCount}x`}
           </p>
           <p className='text-muted-foreground text-xs'>
             {STATUS_LABEL[subscription.status]}
@@ -141,9 +148,15 @@ export function BillingSection() {
               variant='outline'
               size='sm'
               className='mt-1 w-fit'
-              onClick={() => {
+              onClick={async () => {
                 if (
-                  window.confirm('Cancelar a assinatura ao fim do período?')
+                  await confirmAction({
+                    title: 'Cancelar assinatura?',
+                    description: `As renovações param. O plano continua até ${date(subscription.currentPeriodEnd)} e depois volta para o Grátis.`,
+                    confirmLabel: 'Cancelar assinatura',
+                    cancelLabel: 'Manter',
+                    destructive: true,
+                  })
                 ) {
                   mutations.cancel.mutate(undefined);
                 }
@@ -152,28 +165,6 @@ export function BillingSection() {
               Cancelar assinatura
             </Button>
           )}
-        </div>
-      )}
-
-      {fakeSession && isOwner && (
-        <div className='rounded-xl border border-dashed p-3 text-sm'>
-          <p className='font-medium'>Pagamento de teste</p>
-          <p className='text-muted-foreground text-xs'>
-            Ambiente sem gateway real: simule a aprovação do pagamento.
-          </p>
-          <Button
-            type='button'
-            size='sm'
-            className='mt-2'
-            disabled={mutations.completeFakeCheckout.isPending}
-            onClick={() =>
-              mutations.completeFakeCheckout.mutate(fakeSession, {
-                onSuccess: () => setSearchParams({}, { replace: true }),
-              })
-            }
-          >
-            Aprovar pagamento (teste)
-          </Button>
         </div>
       )}
 
@@ -187,7 +178,12 @@ export function BillingSection() {
               onChange={setCycle}
               options={[
                 { value: 'MONTHLY', label: 'Mensal' },
-                { value: 'YEARLY', label: 'Anual' },
+                {
+                  value: 'YEARLY',
+                  label: pricingPlansCatalog
+                    ? `Anual -${pricingPlansCatalog.yearlyDiscountPercent}%`
+                    : 'Anual',
+                },
               ]}
             />
           </div>
@@ -196,36 +192,72 @@ export function BillingSection() {
               Pagamento online em breve. Fale com a gente para assinar.
             </p>
           )}
-          {upgrades.map((price) => {
-            const cents =
-              cycle === 'YEARLY' ? price.yearlyCents : price.monthlyCents;
-
+          {upgrades.map((item) => {
+            const plan = pricingPlansCatalog?.plans.find(
+              (catalogPlan) => catalogPlan.code === item.planCode,
+            );
             return (
               <div
-                key={price.code}
-                className='bg-background flex flex-wrap items-center gap-3 rounded-xl p-3'
+                key={item.planCode}
+                className={cn(
+                  'bg-background grid gap-3 rounded-xl border p-4',
+                  plan?.featured && 'border-primary shadow-sm',
+                )}
               >
-                <div className='min-w-0 flex-1'>
-                  <p className='font-medium'>{price.name}</p>
-                  <p className='text-muted-foreground text-xs'>
-                    {money(cents)} / {cycle === 'YEARLY' ? 'ano' : 'mês'}
-                  </p>
+                <div className='flex flex-wrap items-start gap-3'>
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex flex-wrap items-center gap-2'>
+                      <p className='text-lg font-semibold'>{item.planName}</p>
+                      {plan?.label && (
+                        <span className='bg-primary text-primary-foreground rounded-full px-2 py-0.5 text-xs'>
+                          {plan.label}
+                        </span>
+                      )}
+                    </div>
+                    {plan?.description && (
+                      <p className='text-muted-foreground mt-0.5 text-sm'>
+                        {plan.description}
+                      </p>
+                    )}
+                    <p className='mt-2 text-sm'>
+                      <span className='text-xl font-semibold'>
+                        {money(item.totalCents)}
+                      </span>{' '}
+                      / {cycle === 'YEARLY' ? 'ano' : 'mês'}
+                      {item.installments.length > 1 && (
+                        <span className='text-muted-foreground text-xs'>
+                          {` · ou até ${item.installments.at(-1)!.count}x no cartão`}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    type='button'
+                    disabled={
+                      !data.providerConfigured ||
+                      Boolean(
+                        subscription &&
+                        ['ACTIVE', 'PAST_DUE'].includes(subscription.status),
+                      )
+                    }
+                    onClick={() => setSelected(item)}
+                  >
+                    Assinar {item.planName}
+                  </Button>
                 </div>
-                <Button
-                  type='button'
-                  size='sm'
-                  disabled={
-                    !data.providerConfigured || mutations.checkout.isPending
-                  }
-                  onClick={() =>
-                    mutations.checkout.mutate({
-                      planCode: price.code,
-                      billingCycle: cycle,
-                    })
-                  }
-                >
-                  Assinar
-                </Button>
+                {plan && plan.features.length > 0 && (
+                  <ul className='grid gap-1.5 text-sm sm:grid-cols-2'>
+                    {plan.features.map((feature) => (
+                      <li
+                        key={feature}
+                        className='flex gap-2'
+                      >
+                        <Check className='text-primary mt-0.5 size-4 shrink-0' />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             );
           })}
@@ -263,24 +295,41 @@ export function BillingSection() {
           <h3 className='text-sm font-medium'>Histórico</h3>
           <ul className='divide-y text-sm'>
             {data.ledger.map((entry) => (
-              <li
-                key={entry.id}
-                className='flex items-center gap-3 py-2'
-              >
-                <span className='text-muted-foreground hidden w-20 shrink-0 text-xs sm:inline'>
-                  {date(entry.createdAt)}
-                </span>
-                <span className='min-w-0 flex-1 truncate'>
-                  {LEDGER_LABEL[entry.type]} · {entry.description}
-                </span>
-                <span className='shrink-0 font-medium'>
-                  {money(entry.amountCents)}
-                </span>
+              <li key={entry.id}>
+                <button
+                  type='button'
+                  className='hover:bg-muted/60 focus-visible:ring-ring/50 -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors outline-none focus-visible:ring-[3px]'
+                  onClick={() => setOpenEntry(entry.id)}
+                >
+                  <span className='text-muted-foreground hidden w-20 shrink-0 text-xs sm:inline'>
+                    {date(entry.createdAt)}
+                  </span>
+                  <span className='min-w-0 flex-1 truncate'>
+                    {LEDGER_LABEL[entry.type]} · {entry.description}
+                  </span>
+                  <span className='shrink-0 font-medium'>
+                    {money(entry.amountCents)}
+                  </span>
+                  <ChevronRight className='text-muted-foreground size-4 shrink-0' />
+                </button>
               </li>
             ))}
           </ul>
         </div>
       )}
+
+      <LedgerEntryDialog
+        entryId={openEntry}
+        onClose={() => setOpenEntry(null)}
+      />
+      <SubscribeDialog
+        quote={selected}
+        onClose={() => setSelected(null)}
+        onQuoteChanged={() => {
+          setSelected(null);
+          void quote.refetch();
+        }}
+      />
     </section>
   );
 }

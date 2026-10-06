@@ -3,6 +3,7 @@ import type {
   AnalyticsEventType,
   AnalyticsTargetType,
   CompanyDomain,
+  FooterSettings,
   LinkPageAnalyticsInsights,
   LinkPageDetail,
   LinkPageImage,
@@ -14,6 +15,7 @@ import type {
   PublicLinkPage,
   SocialPlatform,
 } from '../types/link-pages.types';
+import { guessCountryCode } from '../utils/country-guess.util';
 
 type ApiResponse<T> = {
   data: T;
@@ -33,6 +35,7 @@ type TrackEventPayload = {
   utmCampaign?: string | null;
   utmContent?: string | null;
   utmTerm?: string | null;
+  countryCode?: string | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -101,6 +104,23 @@ class LinkPagesService {
   async updateFooter(id: string, payload: Partial<LinkPageDetail>) {
     const { data } = await HttpAuth.patch<ApiResponse<LinkPageDetail>>(
       `/link-pages/${id}/footer`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async getFooterDefault(): Promise<FooterSettings> {
+    const { data } = await HttpAuth.get<ApiResponse<FooterSettings>>(
+      '/link-pages/footer-default',
+    );
+    return data.data;
+  }
+
+  async updateFooterDefault(
+    payload: FooterSettings & { applyToExisting: boolean },
+  ): Promise<FooterSettings> {
+    const { data } = await HttpAuth.put<ApiResponse<FooterSettings>>(
+      '/link-pages/footer-default',
       payload,
     );
     return data.data;
@@ -226,15 +246,21 @@ class LinkPagesService {
   }
 
   async trackEvent(id: string, payload: TrackEventPayload) {
-    await Http.post(`/public/link-pages/${id}/events`, payload);
+    await Http.post(`/public/link-pages/${id}/events`, {
+      countryCode: guessCountryCode(),
+      ...payload,
+    });
   }
 
   trackEventBeacon(id: string, payload: TrackEventPayload) {
     const baseUrl = String(Http.defaults.baseURL ?? '').replace(/\/$/, '');
     const url = `${baseUrl}/public/link-pages/${id}/events`;
-    const body = new Blob([JSON.stringify(payload)], {
-      type: 'application/json',
-    });
+    const body = new Blob(
+      [JSON.stringify({ countryCode: guessCountryCode(), ...payload })],
+      {
+        type: 'application/json',
+      },
+    );
 
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       return navigator.sendBeacon(url, body);

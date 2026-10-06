@@ -13,6 +13,13 @@ export const HttpAuth = axios.create({
   withCredentials: true,
 });
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** Show the 5xx inline (e.g. payment form) instead of the error page. */
+    keepPageOnServerError?: boolean;
+  }
+}
+
 type ApiErrorResponse = {
   errorCode?: string;
 };
@@ -35,6 +42,7 @@ function handleResponseError(error: AxiosError<ApiErrorResponse>) {
   if (
     error.response?.status &&
     error.response.status >= 500 &&
+    !error.config?.keepPageOnServerError &&
     window.location.pathname !== routes.errors.internal
   ) {
     window.location.assign(routes.errors.internal);

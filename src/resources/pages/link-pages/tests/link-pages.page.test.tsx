@@ -100,10 +100,10 @@ describe('LinkPagesPage', () => {
     expect(screen.getByText('1 de 1 clientes')).toBeInTheDocument();
     expect(screen.getAllByText('Agência X').length).toBeGreaterThan(0);
     expect(
-      screen.getByRole('button', { name: /Pizzaria/ }),
+      screen.getByRole('button', { name: 'Pizzaria' }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /Promo terça/ }),
+      screen.getByRole('button', { name: 'Promo terça' }),
     ).toBeInTheDocument();
     // Quota reached: new client disabled.
     expect(screen.getByRole('button', { name: /Cliente/ })).toBeDisabled();
@@ -112,7 +112,7 @@ describe('LinkPagesPage', () => {
   it('selects a client and creates a post under it from the canvas', () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: /Pizzaria/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Pizzaria' }));
     expect(screen.getByText('/p/pizzaria')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Novo link de post' }));

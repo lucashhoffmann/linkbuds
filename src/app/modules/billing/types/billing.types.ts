@@ -17,6 +17,7 @@ export interface IBillingOverview {
     plan: { code: string; name: string };
     billingCycle: BillingCycle;
     amountCents: number;
+    installmentCount: number;
     currentPeriodEnd: string | null;
     cancelAtPeriodEnd: boolean;
   } | null;
@@ -35,4 +36,69 @@ export interface IBillingOverview {
     description: string;
     createdAt: string;
   }>;
+}
+
+/** Plan price with the card fee included: `totalCents` is what is charged. */
+export interface IBillingQuote {
+  planCode: string;
+  planName: string;
+  billingCycle: BillingCycle;
+  baseCents: number;
+  feeCents: number;
+  totalCents: number;
+  /** Yearly only: card split options, each with its own fee (count 1 = totalCents). */
+  installments: Array<{
+    count: number;
+    totalCents: number;
+    installmentCents: number;
+  }>;
+}
+
+export interface IBillingQuotes {
+  method: 'CREDIT_CARD';
+  quotes: IBillingQuote[];
+}
+
+export interface ISubscribeInput {
+  planCode: string;
+  billingCycle: BillingCycle;
+  expectedTotalCents: number;
+  installmentCount: number;
+  holder: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    phone: string;
+    postalCode: string;
+    addressNumber: string;
+  };
+  card: {
+    holderName: string;
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    ccv: string;
+  };
+}
+
+/** One history entry with the receipt details (GET /billing/ledger/:id). */
+export interface IBillingLedgerEntry {
+  id: string;
+  type: 'CHARGE' | 'PAYMENT' | 'REFUND' | 'CREDIT';
+  description: string;
+  amountCents: number;
+  currency: string;
+  createdAt: string;
+  plan: { code: string; name: string } | null;
+  billingCycle: BillingCycle | null;
+  installments: { count: number; amountCents: number } | null;
+  /** Plan price vs card fee passed to the payer; null for older entries. */
+  breakdown: { planCents: number; feeCents: number } | null;
+  transactionId: string | null;
+  /** Live from the gateway; null when unavailable. */
+  payment: {
+    status: 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED';
+    card: { brand: string; last4: string } | null;
+    receiptUrl: string | null;
+  } | null;
 }

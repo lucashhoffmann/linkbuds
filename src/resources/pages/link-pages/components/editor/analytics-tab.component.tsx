@@ -1,9 +1,11 @@
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import {
   Activity,
   BarChart3,
   CalendarDays,
   Clock3,
+  FileDown,
+  FileJson,
   Lock,
   MousePointerClick,
   Radio,
@@ -15,7 +17,10 @@ import type {
   LinkPageAnalyticsTimeseriesPoint,
   LinkPageDetail,
 } from '@/app/modules/link-pages/types/link-pages.types';
+import { SegmentedControl } from '@/resources/components/base/device-preview/device-preview.component';
+import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
+import { toast } from 'sonner';
 import {
   dateInputValue,
   startOfDayIso,
@@ -35,13 +40,67 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
     from: fromDate ? startOfDayIso(fromDate) : undefined,
     to: toDate ? endOfDayIso(toDate) : undefined,
   });
+  const [view, setView] = useState<'list' | 'chart'>('chart');
   const data = insights.data;
   const isFull = data?.tier === 'FULL';
   const summary = data?.summary;
+  const chart = view === 'chart';
+  const printRef = useRef<HTMLDivElement>(null);
+
+  /** Print only the panel in a clean window; the user saves it as PDF. */
+  function exportPdf() {
+    const win = window.open('', '_blank');
+    if (!win || !printRef.current) {
+      toast.error('Permita pop-ups para exportar o PDF.');
+      return;
+    }
+    const styles = [
+      ...document.querySelectorAll('style, link[rel="stylesheet"]'),
+    ]
+      .map((node) =>
+        node instanceof HTMLLinkElement
+          ? `<link rel="stylesheet" href="${node.href}">`
+          : node.outerHTML,
+      )
+      .join('');
+    win.document.write(
+      `<!doctype html><html class="${document.documentElement.className}"><head><title>Análises - ${linkPage.name}</title>${styles}</head><body class="p-6">${printRef.current.outerHTML}</body></html>`,
+    );
+    win.document.close();
+    win.addEventListener('load', () => {
+      win.print();
+      win.close();
+    });
+  }
+
+  async function copyJson() {
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(
+          {
+            page: { name: linkPage.name, path: linkPage.publicPath },
+            ...data,
+            topTargets: data?.topTargets.map((target) => ({
+              ...target,
+              label: targetLabel(linkPage, target),
+            })),
+          },
+          null,
+          2,
+        ),
+      );
+      toast.success('JSON copiado — cole na sua IA');
+    } catch {
+      toast.error('Não foi possível copiar.');
+    }
+  }
 
   return (
-    <div className='space-y-5'>
-      <div className='flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
+    <div
+      ref={printRef}
+      className='@container space-y-5'
+    >
+      <div className='flex flex-col gap-3 @4xl:flex-row @4xl:items-center @4xl:justify-between'>
         <div>
           <div className='flex items-center gap-2 font-medium'>
             <BarChart3 className='size-4' />
@@ -54,7 +113,38 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
           </p>
         </div>
         {isFull && (
-          <div className='grid gap-2 sm:grid-cols-2'>
+          <div className='flex flex-wrap items-center gap-2 print:hidden'>
+            <SegmentedControl
+              label='Visualização'
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'chart', label: 'Gráficos' },
+                { value: 'list', label: 'Lista' },
+              ]}
+            />
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={!data}
+              onClick={() => void copyJson()}
+            >
+              <FileJson className='size-4' />
+              Copiar JSON (IA)
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={!data}
+              onClick={exportPdf}
+            >
+              <FileDown className='size-4' />
+              PDF
+            </Button>
+          </div>
+        )}
+        {isFull && (
+          <div className='grid gap-2 @xs:grid-cols-2 print:hidden'>
             <Field label='De'>
               <Input
                 type='date'
@@ -79,7 +169,7 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
         </div>
       )}
 
-      <div className='grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6'>
+      <div className='grid grid-cols-2 gap-3 @md:grid-cols-3 @4xl:grid-cols-6'>
         <MetricCard
           icon={<Radio className='size-4' />}
           label='Online agora'
@@ -112,16 +202,17 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
         />
       </div>
 
-      <div className='grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'>
+      <div className='grid gap-4 @3xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]'>
         <AnalyticsPanel
           title='Principais links'
           icon={<MousePointerClick className='size-4' />}
         >
           <RankedList
+            chart={chart}
             emptyLabel='Nenhum clique registrado no período.'
             items={(data?.topTargets ?? []).map((target) => ({
               label: targetLabel(linkPage, target),
-              value: formatNumber(target.clicks),
+              count: toNumber(target.clicks),
             }))}
           />
         </AnalyticsPanel>
@@ -132,26 +223,39 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
           locked={!data?.limits.advancedDimensionsEnabled}
         >
           {data?.limits.advancedDimensionsEnabled ? (
-            <TimeseriesBars points={data.timeseries} />
+            chart ? (
+              <TimeseriesBars points={data.timeseries} />
+            ) : (
+              <RankedList
+                emptyLabel='Sem visitas no período.'
+                items={data.timeseries.map((point) => ({
+                  label: new Date(point.date).toLocaleDateString('pt-BR'),
+                  count: toNumber(point.count),
+                }))}
+              />
+            )
           ) : (
             <LockedAnalyticsLabel />
           )}
         </AnalyticsPanel>
       </div>
 
-      <div className='grid gap-4 lg:grid-cols-3'>
+      <div className='grid gap-4 @lg:grid-cols-3'>
         <AnalyticsGroupPanel
           title='Origens'
+          chart={chart}
           items={data?.sources ?? []}
           locked={!data?.limits.advancedDimensionsEnabled}
         />
         <AnalyticsGroupPanel
           title='Dispositivos'
+          chart={chart}
           items={data?.devices ?? []}
           locked={!data?.limits.advancedDimensionsEnabled}
         />
         <AnalyticsGroupPanel
           title='Países'
+          chart={chart}
           items={data?.countries ?? []}
           locked={!data?.limits.advancedDimensionsEnabled}
         />
@@ -206,27 +310,41 @@ export function AnalyticsPanel({
 }
 
 export function RankedList({
+  chart = false,
   emptyLabel,
   items,
 }: {
+  chart?: boolean;
   emptyLabel: string;
-  items: Array<{ label: string; value: string }>;
+  items: Array<{ label: string; count: number }>;
 }) {
   if (!items.length) {
     return <p className='text-muted-foreground text-sm'>{emptyLabel}</p>;
   }
+
+  const max = Math.max(...items.map((item) => item.count), 1);
 
   return (
     <div className='grid gap-2'>
       {items.map((item, index) => (
         <div
           key={`${item.label}-${index}`}
-          className='bg-muted/30 flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm'
+          className='bg-muted/30 relative flex items-center justify-between gap-3 overflow-hidden rounded-md px-3 py-2 text-sm'
         >
-          <span className='min-w-0 truncate'>
+          {/* Chart mode: proportional bar behind the row. */}
+          {chart && (
+            <div
+              aria-hidden='true'
+              className='bg-primary/15 absolute inset-y-0 left-0 print:[print-color-adjust:exact]'
+              style={{ width: `${(item.count / max) * 100}%` }}
+            />
+          )}
+          <span className='relative min-w-0 truncate'>
             {index + 1}. {item.label}
           </span>
-          <span className='font-medium'>{item.value}</span>
+          <span className='relative font-medium'>
+            {formatNumber(item.count)}
+          </span>
         </div>
       ))}
     </div>
@@ -260,7 +378,7 @@ export function TimeseriesBars({
             title={`${date.toLocaleDateString('pt-BR')}: ${formatNumber(count)}`}
           >
             <div
-              className='bg-primary w-full rounded-t-sm'
+              className='bg-primary w-full rounded-t-sm print:[print-color-adjust:exact]'
               style={{ height: `${height}%` }}
             />
             <span className='text-muted-foreground text-[10px]'>
@@ -282,10 +400,12 @@ export function LockedAnalyticsLabel() {
 }
 
 export function AnalyticsGroupPanel({
+  chart = false,
   items,
   locked,
   title,
 }: {
+  chart?: boolean;
   items: LinkPageAnalyticsGroupItem[];
   locked: boolean;
   title: string;
@@ -299,10 +419,11 @@ export function AnalyticsGroupPanel({
         <LockedAnalyticsLabel />
       ) : (
         <RankedList
+          chart={chart}
           emptyLabel='Sem dados no período.'
           items={items.map((item) => ({
             label: item.label,
-            value: formatNumber(item.count),
+            count: toNumber(item.count),
           }))}
         />
       )}

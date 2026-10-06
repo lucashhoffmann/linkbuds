@@ -3,7 +3,7 @@ import { Router } from '@/app/router/router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from 'sonner';
-import { AppErrorBoundary } from '@/resources/components/base';
+import { AppErrorBoundary, ConfirmDialog } from '@/resources/components/base';
 
 function App() {
   const queryClient = new QueryClient({
@@ -32,6 +32,8 @@ function App() {
         <AppErrorBoundary>
           <Router />
         </AppErrorBoundary>
+
+        <ConfirmDialog />
 
         <Toaster
           richColors

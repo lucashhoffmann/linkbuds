@@ -7,7 +7,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useSession } from '@/app/modules/auth/hooks';
 import { ThemeModeToggle } from '@/resources/components/base/theme-mode-toggle/theme-mode-toggle.component';
 import { Avatar, AvatarFallback } from '@/resources/components/ui/avatar';
@@ -103,6 +103,8 @@ function BrandMark() {
  * mobile. Pages own their inner layout (list panel, canvas).
  */
 export function StudioShell({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation();
+
   return (
     <div className='bg-background flex h-svh flex-col md:flex-row'>
       <nav
@@ -142,13 +144,19 @@ export function StudioShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className='flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto pb-[calc(env(safe-area-inset-bottom)+64px)] md:pb-0'>
-        {children}
+      <main className='flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto'>
+        {/* Keyed by path so the entrance animation replays on every navigation. */}
+        <div
+          key={pathname}
+          className='animate-in fade-in zoom-in-[0.99] flex flex-1 flex-col duration-300 md:min-h-0'
+        >
+          {children}
+        </div>
       </main>
 
       <nav
         aria-label='Principal'
-        className='bg-sidebar fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t pb-[env(safe-area-inset-bottom)] md:hidden'
+        className='bg-sidebar grid shrink-0 grid-cols-4 border-t pb-[env(safe-area-inset-bottom)] md:hidden'
       >
         {NAV_ITEMS.map((item) => (
           <NavLink

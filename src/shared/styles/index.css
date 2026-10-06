@@ -359,3 +359,42 @@
     }
   }
 }
+
+@theme {
+  --animate-lb-link: lb-link 3.2s ease-out infinite both;
+  --animate-lb-tap: lb-tap 3.2s ease-out infinite both;
+
+  @keyframes lb-link {
+    0%,
+    8% {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    20%,
+    82% {
+      opacity: 1;
+      transform: none;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+
+  @keyframes lb-tap {
+    0%,
+    45% {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+    55% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    70%,
+    100% {
+      opacity: 0;
+      transform: scale(1.6);
+    }
+  }
+}

@@ -1,6 +1,6 @@
 export const linkPageDesignTokens = {
   page: {
-    widthClass: 'w-full max-w-[390px]',
+    widthClass: 'w-full max-w-[430px]',
     minHeightClass: 'min-h-[720px]',
   },
   avatar: {
@@ -23,7 +23,6 @@ export const linkPageDesignTokens = {
     stack: 'space-y-3',
   },
   radius: {
-    page: 'rounded-[28px]',
     item: 'rounded-lg',
   },
 };

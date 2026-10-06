@@ -1,3 +1,4 @@
 export enum PricingPlansQueryKeys {
   GET_PRICING_PLANS = 'GET_PRICING_PLANS',
+  GET_PUBLIC_QUOTE = 'GET_PUBLIC_QUOTE',
 }

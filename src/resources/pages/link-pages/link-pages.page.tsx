@@ -1,4 +1,13 @@
-import { Copy, ExternalLink, Pencil, Plus, Trash2 } from 'lucide-react';
+import { confirmAction } from '@/resources/components/base';
+import {
+  ChevronRight,
+  Copy,
+  ExternalLink,
+  Link2,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import {
   Link as RouterLink,
@@ -12,13 +21,17 @@ import {
   useLinkPageMutations,
   useListLinkPagesUseCase,
 } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
-import { DevicePreview } from '@/resources/components/base/device-preview/device-preview.component';
+import {
+  DevicePreview,
+  SegmentedControl,
+} from '@/resources/components/base/device-preview/device-preview.component';
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { routes } from '@/shared/constants/router.constants';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
+import { AnalyticsTab } from './components/editor/analytics-tab.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 
 const BADGE_COLORS = [
@@ -43,6 +56,20 @@ function Badge({ name }: { name: string }) {
       )}
     >
       {name.trim()[0]?.toUpperCase() ?? '?'}
+    </span>
+  );
+}
+
+/** Posts get a link icon so they read apart from bios at a glance. */
+function PageIcon({ page }: { page: LinkPageSummary }) {
+  if (page.type !== 'POST') return <Badge name={page.name} />;
+
+  return (
+    <span
+      aria-hidden='true'
+      className='bg-muted text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
+    >
+      <Link2 className='size-3.5' />
     </span>
   );
 }
@@ -74,31 +101,150 @@ function ListGroup({
 function PageListItem({
   page,
   selected,
-  nested,
+  expanded,
+  onToggle,
   onSelect,
+  onRemove,
 }: {
   page: LinkPageSummary;
   selected: boolean;
-  nested?: boolean;
+  /** Bios only; undefined = no children to toggle. */
+  expanded?: boolean;
+  onToggle?: () => void;
   onSelect: () => void;
+  onRemove?: () => void;
 }) {
+  const action =
+    'text-muted-foreground hover:text-foreground hover:bg-background flex size-7 shrink-0 items-center justify-center rounded-md';
+
   return (
-    <button
-      type='button'
-      onClick={onSelect}
-      aria-current={selected || undefined}
+    <div
       className={cn(
-        'hover:bg-sidebar-accent flex min-h-10 w-full items-center gap-2 rounded-lg px-2 text-left text-sm transition-colors',
-        nested && 'pl-8',
+        'group hover:bg-sidebar-accent flex min-h-10 w-full items-center gap-1 rounded-lg px-1 text-sm transition-colors',
         selected && 'bg-sidebar-accent font-medium shadow-xs',
       )}
     >
-      {!nested && <Badge name={page.name} />}
-      <span className='min-w-0 flex-1 truncate'>{page.name}</span>
-      {page.status === 'INACTIVE' && (
-        <span className='text-muted-foreground text-xs'>inativa</span>
+      {page.type !== 'POST' &&
+        (expanded === undefined ? (
+          <span className='size-6 shrink-0' />
+        ) : (
+          <button
+            type='button'
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} posts de ${page.name}`}
+            className='text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
+          >
+            <ChevronRight
+              className={cn(
+                'size-4 transition-transform',
+                expanded && 'rotate-90',
+              )}
+            />
+          </button>
+        ))}
+      <button
+        type='button'
+        onClick={onSelect}
+        aria-current={selected || undefined}
+        className='flex min-h-10 min-w-0 flex-1 items-center gap-2 pl-1 text-left'
+      >
+        <PageIcon page={page} />
+        <span className='min-w-0 flex-1 truncate'>{page.name}</span>
+        {page.status === 'INACTIVE' && (
+          <span className='text-muted-foreground text-xs'>inativa</span>
+        )}
+      </button>
+      {/* Desktop: reveal on hover/focus; touch has no hover, so always shown. */}
+      <div className='flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100'>
+        <a
+          href={publicUrl(page)}
+          target='_blank'
+          rel='noreferrer'
+          title='Abrir link'
+          aria-label={`Abrir link de ${page.name}`}
+          className={action}
+        >
+          <ExternalLink className='size-4' />
+        </a>
+        <RouterLink
+          to={routes.linkPages.edit(page.id)}
+          title='Editar'
+          aria-label={`Editar ${page.name}`}
+          className={action}
+        >
+          <Pencil className='size-4' />
+        </RouterLink>
+        {onRemove && (
+          <button
+            type='button'
+            onClick={onRemove}
+            title='Excluir'
+            aria-label={`Excluir ${page.name}`}
+            className={cn(action, 'hover:text-destructive')}
+          >
+            <Trash2 className='size-4' />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Tree connector: vertical rail + elbow at row mid-height (min-h-10 → top-5);
+// the last branch cuts the rail at the elbow.
+const TREE_BRANCH =
+  'relative pl-4 before:absolute before:top-0 before:left-0 before:h-full before:border-l before:border-border after:absolute after:top-5 after:left-0 after:w-3 after:border-t after:border-border last:before:h-5';
+
+/** A bio and its post sub-pages, collapsible. */
+function BioTree({
+  bio,
+  posts,
+  selectedId,
+  onSelect,
+  onRemove,
+  children,
+}: {
+  bio: LinkPageSummary;
+  posts: LinkPageSummary[];
+  selectedId?: string;
+  onSelect: (page: LinkPageSummary) => void;
+  onRemove: (page: LinkPageSummary) => void;
+  /** Extra branch after the posts (mobile "new post" form). */
+  children?: React.ReactNode;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const hasChildren = posts.length > 0 || Boolean(children);
+
+  return (
+    <div className='grid gap-0.5'>
+      <PageListItem
+        page={bio}
+        selected={selectedId === bio.id}
+        expanded={hasChildren ? expanded : undefined}
+        onToggle={() => setExpanded((value) => !value)}
+        onSelect={() => onSelect(bio)}
+        onRemove={bio.type === 'AGENCY' ? undefined : () => onRemove(bio)}
+      />
+      {hasChildren && expanded && (
+        <ul className='ml-4 grid gap-0.5'>
+          {posts.map((post) => (
+            <li
+              key={post.id}
+              className={TREE_BRANCH}
+            >
+              <PageListItem
+                page={post}
+                selected={selectedId === post.id}
+                onSelect={() => onSelect(post)}
+                onRemove={() => onRemove(post)}
+              />
+            </li>
+          ))}
+          {children && <li className={TREE_BRANCH}>{children}</li>}
+        </ul>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -137,13 +283,18 @@ export function LinkPagesPage() {
     setSearchParams({ p: page.id }, { replace: true });
   }
 
-  function remove(page: LinkPageSummary) {
-    const message =
-      page.type === 'CLIENT'
-        ? `Excluir "${page.name}" e todos os posts dele?`
-        : `Excluir "${page.name}"?`;
+  async function remove(page: LinkPageSummary) {
+    const confirmed = await confirmAction({
+      title: `Excluir "${page.name}"?`,
+      description:
+        page.type === 'CLIENT'
+          ? 'Todos os posts deste cliente também serão excluídos. Essa ação não pode ser desfeita.'
+          : 'Essa ação não pode ser desfeita.',
+      confirmLabel: 'Excluir',
+      destructive: true,
+    });
 
-    if (window.confirm(message)) {
+    if (confirmed) {
       mutations.remove.mutate(page.id, {
         onSuccess: () => setSearchParams({}, { replace: true }),
       });
@@ -190,26 +341,20 @@ export function LinkPagesPage() {
 
         {agencyPage && (
           <ListGroup title='Sua agência'>
-            <PageListItem
-              page={agencyPage}
-              selected={selectedId === agencyPage.id}
-              onSelect={() => select(agencyPage)}
-            />
-            {postsOf(agencyPage.id).map((post) => (
-              <PageListItem
-                key={post.id}
-                page={post}
-                nested
-                selected={selectedId === post.id}
-                onSelect={() => select(post)}
-              />
-            ))}
-            {isMobile && (
-              <NewPostForm
-                bio={agencyPage}
-                onCreate={createPost(agencyPage)}
-              />
-            )}
+            <BioTree
+              bio={agencyPage}
+              posts={postsOf(agencyPage.id)}
+              selectedId={selectedId}
+              onSelect={select}
+              onRemove={(page) => void remove(page)}
+            >
+              {isMobile && (
+                <NewPostForm
+                  bio={agencyPage}
+                  onCreate={createPost(agencyPage)}
+                />
+              )}
+            </BioTree>
           </ListGroup>
         )}
 
@@ -220,31 +365,21 @@ export function LinkPagesPage() {
             </p>
           )}
           {clients.map((client) => (
-            <div
+            <BioTree
               key={client.id}
-              className='grid gap-0.5'
+              bio={client}
+              posts={postsOf(client.id)}
+              selectedId={selectedId}
+              onSelect={select}
+              onRemove={(page) => void remove(page)}
             >
-              <PageListItem
-                page={client}
-                selected={selectedId === client.id}
-                onSelect={() => select(client)}
-              />
-              {postsOf(client.id).map((post) => (
-                <PageListItem
-                  key={post.id}
-                  page={post}
-                  nested
-                  selected={selectedId === post.id}
-                  onSelect={() => select(post)}
-                />
-              ))}
               {isMobile && (
                 <NewPostForm
                   bio={client}
                   onCreate={createPost(client)}
                 />
               )}
-            </div>
+            </BioTree>
           ))}
         </ListGroup>
       </aside>
@@ -285,6 +420,7 @@ function PageCanvas({
 }) {
   const detail = useGetLinkPageUseCase(page.id);
   const url = publicUrl(page);
+  const [view, setView] = useState<'preview' | 'analytics'>('preview');
 
   async function copy() {
     try {
@@ -300,7 +436,7 @@ function PageCanvas({
       {/* Name on its own row below `lg`, where the canvas is narrow. */}
       <header className='flex flex-col gap-3 lg:flex-row lg:items-center'>
         <div className='flex min-w-0 flex-1 items-center gap-3'>
-          <Badge name={page.name} />
+          <PageIcon page={page} />
           <div className='min-w-0 flex-1'>
             <h2 className='truncate font-semibold'>{page.name}</h2>
             <p className='text-muted-foreground truncate text-xs'>
@@ -360,13 +496,27 @@ function PageCanvas({
         />
       )}
 
+      <SegmentedControl
+        label='Exibir'
+        value={view}
+        onChange={setView}
+        options={[
+          { value: 'preview', label: 'Prévia' },
+          { value: 'analytics', label: 'Análises' },
+        ]}
+      />
+
       {detail.data ? (
-        <DevicePreview>
-          <LinkPageRenderer
-            linkPage={detail.data}
-            preview
-          />
-        </DevicePreview>
+        view === 'analytics' ? (
+          <AnalyticsTab linkPage={detail.data} />
+        ) : (
+          <DevicePreview>
+            <LinkPageRenderer
+              linkPage={detail.data}
+              preview
+            />
+          </DevicePreview>
+        )
       ) : (
         <p className='text-muted-foreground text-sm'>Carregando prévia...</p>
       )}
@@ -432,11 +582,6 @@ function NewPostForm({
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
-        {slug && (
-          <p className='text-muted-foreground truncate text-xs'>
-            /p/{bio.publicPath}/{slug}
-          </p>
-        )}
       </div>
       <div className='grid gap-1'>
         <Label htmlFor={`post-url-${bio.id}`}>Link do post (opcional)</Label>
@@ -448,23 +593,26 @@ function NewPostForm({
           onChange={(event) => setPostUrl(event.target.value)}
         />
       </div>
-      <div className='flex gap-2'>
+      <div className='flex gap-2 [&>button]:h-12'>
         <Button
           type='submit'
-          size='sm'
           disabled={!slug}
         >
           Criar
         </Button>
         <Button
           type='button'
-          size='sm'
           variant='ghost'
           onClick={() => setOpen(false)}
         >
           Cancelar
         </Button>
       </div>
+      {slug && (
+        <p className='text-muted-foreground truncate text-xs sm:col-span-3'>
+          /p/{bio.publicPath}/{slug}
+        </p>
+      )}
     </form>
   );
 }

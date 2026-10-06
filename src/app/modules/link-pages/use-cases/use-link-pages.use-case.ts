@@ -4,6 +4,7 @@ import { useQueryCache } from '@/app/cache/use-query-cache';
 import linkPagesService from '../service/link-pages.service';
 import { LinkPagesQueryKeys } from '../keys/link-pages.keys';
 import type {
+  FooterSettings,
   LinkPageDetail,
   LinkPageImage,
   LinkPageLink,
@@ -205,4 +206,30 @@ export function useCompanyDomainUseCase(enabled = true) {
   });
 
   return { ...query, create, verify, remove };
+}
+
+export function useFooterDefaultUseCase() {
+  const queryClient = useQueryClient();
+  const query = useQueryCache({
+    queryKey: [LinkPagesQueryKeys.FOOTER_DEFAULT],
+    queryFn: () => linkPagesService.getFooterDefault(),
+  });
+  const update = useMutationCache({
+    mutationFn: (payload: FooterSettings & { applyToExisting: boolean }) =>
+      linkPagesService.updateFooterDefault(payload),
+    onSuccess: async (_data, { applyToExisting }) => {
+      await queryClient.invalidateQueries({
+        queryKey: [LinkPagesQueryKeys.FOOTER_DEFAULT],
+      });
+      if (applyToExisting) {
+        await Promise.all(
+          [LinkPagesQueryKeys.DETAIL, LinkPagesQueryKeys.PUBLIC].map((key) =>
+            queryClient.invalidateQueries({ queryKey: [key] }),
+          ),
+        );
+      }
+    },
+  });
+
+  return { ...query, update };
 }

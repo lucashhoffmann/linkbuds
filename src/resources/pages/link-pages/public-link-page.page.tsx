@@ -6,6 +6,11 @@ import type {
   AnalyticsEventType,
   AnalyticsTargetType,
 } from '@/app/modules/link-pages/types/link-pages.types';
+import { PublicLinkPageLoader } from './components/public-link-page-loader.component';
+import {
+  trackThirdPartyClick,
+  trackThirdPartyPageView,
+} from './hooks/public-link-page-tracking';
 import { usePublicLinkPageSeo } from './hooks/use-public-link-page-seo';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 
@@ -91,7 +96,8 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
     exitSentRef.current = false;
     const utmParams = getUtmParams();
     void linkPagesService.trackEvent(data.id, {
-      eventId: createId('event'),
+      // Deterministic: reloads/remounts in the same tab on the same day dedupe server-side.
+      eventId: `view_${data.id}_${sessionId}_${new Date().toISOString().slice(0, 10)}`,
       eventType: 'PAGE_VIEW',
       visitorId,
       sessionId,
@@ -102,6 +108,7 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
         hostname: window.location.host,
       },
     });
+    trackThirdPartyPageView(data);
     void linkPagesService.trackPresence(data.id, sessionId);
 
     const presenceInterval = window.setInterval(() => {
@@ -131,14 +138,10 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
       window.clearInterval(presenceInterval);
       window.removeEventListener('pagehide', sendExit);
     };
-  }, [data, sessionId, visitorId]);
+  }, [data?.id, sessionId, visitorId]);
 
   if (isLoading) {
-    return (
-      <main className='flex min-h-dvh items-center justify-center bg-slate-100 p-5 text-sm text-slate-600'>
-        Carregando página...
-      </main>
-    );
+    return <PublicLinkPageLoader />;
   }
 
   if (isError || !data) {
@@ -168,6 +171,7 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
           referrer: document.referrer || null,
           ...getUtmParams(),
         });
+        trackThirdPartyClick(data, targetType, targetId);
       }}
     />
   );

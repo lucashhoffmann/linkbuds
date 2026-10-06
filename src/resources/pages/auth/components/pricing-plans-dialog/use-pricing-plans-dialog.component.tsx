@@ -42,8 +42,18 @@ export function usePricingPlansDialogComponent() {
     errorPricingPlans,
     isLoadingPricingPlans,
     pricingPlansCatalog,
+    publicQuote,
     refetchPricingPlans,
   } = useGetPricingPlansUseCase();
+
+  /** Charged total (card fee included) for the plan in the selected cycle. */
+  function quotedCents(plan: PricingPlan) {
+    const cycle = billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY';
+
+    return publicQuote?.quotes.find(
+      (quote) => quote.planCode === plan.code && quote.billingCycle === cycle,
+    )?.totalCents;
+  }
 
   const yearlyDiscountPercent = pricingPlansCatalog?.yearlyDiscountPercent ?? 0;
   const pricingPlans = pricingPlansCatalog?.plans ?? [];
@@ -51,6 +61,13 @@ export function usePricingPlansDialogComponent() {
   function formatPlanMonthlyPrice(plan: PricingPlan) {
     if (plan.priceCents === null) {
       return plan.priceLabel;
+    }
+
+    const quoted = quotedCents(plan);
+    if (quoted !== undefined) {
+      return `${formatCurrencyFromCents(
+        billingCycle === 'yearly' ? Math.round(quoted / 12) : quoted,
+      )} /mês`;
     }
 
     return `${formatCurrencyFromCents(
@@ -62,9 +79,30 @@ export function usePricingPlansDialogComponent() {
     )} /mês`;
   }
 
+  /** "ou 12x de R$ X" for yearly, from the quote (card fee included). */
+  function formatPlanInstallments(plan: PricingPlan) {
+    if (billingCycle !== 'yearly') return null;
+
+    const longest = publicQuote?.quotes
+      .find(
+        (quote) =>
+          quote.planCode === plan.code && quote.billingCycle === 'YEARLY',
+      )
+      ?.installments.at(-1);
+
+    return longest && longest.count > 1
+      ? `ou ${longest.count}x de ${formatCurrencyFromCents(longest.installmentCents)}`
+      : null;
+  }
+
   function formatPlanYearlyTotal(plan: PricingPlan) {
     if (plan.priceCents === null) {
       return null;
+    }
+
+    const quoted = quotedCents(plan);
+    if (quoted !== undefined) {
+      return formatCurrencyFromCents(quoted);
     }
 
     return formatCurrencyFromCents(
@@ -79,6 +117,7 @@ export function usePricingPlansDialogComponent() {
   return {
     billingCycle,
     errorPricingPlans,
+    formatPlanInstallments,
     formatPlanMonthlyPrice,
     formatPlanYearlyTotal,
     isLoadingPricingPlans,

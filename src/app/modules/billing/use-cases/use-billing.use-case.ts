@@ -6,12 +6,30 @@ import { useAuthStore } from '@/app/store/auth-store/use-auth-store';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { BillingQueryKeys } from '../keys/billing.keys';
 import billingService from '../service/billing.service';
-import type { BillingCycle } from '../types/billing.types';
+import type { ISubscribeInput } from '../types/billing.types';
 
 export function useBillingOverviewUseCase() {
   return useQueryCache({
     queryKey: [BillingQueryKeys.OVERVIEW],
     queryFn: () => billingService.overview(),
+  });
+}
+
+/** Prices with the card fee included, as charged. */
+export function useBillingQuoteUseCase(enabled = true) {
+  return useQueryCache({
+    queryKey: [BillingQueryKeys.QUOTE],
+    queryFn: () => billingService.quote(),
+    enabled,
+  });
+}
+
+/** Receipt details of one history entry; fetched only while it is open. */
+export function useBillingLedgerEntryUseCase(id: string | null) {
+  return useQueryCache({
+    queryKey: [BillingQueryKeys.LEDGER_ENTRY, id],
+    queryFn: () => billingService.ledgerEntry(id!),
+    enabled: Boolean(id),
   });
 }
 
@@ -32,26 +50,19 @@ export function useBillingMutations() {
       onSuccess: refresh,
       onError,
     }),
-    checkout: useMutationCache({
+    // Errors are shown inside the payment form, not as a toast.
+    subscribe: useMutationCache({
       mutationFn: ({
-        planCode,
-        billingCycle,
+        input,
+        idempotencyKey,
       }: {
-        planCode: string;
-        billingCycle: BillingCycle;
-      }) =>
-        billingService.checkout(planCode, billingCycle, crypto.randomUUID()),
-      onSuccess: ({ checkoutUrl }) => window.location.assign(checkoutUrl),
-      onError,
+        input: ISubscribeInput;
+        idempotencyKey: string;
+      }) => billingService.subscribe(input, idempotencyKey),
+      onSuccess: refresh,
     }),
     cancel: useMutationCache({
       mutationFn: () => billingService.cancel(),
-      onSuccess: refresh,
-      onError,
-    }),
-    completeFakeCheckout: useMutationCache({
-      mutationFn: (sessionId: string) =>
-        billingService.completeFakeCheckout(sessionId),
       onSuccess: refresh,
       onError,
     }),

@@ -1,3 +1,4 @@
+import { confirmAction } from '@/resources/components/base';
 import { Copy, Link2, Trash2, UserPlus } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { toast } from 'sonner';
@@ -149,9 +150,13 @@ export function TeamPage() {
                       size='icon'
                       variant='ghost'
                       aria-label={`Remover ${member.name}`}
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          window.confirm(`Remover ${member.name} da equipe?`)
+                          await confirmAction({
+                            title: `Remover ${member.name} da equipe?`,
+                            confirmLabel: 'Remover',
+                            destructive: true,
+                          })
                         ) {
                           mutations.removeMember.mutate(member.id);
                         }
@@ -202,11 +207,15 @@ export function TeamPage() {
                           type='button'
                           size='sm'
                           variant='ghost'
-                          onClick={() => {
+                          onClick={async () => {
                             if (
-                              window.confirm(
-                                `Revogar convite de ${invite.email}?`,
-                              )
+                              await confirmAction({
+                                title: `Revogar convite de ${invite.email}?`,
+                                description:
+                                  'O link enviado deixa de funcionar.',
+                                confirmLabel: 'Revogar',
+                                destructive: true,
+                              })
                             ) {
                               mutations.revokeInvite.mutate(invite.id);
                             }

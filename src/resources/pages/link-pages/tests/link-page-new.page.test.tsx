@@ -29,6 +29,8 @@ const createdPage: LinkPageDetail = {
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
+  gtmContainerId: null,
+  ga4MeasurementId: null,
   links: [],
   socialLinks: [],
   images: [],

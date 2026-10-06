@@ -20,7 +20,8 @@ import {
 import { cn } from '@/shared/lib/utils';
 
 const comboboxMenu =
-  'z-50 rounded-md border bg-popover p-1 text-popover-foreground shadow-md';
+  // Above dialogs (z-[80]): a select inside a modal must open on top of it.
+  'z-[90] rounded-md border bg-popover p-1 text-popover-foreground shadow-md';
 
 const comboboxMenuItem =
   'rounded-sm px-3 py-2 text-sm outline-none transition hover:bg-accent hover:text-accent-foreground data-[selected=true]:!bg-accent data-[selected=true]:!text-accent-foreground';
@@ -108,7 +109,12 @@ export function BjorkCombobox({
           required={required}
         />
       )}
-      <PopoverContent className={cn('w-[220px] p-0', comboboxMenu)}>
+      <PopoverContent
+        className={cn(
+          'w-[max(220px,var(--radix-popover-trigger-width))] p-0',
+          comboboxMenu,
+        )}
+      >
         <Command className='text-popover-foreground bg-transparent'>
           <CommandInput
             placeholder='Pesquisar...'

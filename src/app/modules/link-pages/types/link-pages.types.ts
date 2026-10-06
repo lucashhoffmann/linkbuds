@@ -4,6 +4,13 @@ export type LinkPageStatus = 'ACTIVE' | 'INACTIVE';
 export type LinkPageLayout = 'LAYOUT_1' | 'LAYOUT_2' | 'LAYOUT_3';
 export type LinkPageBackgroundType = 'SOLID' | 'IMAGE';
 export type LinkPageFooterMode = 'LINKBUDS' | 'CUSTOM' | 'HIDDEN';
+
+export type FooterSettings = {
+  footerMode: LinkPageFooterMode;
+  footerText: string | null;
+  footerUrl: string | null;
+  footerLogoUrl: string | null;
+};
 export type LinkPageLinkPlacement = 'HORIZONTAL' | 'VERTICAL';
 export type LinkPageLinkKind = 'LINK' | 'CONTACT';
 export type LinkPageContactType = 'WHATSAPP' | 'EMAIL' | 'PHONE';
@@ -85,6 +92,9 @@ export type LinkPageDetail = LinkPageSummary & {
   footerText: string | null;
   footerUrl: string | null;
   footerLogoUrl: string | null;
+  /** Owner's GTM container (bio only; posts inherit on the public page). */
+  gtmContainerId: string | null;
+  ga4MeasurementId: string | null;
   links: LinkPageLink[];
   socialLinks: LinkPageSocialLink[];
   images: LinkPageImage[];

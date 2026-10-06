@@ -1,3 +1,4 @@
+import { confirmAction } from '@/resources/components/base';
 import {
   useState,
   type Dispatch,
@@ -146,8 +147,15 @@ export function LinksManager({
     }
   };
 
-  const removeLink = (link: LinkPageLink) => {
-    if (window.confirm(`Excluir "${link.label}" definitivamente?`)) {
+  const removeLink = async (link: LinkPageLink) => {
+    if (
+      await confirmAction({
+        title: `Excluir "${link.label}"?`,
+        description: 'Essa ação não pode ser desfeita.',
+        confirmLabel: 'Excluir',
+        destructive: true,
+      })
+    ) {
       mutations.deleteLink.mutate(link.id);
     }
   };

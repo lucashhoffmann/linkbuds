@@ -5,6 +5,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import { LoginView } from './views/login/login.view';
 import { PricingPlansDialog } from './components/pricing-plans-dialog/pricing-plans-dialog.component';
 import { RegisterView } from './views/register/register.view';
+import { ForgotPasswordView } from './views/forgot-password/forgot-password.view';
+import { ResetPasswordView } from './views/reset-password/reset-password.view';
 import { routes } from '@/shared/constants/router.constants';
 import linksLandingImage from '@/shared/images/links-landing.png';
 
@@ -26,11 +28,21 @@ const authHighlights = [
   },
 ];
 
-type AuthPageProps = {
-  register?: boolean;
+const AUTH_VIEWS = {
+  login: LoginView,
+  register: RegisterView,
+  forgotPassword: ForgotPasswordView,
+  resetPassword: ResetPasswordView,
 };
 
-export function AuthPage({ register = false }: AuthPageProps) {
+type AuthPageProps = {
+  view?: keyof typeof AUTH_VIEWS;
+};
+
+export function AuthPage({ view = 'login' }: AuthPageProps) {
+  const register = view === 'register';
+  const View = AUTH_VIEWS[view];
+
   return (
     <div className='bg-background text-foreground flex min-h-dvh flex-col'>
       <header className='bg-background/90 sticky top-0 z-30 border-b backdrop-blur'>
@@ -112,7 +124,7 @@ export function AuthPage({ register = false }: AuthPageProps) {
 
         <main className='flex justify-center px-4 py-8 md:items-center md:py-12'>
           <div className='bg-card w-full max-w-md rounded-2xl border p-5 shadow-xs sm:p-8'>
-            {!register ? <LoginView /> : <RegisterView />}
+            <View />
           </div>
         </main>
       </div>

@@ -120,3 +120,22 @@ export function reorderLinksForDrop(
     sortOrder,
   }));
 }
+
+// Same formats the API enforces; invalid values stay local until fixed.
+export const gtmContainerIdPattern = /^GTM-[A-Z0-9]{4,12}$/;
+export const ga4MeasurementIdPattern = /^G-[A-Z0-9]{4,16}$/;
+
+export function isTrackingIdValid(value: string | null, pattern: RegExp) {
+  return !value || pattern.test(value);
+}
+
+export function trackingIdsPayload(draft: LinkPageDetail) {
+  return {
+    ...(isTrackingIdValid(draft.gtmContainerId, gtmContainerIdPattern)
+      ? { gtmContainerId: draft.gtmContainerId }
+      : {}),
+    ...(isTrackingIdValid(draft.ga4MeasurementId, ga4MeasurementIdPattern)
+      ? { ga4MeasurementId: draft.ga4MeasurementId }
+      : {}),
+  };
+}

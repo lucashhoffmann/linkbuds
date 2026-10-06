@@ -1,14 +1,25 @@
 import { Globe2 } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { useSession } from '@/app/modules/auth/hooks';
 import { useEntitlements } from '@/app/modules/auth/hooks/use-entitlements';
 import { useCompanyDomainUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
+import { routes } from '@/shared/constants/router.constants';
+import { cn } from '@/shared/lib/utils';
+import { AccountSection } from './components/account-section.component';
 import { BillingSection } from './components/billing-section.component';
 import { DomainPanel } from './components/domain-panel.component';
+import { FooterDefaultSection } from './components/footer-default-section.component';
 
-export function SettingsPage() {
+const SETTINGS_TABS = [
+  { label: 'Plano', to: routes.settings },
+  { label: 'Domínio', to: routes.settingsDomain },
+  { label: 'Rodapé', to: routes.settingsFooter },
+  { label: 'Conta', to: routes.settingsAccount },
+];
+
+function SettingsLayout({ children }: { children: ReactNode }) {
   const { company } = useSession();
-  const entitlements = useEntitlements();
-  const domain = useCompanyDomainUseCase(entitlements.customDomain);
 
   return (
     <div className='mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 md:p-8'>
@@ -17,8 +28,45 @@ export function SettingsPage() {
         <p className='text-muted-foreground text-sm'>{company?.name}</p>
       </header>
 
-      <BillingSection />
+      <nav className='flex gap-1 border-b'>
+        {SETTINGS_TABS.map((tab) => (
+          <NavLink
+            key={tab.to}
+            to={tab.to}
+            end
+            className={({ isActive }) =>
+              cn(
+                '-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'border-primary text-foreground'
+                  : 'text-muted-foreground hover:text-foreground border-transparent',
+              )
+            }
+          >
+            {tab.label}
+          </NavLink>
+        ))}
+      </nav>
 
+      {children}
+    </div>
+  );
+}
+
+export function SettingsPage() {
+  return (
+    <SettingsLayout>
+      <BillingSection />
+    </SettingsLayout>
+  );
+}
+
+export function DomainSettingsPage() {
+  const entitlements = useEntitlements();
+  const domain = useCompanyDomainUseCase(entitlements.customDomain);
+
+  return (
+    <SettingsLayout>
       <section className='bg-card rounded-2xl border p-4'>
         <div className='flex items-start justify-between gap-3'>
           <div>
@@ -37,6 +85,22 @@ export function SettingsPage() {
           </p>
         )}
       </section>
-    </div>
+    </SettingsLayout>
+  );
+}
+
+export function AccountSettingsPage() {
+  return (
+    <SettingsLayout>
+      <AccountSection />
+    </SettingsLayout>
+  );
+}
+
+export function FooterSettingsPage() {
+  return (
+    <SettingsLayout>
+      <FooterDefaultSection />
+    </SettingsLayout>
   );
 }

@@ -25,6 +25,8 @@ const publicPage: PublicLinkPage = {
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
+  gtmContainerId: null,
+  ga4MeasurementId: null,
   links: [
     {
       id: 'link-id',
@@ -107,7 +109,7 @@ describe('PublicLinkPagePage', () => {
     expect(shell).toHaveAttribute('data-preview', 'false');
     expect(shell).toHaveClass('min-h-dvh');
     expect(shell).toHaveClass('w-full');
-    expect(shell).not.toHaveClass('max-w-[390px]');
+    expect(shell).not.toHaveClass('max-w-[430px]');
     expect(shell).not.toHaveClass('shadow-2xl');
     expect(
       screen.getByRole('link', {
@@ -115,7 +117,9 @@ describe('PublicLinkPagePage', () => {
       }),
     ).toHaveAttribute('href', '/register');
     // Non-functional footer texts were removed (no report/privacy pages yet).
-    expect(screen.queryByText('Denunciar · Privacidade')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Denunciar · Privacidade'),
+    ).not.toBeInTheDocument();
     expect(document.title).toBe('Cliente Roma | LinkBuds');
     expect(getCanonical()).toContain('/p/cliente-roma');
     expect(getMeta('name', 'description')).toBe('Pizza artesanal');

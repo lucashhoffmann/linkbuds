@@ -16,6 +16,9 @@ import {
   HomePage,
   InvitePage,
   SettingsPage,
+  DomainSettingsPage,
+  FooterSettingsPage,
+  AccountSettingsPage,
   TeamPage,
   LinkPageEditPage,
   LinkPageNewPage,
@@ -68,7 +71,17 @@ export function Router() {
 
         <Route
           path={routes.register}
-          element={<AuthPage register />}
+          element={<AuthPage view='register' />}
+        />
+
+        <Route
+          path={routes.forgotPassword}
+          element={<AuthPage view='forgotPassword' />}
+        />
+
+        <Route
+          path={routes.resetPassword}
+          element={<AuthPage view='resetPassword' />}
         />
 
         <Route
@@ -112,6 +125,21 @@ export function Router() {
             <Route
               path={routes.settings}
               element={<SettingsPage />}
+            />
+
+            <Route
+              path={routes.settingsDomain}
+              element={<DomainSettingsPage />}
+            />
+
+            <Route
+              path={routes.settingsFooter}
+              element={<FooterSettingsPage />}
+            />
+
+            <Route
+              path={routes.settingsAccount}
+              element={<AccountSettingsPage />}
             />
 
             <Route

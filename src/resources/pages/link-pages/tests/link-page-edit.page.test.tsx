@@ -47,6 +47,8 @@ const page: LinkPageDetail = {
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
+  gtmContainerId: null,
+  ga4MeasurementId: null,
   links: [
     {
       id: 'link-a',
@@ -268,6 +270,8 @@ describe('LinkPageEditPage', () => {
       name: 'Cliente Roma',
       slug: 'cliente-novo',
       status: 'ACTIVE',
+      gtmContainerId: null,
+      ga4MeasurementId: null,
     });
 
     fireEvent.click(screen.getByRole('radio', { name: 'Marca' }));
@@ -500,7 +504,7 @@ describe('LinkPageEditPage', () => {
     expect(screen.getByText('Domínio próprio')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Configurar domínio' }),
-    ).toHaveAttribute('href', '/link-pages');
+    ).toHaveAttribute('href', '/settings/domain');
     expect(
       screen.getByText(/Marca branca está disponível/i),
     ).toBeInTheDocument();

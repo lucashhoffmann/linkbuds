@@ -71,7 +71,15 @@ export function LoginView() {
               name='password'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className='text-sm font-medium'>Senha</FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel className='text-sm font-medium'>Senha</FormLabel>
+                    <Link
+                      to={routes.forgotPassword}
+                      className='text-muted-foreground hover:text-foreground text-sm underline-offset-4 hover:underline'
+                    >
+                      Esqueci minha senha
+                    </Link>
+                  </div>
                   <FormControl>
                     <PasswordInput
                       placeholder='Sua senha'

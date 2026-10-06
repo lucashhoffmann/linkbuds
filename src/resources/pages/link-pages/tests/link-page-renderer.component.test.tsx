@@ -22,6 +22,8 @@ const page: PublicLinkPage = {
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
+  gtmContainerId: null,
+  ga4MeasurementId: null,
   links: [],
   socialLinks: [],
   images: [],
@@ -32,7 +34,7 @@ describe('LinkPageRenderer', () => {
     vi.restoreAllMocks();
   });
 
-  it('keeps the compact shell when rendering a preview', () => {
+  it('fills the preview frame with the background', () => {
     render(
       <LinkPageRenderer
         linkPage={page}
@@ -43,10 +45,11 @@ describe('LinkPageRenderer', () => {
     const shell = screen.getByTestId('link-page-shell');
 
     expect(shell).toHaveAttribute('data-preview', 'true');
-    expect(shell).toHaveClass('max-w-[390px]');
+    expect(shell).toHaveClass('w-full');
+    expect(shell).not.toHaveClass('max-w-[430px]');
     expect(shell).toHaveClass('min-h-[720px]');
-    expect(shell).toHaveClass('rounded-[28px]');
-    expect(shell).toHaveClass('shadow-2xl');
+    expect(shell).not.toHaveClass('rounded-[28px]');
+    expect(shell).not.toHaveClass('shadow-2xl');
   });
 
   it('renders LinkBuds branding when footer mode is LinkBuds', () => {
@@ -62,7 +65,9 @@ describe('LinkPageRenderer', () => {
       }),
     ).toHaveAttribute('href', '/register');
     // Non-functional footer texts were removed (no report/privacy pages yet).
-    expect(screen.queryByText('Denunciar · Privacidade')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Denunciar · Privacidade'),
+    ).not.toBeInTheDocument();
   });
 
   it('uses a WhatsApp icon for WhatsApp contact links', () => {

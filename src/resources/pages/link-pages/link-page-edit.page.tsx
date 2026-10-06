@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Link as RouterLink, useParams } from 'react-router-dom';
-import { ArrowLeft, Eye, X } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { Eye, X } from 'lucide-react';
+import { BackButton } from '@/resources/components/base/back-button/back-button.component';
 import { useEntitlements } from '@/app/modules/auth/hooks/use-entitlements';
 import {
   useGetLinkPageUseCase,
@@ -16,7 +17,7 @@ import {
 } from '@/resources/components/base/device-preview/device-preview.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import type { Tab, LinkClickCountMap } from './components/editor/editor.types';
-import { tabs } from './components/editor/editor.utils';
+import { tabs, trackingIdsPayload } from './components/editor/editor.utils';
 import { useAutosaveSection } from './components/editor/use-autosave-section';
 import { ContentTab } from './components/editor/content-tab.component';
 import { AppearanceTab } from './components/editor/appearance-tab.component';
@@ -30,6 +31,8 @@ export { reorderLinksForDrop } from './components/editor/editor.utils';
 export function LinkPageEditPage() {
   const { id } = useParams();
   const { data, isLoading } = useGetLinkPageUseCase(id);
+  // Lives here so the editor remount (key below changes on every save) keeps the active tab.
+  const [tab, setTab] = useState<Tab>('content');
 
   if (isLoading) {
     return <p className='text-muted-foreground p-6 text-sm'>Carregando...</p>;
@@ -47,12 +50,21 @@ export function LinkPageEditPage() {
     <LinkPageEditor
       key={`${data.id}-${data.updatedAt}-${data.links.length}-${data.socialLinks.length}-${data.images.length}`}
       linkPage={data}
+      tab={tab}
+      setTab={setTab}
     />
   );
 }
 
-function LinkPageEditor({ linkPage }: { linkPage: LinkPageDetail }) {
-  const [tab, setTab] = useState<Tab>('content');
+function LinkPageEditor({
+  linkPage,
+  tab,
+  setTab,
+}: {
+  linkPage: LinkPageDetail;
+  tab: Tab;
+  setTab: (tab: Tab) => void;
+}) {
   const [showPreview, setShowPreview] = useState(false);
   const [draft, setDraft] = useState<LinkPageDetail>(linkPage);
   const mutations = useLinkPageMutations(linkPage.id);
@@ -89,7 +101,7 @@ function LinkPageEditor({ linkPage }: { linkPage: LinkPageDetail }) {
       status: draft.status,
       ...(draft.type === 'POST'
         ? { postNetwork: draft.postNetwork, postUrl: draft.postUrl }
-        : {}),
+        : trackingIdsPayload(draft)),
     },
     (payload) => mutations.update.mutateAsync(payload),
   );
@@ -115,16 +127,10 @@ function LinkPageEditor({ linkPage }: { linkPage: LinkPageDetail }) {
   return (
     <div className='flex min-h-0 flex-1 flex-col gap-4 p-4 lg:p-6'>
       <header className='flex items-center gap-3'>
-        <Button
-          asChild
-          variant='ghost'
-          size='icon'
-          aria-label='Voltar para Páginas'
-        >
-          <RouterLink to={`${routes.linkPages.list}?p=${draft.id}`}>
-            <ArrowLeft className='size-4' />
-          </RouterLink>
-        </Button>
+        <BackButton
+          to={`${routes.linkPages.list}?p=${draft.id}`}
+          label='Voltar para Páginas'
+        />
         <div className='min-w-0 flex-1'>
           <h1 className='truncate font-semibold'>{draft.name}</h1>
           <p className='text-muted-foreground truncate text-xs'>
