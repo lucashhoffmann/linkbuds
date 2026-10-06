@@ -16,6 +16,7 @@ import type {
   FormField,
   LinkPageImage,
   LinkPageLink,
+  LinkPageLinkShape,
   LinkPageSocialLink,
   LinkPageText,
   LinkPageTextAlign,
@@ -199,6 +200,26 @@ function itemStyle(item: {
   };
 }
 
+// PILL radius is past half of any preset height, so short buttons read as full pills.
+const linkShapeClass: Record<LinkPageLinkShape, string> = {
+  ROUNDED: 'rounded-lg',
+  PILL: 'rounded-[2rem]',
+  SQUARE: 'rounded-none',
+};
+
+const linkHeights = {
+  VERTICAL: { SMALL: 44, MEDIUM: 56, LARGE: 64 },
+  HORIZONTAL: { SMALL: 80, MEDIUM: 112, LARGE: 160 },
+} as const;
+
+/** Button/card height in px; CUSTOM falls back to MEDIUM while empty. */
+function linkHeight(link: LinkPageLink) {
+  const heights = linkHeights[link.placement];
+  const size = link.displaySize ?? 'MEDIUM';
+  if (size === 'CUSTOM') return link.customHeight || heights.MEDIUM;
+  return heights[size];
+}
+
 function LinkActionIcon({
   className,
   link,
@@ -262,9 +283,14 @@ export function HorizontalLinkCards({
             href={resolveLinkHref(link)}
             className={cn(
               linkPageDesignTokens.horizontalCard.className,
+              linkShapeClass[link.shape ?? 'ROUNDED'],
+              link.fullWidth ? 'w-full' : 'w-36',
+              link.align === 'CENTER'
+                ? 'items-center justify-center text-center'
+                : 'text-left',
               'snap-start',
             )}
-            style={itemStyle(link)}
+            style={{ ...itemStyle(link), height: linkHeight(link) }}
             onClick={() => onTrack?.('HORIZONTAL_LINK', link.id)}
           >
             <span className='line-clamp-3 text-sm font-semibold'>
@@ -272,7 +298,10 @@ export function HorizontalLinkCards({
             </span>
             <LinkActionIcon
               link={link}
-              className='mt-4 size-4 opacity-70'
+              className={cn(
+                'size-4 shrink-0 opacity-70',
+                link.align === 'CENTER' ? 'mt-2' : 'mt-4',
+              )}
             />
           </a>
         ))}
@@ -404,15 +433,21 @@ function VerticalLinkItem({
       href={resolveLinkHref(link)}
       className={cn(
         linkPageDesignTokens.verticalLink.className,
-        'flex items-center justify-between',
+        linkShapeClass[link.shape ?? 'ROUNDED'],
+        link.align === 'CENTER'
+          ? 'justify-center px-10 text-center'
+          : 'justify-between',
       )}
-      style={itemStyle(link)}
+      style={{ ...itemStyle(link), minHeight: linkHeight(link) }}
       onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
     >
       <span>{link.label}</span>
       <LinkActionIcon
         link={link}
-        className='size-4 opacity-70'
+        className={cn(
+          'size-4 shrink-0 opacity-70',
+          link.align === 'CENTER' && 'absolute right-5',
+        )}
       />
     </a>
   );

@@ -36,6 +36,10 @@ export function createLinkForm(): LinkFormValues {
     previewDescription: null,
     displaySize: 'MEDIUM',
     customHeight: null,
+    // Wide centered pill, as in docs/design-system.md.
+    shape: 'PILL',
+    align: 'CENTER',
+    fullWidth: false,
   };
 }
 

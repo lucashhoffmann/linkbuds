@@ -497,4 +497,54 @@ describe('LinkPageRenderer', () => {
 
     expect(screen.getByTestId('text-block')).not.toHaveClass('inline-block');
   });
+
+  it('renders link shape, alignment, size and full-width horizontal cards', () => {
+    const base = {
+      kind: 'LINK' as const,
+      url: 'https://example.com',
+      contactType: null,
+      contactValue: null,
+      textColor: '#111827',
+      backgroundColor: '#FFFFFF',
+      borderColor: '#E5E7EB',
+      borderEnabled: true,
+      sortOrder: 0,
+      active: true,
+    };
+    render(
+      <LinkPageRenderer
+        linkPage={{
+          ...page,
+          links: [
+            {
+              ...base,
+              id: 'pill',
+              placement: 'VERTICAL',
+              label: 'Agendar horário',
+              shape: 'PILL',
+              align: 'CENTER',
+              displaySize: 'LARGE',
+            },
+            {
+              ...base,
+              id: 'wide',
+              placement: 'HORIZONTAL',
+              label: 'Post 1234',
+              fullWidth: true,
+              displaySize: 'CUSTOM',
+              customHeight: 200,
+            },
+          ],
+        }}
+      />,
+    );
+
+    const pill = screen.getByRole('link', { name: 'Agendar horário' });
+    expect(pill).toHaveClass('rounded-[2rem]', 'justify-center');
+    expect(pill).toHaveStyle({ minHeight: '64px' });
+
+    const wide = screen.getByRole('link', { name: 'Post 1234' });
+    expect(wide).toHaveClass('w-full', 'rounded-lg');
+    expect(wide).toHaveStyle({ height: '200px' });
+  });
 });

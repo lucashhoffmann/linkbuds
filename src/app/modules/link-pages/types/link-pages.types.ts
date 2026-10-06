@@ -118,6 +118,8 @@ export type FooterSettings = {
   footerLogoSize?: LinkPageFooterSize;
 };
 export type LinkPageLinkPlacement = 'HORIZONTAL' | 'VERTICAL';
+export type LinkPageLinkShape = 'ROUNDED' | 'PILL' | 'SQUARE';
+export type LinkPageLinkAlign = 'LEFT' | 'CENTER';
 /** PREVIEW = vertical card with image + description (from the site's OG tags). */
 export type LinkPageLinkKind = 'LINK' | 'CONTACT' | 'PREVIEW';
 export type LinkPageContactType = 'WHATSAPP' | 'EMAIL' | 'PHONE';
@@ -157,6 +159,11 @@ export type LinkPageLink = {
   backgroundColor: string;
   borderColor: string;
   borderEnabled: boolean;
+  /** Absent = ROUNDED / LEFT / false (pages saved before these existed). */
+  shape?: LinkPageLinkShape;
+  align?: LinkPageLinkAlign;
+  /** HORIZONTAL card fills the row instead of a carousel tile. */
+  fullWidth?: boolean;
   sortOrder: number;
   active: boolean;
 };

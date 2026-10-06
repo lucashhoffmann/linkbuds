@@ -7,10 +7,10 @@ export const linkPageDesignTokens = {
     className: 'size-20 rounded-full object-cover ring-4 ring-white/60',
   },
   horizontalCard: {
-    className: 'h-28 w-36 shrink-0 rounded-lg p-3 text-left shadow-sm',
+    className: 'flex shrink-0 flex-col p-3 shadow-sm',
   },
   verticalLink: {
-    className: 'min-h-11 rounded-lg px-4 py-3 text-sm font-medium shadow-sm',
+    className: 'relative flex items-center px-5 py-2 text-sm font-medium shadow-sm',
   },
   socialIcon: {
     className: 'size-9 rounded-full border bg-white/80 shadow-sm',

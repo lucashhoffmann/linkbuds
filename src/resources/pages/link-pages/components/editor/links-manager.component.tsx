@@ -43,7 +43,9 @@ import type {
   LinkPageVideo,
   LinkPageText,
   LinkPageLinkKind,
+  LinkPageLinkAlign,
   LinkPageLinkPlacement,
+  LinkPageLinkShape,
 } from '@/app/modules/link-pages/types/link-pages.types';
 import { Button } from '@/resources/components/ui/button';
 import {
@@ -159,6 +161,9 @@ export function LinksManager({
       backgroundColor: link.backgroundColor,
       borderColor: link.borderColor,
       borderEnabled: link.borderEnabled,
+      shape: link.shape ?? 'ROUNDED',
+      align: link.align ?? 'LEFT',
+      fullWidth: link.fullWidth ?? false,
     });
     setLinkDialogOpen(true);
   };
@@ -611,7 +616,59 @@ export function LinksManager({
                     }
                   />
                 </div>
+                <div className='grid gap-2'>
+                  <Label htmlFor='link-shape'>Formato</Label>
+                  <select
+                    id='link-shape'
+                    className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring h-12 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
+                    value={linkForm.shape ?? 'ROUNDED'}
+                    onChange={(event) =>
+                      updateLinkForm({
+                        shape: event.target.value as LinkPageLinkShape,
+                      })
+                    }
+                  >
+                    <option value='PILL'>Pílula</option>
+                    <option value='ROUNDED'>Arredondado</option>
+                    <option value='SQUARE'>Reto</option>
+                  </select>
+                </div>
+                <div className='grid gap-2'>
+                  <Label htmlFor='link-align'>Alinhamento</Label>
+                  <select
+                    id='link-align'
+                    className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring h-12 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
+                    value={linkForm.align ?? 'LEFT'}
+                    onChange={(event) =>
+                      updateLinkForm({
+                        align: event.target.value as LinkPageLinkAlign,
+                      })
+                    }
+                  >
+                    <option value='CENTER'>Centro</option>
+                    <option value='LEFT'>Esquerda</option>
+                  </select>
+                </div>
+                {linkForm.placement === 'HORIZONTAL' && (
+                  <div className='flex items-end'>
+                    <BorderEnabledField
+                      label='Preencher toda a largura'
+                      checked={linkForm.fullWidth ?? false}
+                      onChange={(fullWidth) => updateLinkForm({ fullWidth })}
+                    />
+                  </div>
+                )}
               </div>
+              {linkForm.kind !== 'PREVIEW' && (
+                <MediaSizeField
+                  id='link'
+                  size={linkForm.displaySize ?? 'MEDIUM'}
+                  customHeight={linkForm.customHeight ?? null}
+                  onChange={({ size, customHeight }) =>
+                    updateLinkForm({ displaySize: size, customHeight })
+                  }
+                />
+              )}
             </div>
             <DialogFooter className='bg-background sticky -bottom-6 -mx-6 -mb-6 border-t px-6 py-4'>
               <Button
