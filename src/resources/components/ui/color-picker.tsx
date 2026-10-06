@@ -135,7 +135,8 @@ export function ColorPicker({
                 if (!validHex(hex)) setInputValue(null);
               }}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' && !validHex(hex)) setInputValue(null);
+                if (event.key === 'Enter' && !validHex(hex))
+                  setInputValue(null);
               }}
             />
           </label>

@@ -45,7 +45,9 @@ function getSessionId() {
   return sessionId;
 }
 
-function eventTypeFromTarget(targetType: AnalyticsTargetType): AnalyticsEventType {
+function eventTypeFromTarget(
+  targetType: AnalyticsTargetType,
+): AnalyticsEventType {
   if (targetType === 'SOCIAL_LINK') return 'SOCIAL_CLICK';
   if (targetType === 'IMAGE') return 'IMAGE_CLICK';
 
@@ -68,8 +70,13 @@ function getUtmParams() {
   };
 }
 
-export function PublicLinkPagePage() {
-  const { slug } = useParams();
+/** `slug` overrides the route param (custom-domain root uses `_home`). */
+export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
+  const params = useParams();
+  // Post sub-pages resolve as `bio/post` (same API path shape).
+  const slug =
+    slugProp ??
+    (params.postSlug ? `${params.slug}/${params.postSlug}` : params.slug);
   const startedAtRef = useRef<number | null>(null);
   const exitSentRef = useRef(false);
   const [visitorId] = useState(() => getVisitorId());

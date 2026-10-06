@@ -14,8 +14,9 @@ const Input = React.forwardRef<HTMLInputElement, IInputProps>(
         <input
           type={type}
           className={cn(
-            `border-input placeholder:text-muted-foreground focus-visible:ring-ring/50 focus-visible:border-ring flex h-12 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-[3px] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 ${
-              errorMessage && 'border-destructive focus-visible:ring-destructive/20'
+            `border-input placeholder:text-muted-foreground focus-visible:ring-ring/50 focus-visible:border-ring dark:bg-input/30 flex h-12 w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-[3px] focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${
+              errorMessage &&
+              'border-destructive focus-visible:ring-destructive/20'
             } ${error && 'border-destructive focus-visible:ring-destructive/20'}`,
             className,
           )}
@@ -23,7 +24,9 @@ const Input = React.forwardRef<HTMLInputElement, IInputProps>(
           {...props}
         />
         {errorMessage && (
-          <span className='text-destructive text-sm'>{errorMessage as string}</span>
+          <span className='text-destructive text-sm'>
+            {errorMessage as string}
+          </span>
         )}
       </>
     );

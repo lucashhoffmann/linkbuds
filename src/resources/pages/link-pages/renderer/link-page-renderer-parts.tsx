@@ -48,21 +48,21 @@ async function shareLinkPage(linkPage: LinkPageViewModel, preview: boolean) {
   await navigator.clipboard?.writeText(payload.url);
 }
 
-function LinksBudsBrandingBar({
+function LinkBudsBrandingBar({
   linkPage,
   preview,
 }: {
   linkPage: LinkPageViewModel;
   preview: boolean;
 }) {
-  if (linkPage.footerMode !== 'LINKSBUDS') {
+  if (linkPage.footerMode !== 'LINKBUDS') {
     return null;
   }
 
   return (
     <div className='mb-8 flex items-center justify-between'>
       <span
-        aria-label='LinksBuds'
+        aria-label='LinkBuds'
         className='flex size-9 items-center justify-center rounded-full bg-white/85 text-slate-950 shadow-sm ring-1 ring-black/5 backdrop-blur'
       >
         <Asterisk className='size-4' />
@@ -108,7 +108,7 @@ export function LinkPageShell({
         )}
         style={style}
       >
-        <LinksBudsBrandingBar
+        <LinkBudsBrandingBar
           linkPage={linkPage}
           preview={preview}
         />
@@ -125,7 +125,7 @@ export function LinkPageShell({
       style={style}
     >
       <div className='mx-auto flex min-h-[calc(100dvh-3rem)] w-full max-w-[430px] flex-col sm:min-h-[calc(100dvh-5rem)]'>
-        <LinksBudsBrandingBar
+        <LinkBudsBrandingBar
           linkPage={linkPage}
           preview={preview}
         />
@@ -382,7 +382,7 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
             className='size-5 rounded object-cover'
           />
         )}
-        {linkPage.footerText || 'Com LinksBuds'}
+        {linkPage.footerText || 'Com LinkBuds'}
       </span>
     );
 
@@ -403,12 +403,8 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
         href={routes.register}
         className='inline-flex max-w-full items-center justify-center rounded-full bg-white px-4 py-2 text-xs font-semibold text-slate-950 shadow-lg ring-1 ring-black/5 transition-colors hover:bg-slate-50'
       >
-        Junte-se a {linkPage.title} no LinksBuds
+        Junte-se a {linkPage.title} no LinkBuds
       </a>
-      <div className='mt-5 leading-tight text-white/90 mix-blend-difference'>
-        <p>Denunciar · Privacidade</p>
-        <p>Mais do LinksBuds</p>
-      </div>
     </footer>
   );
 }

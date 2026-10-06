@@ -6,7 +6,7 @@ import {
   Routes,
 } from 'react-router-dom';
 import { AuthMiddleware } from '@/app/middlewares/auth.middleware';
-import { AppLayout } from '@/layouts/app-layout/app-layout';
+import { StudioShell } from '@/resources/components/base/studio-shell/studio-shell';
 import { routes } from '@/shared/constants/router.constants';
 import {
   AuthPage,
@@ -14,15 +14,35 @@ import {
   ErrorInternalPage,
   ErrorNotFoundPage,
   HomePage,
+  InvitePage,
+  SettingsPage,
+  TeamPage,
   LinkPageEditPage,
   LinkPageNewPage,
   LinkPagesPage,
   PublicLinkPagePage,
 } from '@/resources/pages';
 import { useSession } from '@/app/modules/auth/hooks';
+import { useGetPublicLinkPageUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 
+// API slug for "the agency page of this custom domain".
+const DOMAIN_HOME_SLUG = '_home';
+
+/**
+ * `/` on a custom domain shows the agency page; on the app host it redirects.
+ * ponytail: costs one 404 request on the app host; skip it via env when that matters.
+ */
 function InitialRedirect() {
   const { authenticated } = useSession();
+  const domainHome = useGetPublicLinkPageUseCase(DOMAIN_HOME_SLUG);
+
+  if (domainHome.isLoading) {
+    return null;
+  }
+
+  if (domainHome.data) {
+    return <PublicLinkPagePage slug={DOMAIN_HOME_SLUG} />;
+  }
 
   return (
     <Navigate
@@ -52,7 +72,17 @@ export function Router() {
         />
 
         <Route
+          path={routes.invite()}
+          element={<InvitePage />}
+        />
+
+        <Route
           path={routes.publicLinkPage()}
+          element={<PublicLinkPagePage />}
+        />
+
+        <Route
+          path={routes.publicPostPage}
           element={<PublicLinkPagePage />}
         />
 
@@ -69,14 +99,24 @@ export function Router() {
         <Route element={<AuthMiddleware />}>
           <Route
             element={
-              <AppLayout>
+              <StudioShell>
                 <Outlet />
-              </AppLayout>
+              </StudioShell>
             }
           >
             <Route
               path={routes.home}
               element={<HomePage />}
+            />
+
+            <Route
+              path={routes.settings}
+              element={<SettingsPage />}
+            />
+
+            <Route
+              path={routes.team}
+              element={<TeamPage />}
             />
 
             <Route

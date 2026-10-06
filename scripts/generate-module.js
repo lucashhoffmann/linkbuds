@@ -99,11 +99,6 @@ const typesSource = `export {};
 const useCasesIndexSource = `export {};
 `;
 
-const indexSource = `export * from './keys/${kebabName}.keys';
-export { default as ${pascalName}Service } from './service/${kebabName}.service';
-export * from './types/${kebabName}.types';
-`;
-
 // Write files
 fs.writeFileSync(
   path.join(moduleDir, 'keys', `${kebabName}.keys.ts`),
@@ -126,20 +121,6 @@ fs.writeFileSync(
   'utf8',
 );
 
-// Update modules/index.ts
-const mainIndexFile = path.join(modulesDir, 'index.ts');
-if (fs.existsSync(mainIndexFile)) {
-  const exportLine = `export * from './${kebabName}';`;
-  let indexContent = fs.readFileSync(mainIndexFile, 'utf8');
-
-  if (!indexContent.includes(exportLine)) {
-    indexContent =
-      indexContent.trimEnd() +
-      (indexContent.trim() ? '\n' : '') +
-      exportLine +
-      '\n';
-    fs.writeFileSync(mainIndexFile, indexContent, 'utf8');
-  }
-}
+// No barrels: docs/pattern.md forbids `export *`; import from the file itself.
 
 console.log(`Module created: ${moduleDir}`);

@@ -1,5 +1,8 @@
 export { AuthPage } from './auth/auth.page';
 export { HomePage } from './home/home.page';
+export { InvitePage } from './invite/invite.page';
+export { SettingsPage } from './settings/settings.page';
+export { TeamPage } from './team/team.page';
 export { LinkPageEditPage } from './link-pages/link-page-edit.page';
 export { LinkPageNewPage } from './link-pages/link-page-new.page';
 export { LinkPagesPage } from './link-pages/link-pages.page';

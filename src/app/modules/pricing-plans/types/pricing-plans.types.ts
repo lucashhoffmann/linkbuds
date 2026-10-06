@@ -1,10 +1,7 @@
 export type BillingCycle = 'monthly' | 'yearly';
 
-export type PricingPlanType = 'FREE' | 'AGENCY' | 'CUSTOM';
-
 export type PricingPlan = {
-  code: PricingPlanType;
-  type: PricingPlanType;
+  code: string;
   name: string;
   label: string;
   description: string;
@@ -13,22 +10,12 @@ export type PricingPlan = {
   priceLabel: string | null;
   features: string[];
   action: string;
-  active: boolean;
   featured: boolean;
+  /** Special-conditions card (no self-serve price). */
   custom: boolean;
-};
-
-export type CustomPricingRules = {
-  active: boolean;
-  minClientPages: number;
-  consultationMinClientPages: number;
-  baseUnitPriceCents: number;
-  stepClientPages: number;
-  stepIncrementCents: number;
 };
 
 export type PricingPlansResponse = {
   yearlyDiscountPercent: number;
-  custom: CustomPricingRules;
   plans: PricingPlan[];
 };

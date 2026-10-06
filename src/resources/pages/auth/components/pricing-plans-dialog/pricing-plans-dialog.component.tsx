@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/resources/components/ui/dialog';
-import { Input } from '@/resources/components/ui/input';
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 import { usePricingPlansDialogComponent } from './use-pricing-plans-dialog.component';
@@ -23,20 +22,13 @@ interface IPricingPlansDialogProps {
 export function PricingPlansDialog({ trigger }: IPricingPlansDialogProps) {
   const {
     billingCycle,
-    customCalculatorOpen,
-    customEstimate,
-    customPages,
-    customRules,
     errorPricingPlans,
-    formatCurrencyFromCents,
     formatPlanMonthlyPrice,
     formatPlanYearlyTotal,
     isLoadingPricingPlans,
     pricingPlans,
     refetchPricingPlans,
     setBillingCycle,
-    setCustomCalculatorOpen,
-    setCustomPages,
     yearlyDiscountPercent,
   } = usePricingPlansDialogComponent();
 
@@ -126,12 +118,12 @@ export function PricingPlansDialog({ trigger }: IPricingPlansDialogProps) {
           {!isLoadingPricingPlans &&
             !errorPricingPlans &&
             pricingPlans.length > 0 && (
-              <div className='grid min-h-0 gap-3 overflow-y-auto overscroll-contain pr-1 lg:grid-cols-3'>
+              <div className='grid min-h-0 content-start gap-3 overflow-y-auto overscroll-contain pr-1 lg:grid-cols-3'>
                 {pricingPlans.map((plan) => (
                   <article
                     key={plan.code}
                     className={cn(
-                      'bg-card text-card-foreground flex min-h-0 flex-col rounded-lg border p-3 shadow-xs sm:p-4',
+                      'bg-card text-card-foreground flex flex-col rounded-lg border p-3 shadow-xs sm:p-4',
                       plan.featured && 'border-primary shadow-md',
                     )}
                   >
@@ -167,105 +159,16 @@ export function PricingPlansDialog({ trigger }: IPricingPlansDialogProps) {
                         )}
                     </div>
 
-                    {plan.custom ? (
-                      <Button
-                        type='button'
-                        className='mt-3 h-8 w-full'
-                        variant='outline'
-                        onClick={() =>
-                          setCustomCalculatorOpen((open) => !open)
-                        }
-                      >
-                        {customCalculatorOpen
-                          ? 'Editar meu plano'
-                          : plan.action}
-                      </Button>
-                    ) : (
-                      <Button
-                        asChild
-                        className='mt-3 h-8 w-full'
-                        variant={plan.featured ? 'default' : 'outline'}
-                      >
-                        <RouterLink to={routes.register}>
-                          {plan.action}
-                        </RouterLink>
-                      </Button>
-                    )}
-
-                    {plan.custom && customCalculatorOpen && (
-                      <div className='bg-muted/30 mt-2 space-y-1.5 rounded-md border p-2.5'>
-                        <label
-                          className='text-xs font-medium'
-                          htmlFor='custom-pages-count'
-                        >
-                          Paginas de clientes
-                        </label>
-                        <Input
-                          id='custom-pages-count'
-                          type='number'
-                          inputMode='numeric'
-                          min={customRules.minClientPages}
-                          max={customRules.consultationMinClientPages - 1}
-                          step={1}
-                          value={customPages}
-                          className='h-8 text-sm'
-                          onChange={(event) =>
-                            setCustomPages(event.target.value)
-                          }
-                        />
-
-                        {customEstimate.status === 'invalid' && (
-                          <p className='text-destructive text-xs'>
-                            Informe um numero a partir de{' '}
-                            {customRules.minClientPages}.
-                          </p>
-                        )}
-
-                        {customEstimate.status === 'inviable' && (
-                          <p className='text-muted-foreground text-xs'>
-                            A partir de {customRules.consultationMinClientPages}{' '}
-                            paginas, o plano fica sob consulta.
-                          </p>
-                        )}
-
-                        {customEstimate.status === 'ready' && (
-                          <div className='bg-background rounded-md border p-2'>
-                            <p className='text-muted-foreground text-[11px] font-medium'>
-                              Estimativa para {customEstimate.pageCount}{' '}
-                              paginas
-                            </p>
-                            <p className='text-base leading-tight font-semibold'>
-                              {formatCurrencyFromCents(
-                                customEstimate.monthlyTotalCents,
-                              )}{' '}
-                              /mes
-                            </p>
-                            <p className='text-muted-foreground text-[11px]'>
-                              {formatCurrencyFromCents(
-                                customEstimate.unitPriceCents,
-                              )}{' '}
-                              por pagina
-                              {customEstimate.billingCycle === 'yearly' &&
-                                ` · cobrado ${formatCurrencyFromCents(
-                                  customEstimate.yearlyTotalCents,
-                                )}/ano`}
-                            </p>
-                          </div>
-                        )}
-
-                        <p className='text-muted-foreground text-[11px]'>
-                          Faixas:{' '}
-                          {formatCurrencyFromCents(
-                            customRules.baseUnitPriceCents,
-                          )}{' '}
-                          por pagina inicial; +
-                          {formatCurrencyFromCents(
-                            customRules.stepIncrementCents,
-                          )}{' '}
-                          por site a cada {customRules.stepClientPages} paginas.
-                        </p>
-                      </div>
-                    )}
+                    {/* ponytail: custom conditions start from an account; swap for a contact channel when one exists. */}
+                    <Button
+                      asChild
+                      className='mt-3 h-8 w-full'
+                      variant={plan.featured ? 'default' : 'outline'}
+                    >
+                      <RouterLink to={routes.register}>
+                        {plan.action}
+                      </RouterLink>
+                    </Button>
 
                     <ul className='mt-3 space-y-1.5 text-xs leading-tight'>
                       {plan.features.map((feature) => (

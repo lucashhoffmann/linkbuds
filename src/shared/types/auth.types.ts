@@ -1,39 +1,33 @@
+export type UserRole = 'OWNER' | 'MEMBER';
+
 export interface IUserSession {
   id: string;
   name: string;
   email: string;
-  company?: ICompanySummary;
+  image: string | null;
+  role: UserRole;
   createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
 }
 
-export interface ICompanySummary {
-  id: string;
-  name: string;
-  email: string;
+/** What the company can use: plan merged with an active special condition. */
+export interface ICompanyEntitlements {
+  planCode: string;
+  maxClientPages: number;
+  maxMembers: number;
+  analyticsTier: 'BASIC' | 'FULL';
+  customDomain: boolean;
+  whiteLabel: boolean;
+  custom: boolean;
 }
 
 export interface ICompanySession {
   id: string;
   name: string;
   email: string;
-  plan: {
-    id: string;
-    name: string;
-    code: string;
-    type: 'FREE' | 'AGENCY' | 'CUSTOM';
-    maxClientPages: number;
-    priceCents: number;
-    active: boolean;
-    analyticsEnabled: boolean;
-    analyticsTier: 'BASIC' | 'FULL';
-    customDomainEnabled: boolean;
-    whiteLabelEnabled: boolean;
-  } | null;
+  plan: { code: string; name: string };
+  entitlements: ICompanyEntitlements;
   createdAt: string;
   updatedAt: string;
-  deletedAt: string | null;
 }
 
 export interface IAuthResponse {

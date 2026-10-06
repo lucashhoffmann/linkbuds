@@ -23,6 +23,13 @@ export function useListLinkPagesUseCase() {
   });
 }
 
+export function useLinkPagesOverviewUseCase() {
+  return useQueryCache({
+    queryKey: [LinkPagesQueryKeys.OVERVIEW],
+    queryFn: () => linkPagesService.overview(),
+  });
+}
+
 export function useGetLinkPageUseCase(id?: string) {
   return useQueryCache({
     queryKey: [LinkPagesQueryKeys.DETAIL, id],
@@ -46,13 +53,24 @@ export function useLinkPageMutations(id?: string) {
   const invalidate = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: [LinkPagesQueryKeys.LIST] }),
-      queryClient.invalidateQueries({ queryKey: [LinkPagesQueryKeys.DETAIL, id] }),
+      queryClient.invalidateQueries({
+        queryKey: [LinkPagesQueryKeys.DETAIL, id],
+      }),
     ]);
   };
 
   const create = useMutationCache({
     mutationFn: (payload: { name: string; slug: string; layout: string }) =>
       linkPagesService.create(payload),
+    onSuccess: invalidate,
+  });
+  const createPost = useMutationCache({
+    mutationFn: ({
+      parentId,
+      ...payload
+    }: Parameters<typeof linkPagesService.createPost>[1] & {
+      parentId: string;
+    }) => linkPagesService.createPost(parentId, payload),
     onSuccess: invalidate,
   });
   const update = useMutationCache({
@@ -85,7 +103,8 @@ export function useLinkPageMutations(id?: string) {
     onSuccess: invalidate,
   });
   const deleteLink = useMutationCache({
-    mutationFn: (linkId: string) => linkPagesService.deleteLink(id ?? '', linkId),
+    mutationFn: (linkId: string) =>
+      linkPagesService.deleteLink(id ?? '', linkId),
     onSuccess: invalidate,
   });
   const reorderLinks = useMutationCache({
@@ -99,16 +118,6 @@ export function useLinkPageMutations(id?: string) {
       linkPagesService.createSocialLink(id ?? '', payload),
     onSuccess: invalidate,
   });
-  const updateSocialLink = useMutationCache({
-    mutationFn: ({
-      socialLinkId,
-      payload,
-    }: {
-      socialLinkId: string;
-      payload: Partial<LinkPageSocialLink>;
-    }) => linkPagesService.updateSocialLink(id ?? '', socialLinkId, payload),
-    onSuccess: invalidate,
-  });
   const deleteSocialLink = useMutationCache({
     mutationFn: (socialLinkId: string) =>
       linkPagesService.deleteSocialLink(id ?? '', socialLinkId),
@@ -119,23 +128,15 @@ export function useLinkPageMutations(id?: string) {
       linkPagesService.createImage(id ?? '', payload),
     onSuccess: invalidate,
   });
-  const updateImage = useMutationCache({
-    mutationFn: ({
-      imageId,
-      payload,
-    }: {
-      imageId: string;
-      payload: Partial<LinkPageImage>;
-    }) => linkPagesService.updateImage(id ?? '', imageId, payload),
-    onSuccess: invalidate,
-  });
   const deleteImage = useMutationCache({
-    mutationFn: (imageId: string) => linkPagesService.deleteImage(id ?? '', imageId),
+    mutationFn: (imageId: string) =>
+      linkPagesService.deleteImage(id ?? '', imageId),
     onSuccess: invalidate,
   });
 
   return {
     create,
+    createPost,
     update,
     remove,
     updateFooter,
@@ -144,21 +145,10 @@ export function useLinkPageMutations(id?: string) {
     deleteLink,
     reorderLinks,
     createSocialLink,
-    updateSocialLink,
     deleteSocialLink,
     createImage,
-    updateImage,
     deleteImage,
   };
-}
-
-export function useLinkPageAnalyticsSummaryUseCase(id?: string, enabled = true) {
-  return useQueryCache({
-    queryKey: [LinkPagesQueryKeys.ANALYTICS_SUMMARY, id],
-    queryFn: () => linkPagesService.analyticsSummary(id ?? ''),
-    enabled: Boolean(id) && enabled,
-    retry: false,
-  });
 }
 
 export function useLinkPageAnalyticsInsightsUseCase(
@@ -191,7 +181,9 @@ export function useLinkPageLinkClicksUseCase(id?: string, enabled = true) {
 export function useCompanyDomainUseCase(enabled = true) {
   const queryClient = useQueryClient();
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: [LinkPagesQueryKeys.DOMAIN] });
+    await queryClient.invalidateQueries({
+      queryKey: [LinkPagesQueryKeys.DOMAIN],
+    });
   };
   const query = useQueryCache({
     queryKey: [LinkPagesQueryKeys.DOMAIN],

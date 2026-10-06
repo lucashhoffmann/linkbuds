@@ -9,10 +9,7 @@ export interface ISetUserAuth {
 }
 
 export type AuthBootstrapStatus =
-  | 'idle'
-  | 'bootstrapping'
-  | 'ready'
-  | 'unauthenticated';
+  'idle' | 'bootstrapping' | 'ready' | 'unauthenticated';
 
 export interface IAuthStore {
   userAuthenticated: IUserSession | null;

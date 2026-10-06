@@ -1,6 +1,6 @@
 # linkbuds-web
 
-Frontend React/Vite para o projeto Linkbuds.
+Frontend React/Vite para o projeto LinkBuds.
 
 ## Setup
 
@@ -20,3 +20,8 @@ Por padrao, `VITE_APP_URL_ROOT` deve apontar para a API Nest em
 - `pnpm typecheck`: valida os projetos TS.
 - `pnpm lint`: executa ESLint.
 - `pnpm test`: executa Vitest.
+
+## Documentação
+
+- Produto, estado e decisões: `../docs/README.md`
+- Padrões de código do front: `docs/folder-structure.md`, `docs/pattern.md`

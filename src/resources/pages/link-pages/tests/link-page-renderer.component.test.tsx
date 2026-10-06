@@ -8,6 +8,9 @@ const page: PublicLinkPage = {
   name: 'Cliente Roma',
   slug: 'cliente-roma',
   status: 'ACTIVE',
+  parentSlug: null,
+  postNetwork: null,
+  postUrl: null,
   layout: 'LAYOUT_1',
   backgroundType: 'SOLID',
   backgroundColor: '#F8FAFC',
@@ -15,7 +18,7 @@ const page: PublicLinkPage = {
   avatarUrl: null,
   title: 'Cliente Roma',
   subtitle: 'Pizza artesanal',
-  footerMode: 'LINKSBUDS',
+  footerMode: 'LINKBUDS',
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
@@ -46,20 +49,20 @@ describe('LinkPageRenderer', () => {
     expect(shell).toHaveClass('shadow-2xl');
   });
 
-  it('renders LinksBuds branding when footer mode is LinksBuds', () => {
+  it('renders LinkBuds branding when footer mode is LinkBuds', () => {
     render(<LinkPageRenderer linkPage={page} />);
 
-    expect(screen.getByLabelText('LinksBuds')).toBeInTheDocument();
+    expect(screen.getByLabelText('LinkBuds')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Compartilhar LinkPage' }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('link', {
-        name: 'Junte-se a Cliente Roma no LinksBuds',
+        name: 'Junte-se a Cliente Roma no LinkBuds',
       }),
     ).toHaveAttribute('href', '/register');
-    expect(screen.getByText('Denunciar · Privacidade')).toBeInTheDocument();
-    expect(screen.getByText('Mais do LinksBuds')).toBeInTheDocument();
+    // Non-functional footer texts were removed (no report/privacy pages yet).
+    expect(screen.queryByText('Denunciar · Privacidade')).not.toBeInTheDocument();
   });
 
   it('uses a WhatsApp icon for WhatsApp contact links', () => {
@@ -94,7 +97,7 @@ describe('LinkPageRenderer', () => {
     ).toHaveAttribute('href', 'https://wa.me/5511999999999');
   });
 
-  it('does not render LinksBuds branding when footer mode is hidden', () => {
+  it('does not render LinkBuds branding when footer mode is hidden', () => {
     render(
       <LinkPageRenderer
         linkPage={{
@@ -104,18 +107,18 @@ describe('LinkPageRenderer', () => {
       />,
     );
 
-    expect(screen.queryByLabelText('LinksBuds')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('LinkBuds')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Compartilhar LinkPage' }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', {
-        name: 'Junte-se a Cliente Roma no LinksBuds',
+        name: 'Junte-se a Cliente Roma no LinkBuds',
       }),
     ).not.toBeInTheDocument();
   });
 
-  it('keeps the custom footer without LinksBuds branding', () => {
+  it('keeps the custom footer without LinkBuds branding', () => {
     render(
       <LinkPageRenderer
         linkPage={{
@@ -131,10 +134,10 @@ describe('LinkPageRenderer', () => {
       'href',
       'https://example.com',
     );
-    expect(screen.queryByLabelText('LinksBuds')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('LinkBuds')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('link', {
-        name: 'Junte-se a Cliente Roma no LinksBuds',
+        name: 'Junte-se a Cliente Roma no LinkBuds',
       }),
     ).not.toBeInTheDocument();
   });

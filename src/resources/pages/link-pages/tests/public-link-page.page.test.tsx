@@ -11,6 +11,9 @@ const publicPage: PublicLinkPage = {
   name: 'Cliente Roma',
   slug: 'cliente-roma',
   status: 'ACTIVE',
+  parentSlug: null,
+  postNetwork: null,
+  postUrl: null,
   layout: 'LAYOUT_1',
   backgroundType: 'SOLID',
   backgroundColor: '#F8FAFC',
@@ -18,7 +21,7 @@ const publicPage: PublicLinkPage = {
   avatarUrl: null,
   title: 'Cliente Roma',
   subtitle: 'Pizza artesanal',
-  footerMode: 'LINKSBUDS',
+  footerMode: 'LINKBUDS',
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
@@ -108,16 +111,16 @@ describe('PublicLinkPagePage', () => {
     expect(shell).not.toHaveClass('shadow-2xl');
     expect(
       screen.getByRole('link', {
-        name: 'Junte-se a Cliente Roma no LinksBuds',
+        name: 'Junte-se a Cliente Roma no LinkBuds',
       }),
     ).toHaveAttribute('href', '/register');
-    expect(screen.getByText('Denunciar · Privacidade')).toBeInTheDocument();
-    expect(screen.getByText('Mais do LinksBuds')).toBeInTheDocument();
-    expect(document.title).toBe('Cliente Roma | LinksBuds');
+    // Non-functional footer texts were removed (no report/privacy pages yet).
+    expect(screen.queryByText('Denunciar · Privacidade')).not.toBeInTheDocument();
+    expect(document.title).toBe('Cliente Roma | LinkBuds');
     expect(getCanonical()).toContain('/p/cliente-roma');
     expect(getMeta('name', 'description')).toBe('Pizza artesanal');
     expect(getMeta('name', 'robots')).toBe('index,follow');
-    expect(getMeta('property', 'og:title')).toBe('Cliente Roma | LinksBuds');
+    expect(getMeta('property', 'og:title')).toBe('Cliente Roma | LinkBuds');
     expect(getMeta('property', 'og:type')).toBe('website');
 
     await waitFor(() => {
@@ -166,7 +169,7 @@ describe('PublicLinkPagePage', () => {
     expect(
       await screen.findByText('LinkPage não encontrada'),
     ).toBeInTheDocument();
-    expect(document.title).toBe('LinkPage nao encontrada | LinksBuds');
+    expect(document.title).toBe('Página não encontrada | LinkBuds');
     expect(getMeta('name', 'robots')).toBe('noindex');
   });
 });

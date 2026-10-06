@@ -10,18 +10,9 @@ import { PricingPlansDialog } from '../pricing-plans-dialog/pricing-plans-dialog
 
 const pricingPlansCatalog: PricingPlansResponse = {
   yearlyDiscountPercent: 25,
-  custom: {
-    active: true,
-    minClientPages: 21,
-    consultationMinClientPages: 50,
-    baseUnitPriceCents: 2000,
-    stepClientPages: 5,
-    stepIncrementCents: 200,
-  },
   plans: [
     {
       code: 'FREE',
-      type: 'FREE',
       name: 'Gratis',
       label: 'Inicial',
       description: 'Comece a criar sua presença digital com o Linkbuds.',
@@ -30,13 +21,11 @@ const pricingPlansCatalog: PricingPlansResponse = {
       priceLabel: null,
       features: ['1 pagina de cliente', 'Dominio personalizado'],
       action: 'Comecar gratis',
-      active: true,
       featured: false,
       custom: false,
     },
     {
       code: 'AGENCY',
-      type: 'AGENCY',
       name: 'Agencia',
       label: 'Padrao',
       description:
@@ -46,23 +35,19 @@ const pricingPlansCatalog: PricingPlansResponse = {
       priceLabel: null,
       features: ['Ate 20 paginas de clientes'],
       action: 'Assinar Agencia',
-      active: true,
       featured: true,
       custom: false,
     },
     {
       code: 'CUSTOM',
-      type: 'CUSTOM',
       name: 'Customizado',
       label: 'Sob medida',
-      description:
-        'Um plano personalizado para agencias que precisam ir alem.',
+      description: 'Um plano personalizado para agencias que precisam ir alem.',
       maxClientPages: null,
       priceCents: null,
       priceLabel: 'Sob consulta',
       features: ['A partir de 21 paginas de clientes'],
       action: 'Criar meu plano',
-      active: true,
       featured: false,
       custom: true,
     },
@@ -95,7 +80,7 @@ describe('PricingPlansDialog', () => {
     );
   });
 
-  it('toggles billing cycle and calculates custom plans', async () => {
+  it('toggles billing cycle and shows the custom card without a calculator', async () => {
     const user = userEvent.setup();
 
     renderPricingPlansDialog();
@@ -110,72 +95,10 @@ describe('PricingPlansDialog', () => {
     expect(screen.getByText('R$ 135 /mês')).toBeInTheDocument();
     expect(screen.getByText('cobrado R$ 1.620/ano')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Criar meu plano' }));
-
-    const customPagesInput = screen.getByLabelText('Paginas de clientes');
-
-    expect(screen.getByText('Estimativa para 21 paginas')).toBeInTheDocument();
-    expect(screen.getByText('R$ 315 /mes')).toBeInTheDocument();
-
-    await user.clear(customPagesInput);
-    await user.type(customPagesInput, '26');
-
-    expect(screen.getByText('Estimativa para 26 paginas')).toBeInTheDocument();
-    expect(screen.getByText('R$ 429 /mes')).toBeInTheDocument();
-
-    await user.clear(customPagesInput);
-    await user.type(customPagesInput, '50');
-
+    // Special conditions are not self-served: no calculator, just the card.
+    expect(screen.getByText('Sob consulta')).toBeInTheDocument();
     expect(
-      screen.getByText('A partir de 50 paginas, o plano fica sob consulta.'),
-    ).toBeInTheDocument();
-  });
-
-  it('does not render inactive plans', async () => {
-    const user = userEvent.setup();
-
-    vi.spyOn(pricingPlansService, 'getPricingPlans').mockResolvedValue({
-      ...pricingPlansCatalog,
-      plans: pricingPlansCatalog.plans.map((plan) =>
-        plan.code === 'FREE' ? { ...plan, active: false } : plan,
-      ),
-    });
-
-    renderPricingPlansDialog();
-
-    await user.click(screen.getByRole('button', { name: 'Planos' }));
-
-    expect(await screen.findByText('Agencia')).toBeInTheDocument();
-    expect(screen.queryByText('Gratis')).not.toBeInTheDocument();
-  });
-
-  it('uses the catalog custom minimum as the initial custom page count', async () => {
-    const user = userEvent.setup();
-
-    vi.spyOn(pricingPlansService, 'getPricingPlans').mockResolvedValue({
-      ...pricingPlansCatalog,
-      custom: {
-        ...pricingPlansCatalog.custom,
-        minClientPages: 9,
-      },
-      plans: pricingPlansCatalog.plans.map((plan) =>
-        plan.code === 'CUSTOM'
-          ? {
-              ...plan,
-              features: ['A partir de 9 paginas de clientes'],
-            }
-          : plan,
-      ),
-    });
-
-    renderPricingPlansDialog();
-
-    await user.click(screen.getByRole('button', { name: 'Planos' }));
-    await user.click(
-      await screen.findByRole('button', { name: 'Criar meu plano' }),
-    );
-
-    expect(screen.getByLabelText('Paginas de clientes')).toHaveValue(9);
-    expect(screen.getByText('Estimativa para 9 paginas')).toBeInTheDocument();
+      screen.queryByLabelText('Paginas de clientes'),
+    ).not.toBeInTheDocument();
   });
 });

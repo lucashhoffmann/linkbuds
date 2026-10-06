@@ -30,11 +30,11 @@ export function LoginView() {
   return (
     <div className='animate-in fade-in slide-in-from-bottom-6 mx-auto flex w-full flex-col gap-6 duration-300'>
       <div className='space-y-2'>
-        <h1 className='text-3xl leading-tight font-semibold tracking-tight text-zinc-900 dark:text-zinc-100'>
+        <h1 className='text-foreground text-3xl leading-tight font-semibold tracking-tight'>
           Entrar na sua conta
         </h1>
-        <p className='text-sm text-zinc-600 dark:text-zinc-400'>
-          Insira seus dados abaixo para acessar o Linkbuds.
+        <p className='text-muted-foreground text-sm'>
+          Insira seus dados abaixo para acessar o LinkBuds.
         </p>
       </div>
 
@@ -49,9 +49,7 @@ export function LoginView() {
               name='email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className='text-sm font-medium text-zinc-700 dark:text-zinc-300'>
-                    Email
-                  </FormLabel>
+                  <FormLabel className='text-sm font-medium'>Email</FormLabel>
                   <FormControl>
                     <Input
                       placeholder='Digite seu email'
@@ -59,7 +57,7 @@ export function LoginView() {
                       autoCapitalize='none'
                       autoComplete='email'
                       autoCorrect='off'
-                      className='h-11 rounded-sm border-zinc-300 bg-white text-zinc-900 shadow-none placeholder:text-zinc-400 focus-visible:ring-0 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500'
+                      className='h-11'
                       {...field}
                     />
                   </FormControl>
@@ -73,16 +71,14 @@ export function LoginView() {
               name='password'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className='text-sm font-medium text-zinc-700 dark:text-zinc-300'>
-                    Senha
-                  </FormLabel>
+                  <FormLabel className='text-sm font-medium'>Senha</FormLabel>
                   <FormControl>
                     <PasswordInput
                       placeholder='Sua senha'
                       autoComplete='current-password'
-                      className='h-11 rounded-sm border-zinc-300 bg-white text-zinc-900 shadow-none placeholder:text-zinc-400 focus-visible:ring-0 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100 dark:placeholder:text-zinc-500'
-                      iconOn='text-zinc-500'
-                      iconOff='text-zinc-500'
+                      className='h-11'
+                      iconOn='text-muted-foreground'
+                      iconOff='text-muted-foreground'
                       {...field}
                     />
                   </FormControl>
@@ -94,7 +90,7 @@ export function LoginView() {
 
           <Button
             type='submit'
-            className='h-11 w-full rounded-sm bg-zinc-900 text-zinc-100 shadow-none transition-colors hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200'
+            className='h-11 w-full'
             disabled={disabledContinue || isPendingMutateAuth}
           >
             {isPendingMutateAuth && (
@@ -117,11 +113,11 @@ export function LoginView() {
         </Button>
       )}
 
-      <p className='text-center text-sm text-zinc-600 dark:text-zinc-400'>
+      <p className='text-muted-foreground text-center text-sm'>
         Não possui uma conta ainda?{' '}
         <Link
           to={routes.register}
-          className='text-zinc-800 underline underline-offset-4 hover:text-zinc-600 dark:text-zinc-200 dark:hover:text-zinc-300'
+          className='text-foreground font-medium underline underline-offset-4 hover:opacity-80'
         >
           Começar agora.
         </Link>

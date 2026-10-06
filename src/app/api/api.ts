@@ -24,11 +24,7 @@ function shouldClearSession(error: AxiosError<ApiErrorResponse>) {
 
   const errorCode = error.response.data?.errorCode;
 
-  return (
-    errorCode === 'AUTH_TOKEN_INVALID' ||
-    errorCode === 'AUTH_UNAUTHORIZED' ||
-    errorCode === 'AUTH_TOKEN_MISSING'
-  );
+  return errorCode === 'AUTH_UNAUTHORIZED';
 }
 
 function handleResponseError(error: AxiosError<ApiErrorResponse>) {

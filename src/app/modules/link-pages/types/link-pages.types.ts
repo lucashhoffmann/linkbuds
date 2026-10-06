@@ -1,8 +1,9 @@
-export type LinkPageType = 'AGENCY' | 'CLIENT';
+/** POST = sub-page of a bio for one social post (/p/:bio/:post). */
+export type LinkPageType = 'AGENCY' | 'CLIENT' | 'POST';
 export type LinkPageStatus = 'ACTIVE' | 'INACTIVE';
 export type LinkPageLayout = 'LAYOUT_1' | 'LAYOUT_2' | 'LAYOUT_3';
 export type LinkPageBackgroundType = 'SOLID' | 'IMAGE';
-export type LinkPageFooterMode = 'LINKSBUDS' | 'CUSTOM' | 'HIDDEN';
+export type LinkPageFooterMode = 'LINKBUDS' | 'CUSTOM' | 'HIDDEN';
 export type LinkPageLinkPlacement = 'HORIZONTAL' | 'VERTICAL';
 export type LinkPageLinkKind = 'LINK' | 'CONTACT';
 export type LinkPageContactType = 'WHATSAPP' | 'EMAIL' | 'PHONE';
@@ -18,17 +19,10 @@ export type SocialPlatform =
   | 'PINTEREST';
 
 export type AnalyticsEventType =
-  | 'PAGE_VIEW'
-  | 'PAGE_EXIT'
-  | 'LINK_CLICK'
-  | 'SOCIAL_CLICK'
-  | 'IMAGE_CLICK';
+  'PAGE_VIEW' | 'PAGE_EXIT' | 'LINK_CLICK' | 'SOCIAL_CLICK' | 'IMAGE_CLICK';
 
 export type AnalyticsTargetType =
-  | 'HORIZONTAL_LINK'
-  | 'VERTICAL_LINK'
-  | 'SOCIAL_LINK'
-  | 'IMAGE';
+  'HORIZONTAL_LINK' | 'VERTICAL_LINK' | 'SOCIAL_LINK' | 'IMAGE';
 
 export type LinkPageLink = {
   id: string;
@@ -68,7 +62,12 @@ export type LinkPageSummary = {
   companyId: string;
   name: string;
   slug: string;
+  /** Path after `/p/`: `bio` or `bio/post`. */
+  publicPath: string;
   type: LinkPageType;
+  parentPageId: string | null;
+  postNetwork: SocialPlatform | null;
+  postUrl: string | null;
   status: LinkPageStatus;
   layout: LinkPageLayout;
   title: string;
@@ -93,8 +92,16 @@ export type LinkPageDetail = LinkPageSummary & {
 
 export type PublicLinkPage = Omit<
   LinkPageDetail,
-  'companyId' | 'type' | 'createdAt' | 'updatedAt'
->;
+  | 'companyId'
+  | 'type'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'publicPath'
+  | 'parentPageId'
+> & {
+  /** Bio slug when this is a post sub-page. */
+  parentSlug: string | null;
+};
 
 export type LinkPagesUsage = {
   usedClientPages: number;
@@ -168,12 +175,27 @@ export type CompanyDomain = {
   verificationToken: string;
   verifiedAt: string | null;
   lastCheckedAt: string | null;
-  dnsInstructions: {
-    type: string;
+  /** TXT proves ownership; CNAME routes traffic. Both are required. */
+  dnsRecords: Array<{
+    purpose: 'OWNERSHIP' | 'ROUTING';
+    type: 'TXT' | 'CNAME';
     name: string;
     value: string;
-    verificationToken: string;
-  };
+  }>;
 };
 
 export type LinkPageViewModel = LinkPageDetail | PublicLinkPage;
+
+export type LinkPagesOverviewPage = LinkPageSummary & {
+  pageViews: number;
+  visitors: number;
+  clicks: number;
+};
+
+/** Agency dashboard: traffic per page in the plan's analytics window. */
+export type LinkPagesOverview = {
+  tier: 'BASIC' | 'FULL';
+  range: { from: string; to: string };
+  totals: { pageViews: number; visitors: number; clicks: number };
+  pages: LinkPagesOverviewPage[];
+};

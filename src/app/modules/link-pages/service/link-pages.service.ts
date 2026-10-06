@@ -4,14 +4,15 @@ import type {
   AnalyticsTargetType,
   CompanyDomain,
   LinkPageAnalyticsInsights,
-  LinkPageAnalyticsSummary,
   LinkPageDetail,
   LinkPageImage,
   LinkPageLink,
   LinkPageLinkClicksResponse,
   LinkPagesListResponse,
+  LinkPagesOverview,
   LinkPageSocialLink,
   PublicLinkPage,
+  SocialPlatform,
 } from '../types/link-pages.types';
 
 type ApiResponse<T> = {
@@ -37,15 +38,37 @@ type TrackEventPayload = {
 
 class LinkPagesService {
   async list(): Promise<LinkPagesListResponse> {
-    const { data } = await HttpAuth.get<ApiResponse<LinkPagesListResponse>>(
-      '/link-pages',
-    );
+    const { data } =
+      await HttpAuth.get<ApiResponse<LinkPagesListResponse>>('/link-pages');
     return data.data;
   }
 
   async get(id: string): Promise<LinkPageDetail> {
     const { data } = await HttpAuth.get<ApiResponse<LinkPageDetail>>(
       `/link-pages/${id}`,
+    );
+    return data.data;
+  }
+
+  async overview(): Promise<LinkPagesOverview> {
+    const { data } = await HttpAuth.get<ApiResponse<LinkPagesOverview>>(
+      '/link-pages/overview',
+    );
+    return data.data;
+  }
+
+  async createPost(
+    parentId: string,
+    payload: {
+      name: string;
+      slug: string;
+      postNetwork?: SocialPlatform | null;
+      postUrl?: string | null;
+    },
+  ): Promise<LinkPageDetail> {
+    const { data } = await HttpAuth.post<ApiResponse<LinkPageDetail>>(
+      `/link-pages/${parentId}/posts`,
+      payload,
     );
     return data.data;
   }
@@ -103,25 +126,16 @@ class LinkPagesService {
     await HttpAuth.delete(`/link-pages/${id}/links/${linkId}`);
   }
 
-  async reorderLinks(id: string, payload: Array<{ id: string; sortOrder: number }>) {
+  async reorderLinks(
+    id: string,
+    payload: Array<{ id: string; sortOrder: number }>,
+  ) {
     await HttpAuth.patch(`/link-pages/${id}/links/reorder`, payload);
   }
 
   async createSocialLink(id: string, payload: Omit<LinkPageSocialLink, 'id'>) {
     const { data } = await HttpAuth.post<ApiResponse<LinkPageSocialLink>>(
       `/link-pages/${id}/social-links`,
-      payload,
-    );
-    return data.data;
-  }
-
-  async updateSocialLink(
-    id: string,
-    socialLinkId: string,
-    payload: Partial<LinkPageSocialLink>,
-  ) {
-    const { data } = await HttpAuth.patch<ApiResponse<LinkPageSocialLink>>(
-      `/link-pages/${id}/social-links/${socialLinkId}`,
       payload,
     );
     return data.data;
@@ -139,23 +153,8 @@ class LinkPagesService {
     return data.data;
   }
 
-  async updateImage(id: string, imageId: string, payload: Partial<LinkPageImage>) {
-    const { data } = await HttpAuth.patch<ApiResponse<LinkPageImage>>(
-      `/link-pages/${id}/images/${imageId}`,
-      payload,
-    );
-    return data.data;
-  }
-
   async deleteImage(id: string, imageId: string) {
     await HttpAuth.delete(`/link-pages/${id}/images/${imageId}`);
-  }
-
-  async analyticsSummary(id: string): Promise<LinkPageAnalyticsSummary> {
-    const { data } = await HttpAuth.get<ApiResponse<LinkPageAnalyticsSummary>>(
-      `/link-pages/${id}/analytics/summary`,
-    );
-    return data.data;
   }
 
   async analyticsInsights(
@@ -176,17 +175,16 @@ class LinkPagesService {
   }
 
   async analyticsLinkClicks(id: string): Promise<LinkPageLinkClicksResponse> {
-    const { data } = await HttpAuth.get<ApiResponse<LinkPageLinkClicksResponse>>(
-      `/link-pages/${id}/analytics/link-clicks`,
-    );
+    const { data } = await HttpAuth.get<
+      ApiResponse<LinkPageLinkClicksResponse>
+    >(`/link-pages/${id}/analytics/link-clicks`);
 
     return data.data;
   }
 
   async getDomain(): Promise<CompanyDomain | null> {
-    const { data } = await HttpAuth.get<ApiResponse<CompanyDomain | null>>(
-      '/company/domain',
-    );
+    const { data } =
+      await HttpAuth.get<ApiResponse<CompanyDomain | null>>('/company/domain');
     return data.data;
   }
 
@@ -227,10 +225,7 @@ class LinkPagesService {
     return data.data;
   }
 
-  async trackEvent(
-    id: string,
-    payload: TrackEventPayload,
-  ) {
+  async trackEvent(id: string, payload: TrackEventPayload) {
     await Http.post(`/public/link-pages/${id}/events`, payload);
   }
 

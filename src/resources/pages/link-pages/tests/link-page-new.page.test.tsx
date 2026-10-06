@@ -13,6 +13,10 @@ const createdPage: LinkPageDetail = {
   name: 'Cliente Roma',
   slug: 'cliente-roma',
   type: 'CLIENT',
+  publicPath: 'cliente-roma',
+  parentPageId: null,
+  postNetwork: null,
+  postUrl: null,
   status: 'ACTIVE',
   layout: 'LAYOUT_2',
   title: 'Cliente Roma',
@@ -21,7 +25,7 @@ const createdPage: LinkPageDetail = {
   backgroundColor: '#FFFFFF',
   backgroundImageUrl: null,
   avatarUrl: null,
-  footerMode: 'LINKSBUDS',
+  footerMode: 'LINKBUDS',
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
@@ -73,14 +77,18 @@ describe('LinkPageNewPage', () => {
       'aria-pressed',
       'true',
     );
-    expect(screen.getByRole('button', { name: /Layout 2/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Layout 3/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Layout 2/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Layout 3/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText('Sua nova LinkPage')).toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Nome interno'), 'Cliente Roma');
     expect(screen.getByLabelText('Slug')).toHaveValue('cliente-roma');
     expect(screen.getByText('Cliente Roma')).toBeInTheDocument();
-    expect(screen.getByText('linksbuds.com/p/cliente-roma')).toBeInTheDocument();
+    expect(screen.getByText('linkbuds.com/p/cliente-roma')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Layout 2/i }));
     expect(screen.getByRole('button', { name: /Layout 2/i })).toHaveAttribute(

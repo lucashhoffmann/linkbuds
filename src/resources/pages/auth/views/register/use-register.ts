@@ -24,12 +24,7 @@ export function useRegister() {
 
   async function onSubmit(data: RegisterSchemaType) {
     try {
-      const companyName = data.companyName?.trim() || data.name.trim();
-
-      await mutateRegister({
-        ...data,
-        companyName,
-      });
+      await mutateRegister(data);
 
       await Http.post('/api/auth/sign-in/email', {
         email: data.email,
@@ -43,12 +38,12 @@ export function useRegister() {
     }
   }
 
-  const [email, password, name] = useWatch({
+  const [email, password, name, companyName] = useWatch({
     control: methods.control,
-    name: ['email', 'password', 'name'],
+    name: ['email', 'password', 'name', 'companyName'],
   });
 
-  const disabledContinue = !email || !password || !name;
+  const disabledContinue = !email || !password || !name || !companyName;
 
   return {
     methods,

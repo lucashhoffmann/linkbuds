@@ -2,20 +2,19 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { Action } from '@/app/modules/authorization/types/authorization.types';
 import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
 import { LinkPageEditPage, reorderLinksForDrop } from '../link-page-edit.page';
 
 const mocks = vi.hoisted(() => ({
-  useCan: vi.fn(),
+  useEntitlements: vi.fn(),
   useGetLinkPageUseCase: vi.fn(),
   useLinkPageAnalyticsInsightsUseCase: vi.fn(),
   useLinkPageLinkClicksUseCase: vi.fn(),
   useLinkPageMutations: vi.fn(),
 }));
 
-vi.mock('@/app/modules/authorization/hooks/use-ability', () => ({
-  useCan: mocks.useCan,
+vi.mock('@/app/modules/auth/hooks/use-entitlements', () => ({
+  useEntitlements: mocks.useEntitlements,
 }));
 
 vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
@@ -32,6 +31,10 @@ const page: LinkPageDetail = {
   name: 'Cliente Roma',
   slug: 'cliente-roma',
   type: 'CLIENT',
+  publicPath: 'cliente-roma',
+  parentPageId: null,
+  postNetwork: null,
+  postUrl: null,
   status: 'ACTIVE',
   layout: 'LAYOUT_1',
   title: 'Cliente Roma',
@@ -40,7 +43,7 @@ const page: LinkPageDetail = {
   backgroundColor: '#FFFFFF',
   backgroundImageUrl: null,
   avatarUrl: null,
-  footerMode: 'LINKSBUDS',
+  footerMode: 'LINKBUDS',
   footerText: null,
   footerUrl: null,
   footerLogoUrl: null,
@@ -149,7 +152,10 @@ function renderLinkPageEditPage() {
 describe('LinkPageEditPage', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mocks.useCan.mockReturnValue(true);
+    mocks.useEntitlements.mockReturnValue({
+      analytics: true,
+      whiteLabel: true,
+    });
     mocks.useGetLinkPageUseCase.mockReturnValue({
       data: page,
       isLoading: false,
@@ -232,7 +238,7 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Aparência' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Aparência' }));
     fireEvent.click(screen.getByRole('combobox', { name: 'Modelo 1' }));
     fireEvent.click(screen.getByRole('option', { name: 'Modelo 2' }));
 
@@ -248,7 +254,7 @@ describe('LinkPageEditPage', () => {
       layout: 'LAYOUT_2',
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Configurações' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Configurações' }));
     fireEvent.change(screen.getByDisplayValue('cliente-roma'), {
       target: { value: 'cliente-novo' },
     });
@@ -264,8 +270,8 @@ describe('LinkPageEditPage', () => {
       status: 'ACTIVE',
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Marca' }));
-    fireEvent.click(screen.getByRole('combobox', { name: 'Com LinksBuds' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Marca' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Com LinkBuds' }));
     fireEvent.click(screen.getByRole('option', { name: 'Ocultar rodapé' }));
 
     await act(async () => {
@@ -326,8 +332,11 @@ describe('LinkPageEditPage', () => {
     const preview = screen.getByTestId('link-page-live-preview');
 
     expect(preview).toHaveClass('self-start');
-    expect(preview).toHaveClass('md:sticky');
-    expect(preview).toHaveClass('md:top-4');
+    expect(preview).toHaveClass('lg:sticky');
+    expect(
+      within(preview).getByRole('radio', { name: 'Mobile' }),
+    ).toBeChecked();
+    expect(preview).toHaveClass('lg:top-6');
   });
 
   it('creates WhatsApp links with WhatsApp default colors', () => {
@@ -445,44 +454,48 @@ describe('LinkPageEditPage', () => {
     expect(screen.getAllByText('A')).not.toHaveLength(0);
   });
 
-  it('shows lifetime click counts on editable link rows', () => {
+  it('shows click counts on editable link rows', () => {
     const mutations = createMutationsMock();
     mocks.useLinkPageMutations.mockReturnValue(mutations);
 
     renderLinkPageEditPage();
 
-    expect(mocks.useLinkPageLinkClicksUseCase).toHaveBeenCalledWith(
-      'page-id',
-      true,
-    );
+    expect(mocks.useLinkPageLinkClicksUseCase).toHaveBeenCalledWith('page-id');
     expect(screen.getByText('7 cliques')).toBeInTheDocument();
     expect(screen.getAllByText('0 cliques')).toHaveLength(2);
   });
 
-  it('hides link click counts when analytics is blocked', () => {
+  it('archives a link and lists it separately with restore', async () => {
     const mutations = createMutationsMock();
-    mocks.useCan.mockReturnValue(false);
     mocks.useLinkPageMutations.mockReturnValue(mutations);
 
     renderLinkPageEditPage();
 
-    expect(mocks.useLinkPageLinkClicksUseCase).toHaveBeenCalledWith(
-      'page-id',
-      false,
-    );
-    expect(screen.queryByText(/cliques/)).not.toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: 'Arquivar' })[0]);
+    });
+
+    expect(mutations.updateLink.mutateAsync).toHaveBeenCalledWith({
+      linkId: 'link-a',
+      payload: { active: false },
+    });
+    expect(screen.getByText(/Arquivados \(1\)/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Restaurar' }),
+    ).toBeInTheDocument();
   });
 
   it('keeps white-label blocked for free plans with custom domains', () => {
     const mutations = createMutationsMock();
-    mocks.useCan.mockImplementation(
-      (action) => action !== Action.ManageWhiteLabel,
-    );
+    mocks.useEntitlements.mockReturnValue({
+      analytics: true,
+      whiteLabel: false,
+    });
     mocks.useLinkPageMutations.mockReturnValue(mutations);
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Marca' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Marca' }));
 
     expect(screen.getByText('Domínio próprio')).toBeInTheDocument();
     expect(
@@ -492,10 +505,10 @@ describe('LinkPageEditPage', () => {
       screen.getByText(/Marca branca está disponível/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('combobox', { name: 'Com LinksBuds' }),
+      screen.getByRole('combobox', { name: 'Com LinkBuds' }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('combobox', { name: 'Com LinksBuds' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Com LinkBuds' }));
 
     expect(
       screen.getByRole('option', { name: 'Rodapé personalizado' }),
@@ -511,7 +524,7 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Análises' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Análises' }));
 
     expect(screen.getByText(/plano grátis/i)).toBeInTheDocument();
     expect(screen.getByText('Online agora')).toBeInTheDocument();
@@ -561,7 +574,7 @@ describe('LinkPageEditPage', () => {
 
     renderLinkPageEditPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Análises' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Análises' }));
 
     expect(screen.getByText(/análises completas/i)).toBeInTheDocument();
     expect(screen.getByText('Origens')).toBeInTheDocument();

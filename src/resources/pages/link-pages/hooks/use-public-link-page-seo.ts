@@ -73,7 +73,7 @@ export function usePublicLinkPageSeo(
 
     if (notFound) {
       clearDynamicSeo();
-      document.title = 'LinkPage nao encontrada | LinksBuds';
+      document.title = 'Página não encontrada | LinkBuds';
       upsertMeta('name', 'robots', 'noindex');
       return () => {
         clearDynamicSeo();
@@ -85,9 +85,9 @@ export function usePublicLinkPageSeo(
       return undefined;
     }
 
-    const title = `${linkPage.title} | LinksBuds`;
+    const title = `${linkPage.title} | LinkBuds`;
     const description =
-      linkPage.subtitle || `Confira ${linkPage.title} no LinksBuds.`;
+      linkPage.subtitle || `Confira ${linkPage.title} no LinkBuds.`;
     const canonicalUrl = currentCanonicalUrl();
     const imageUrl = resolveSeoImage(linkPage);
 

@@ -192,7 +192,6 @@ Os itens abaixo podem existir hoje no repositorio, mas ficam fora da
 estrutura-alvo:
 
 - `src/components` como camada paralela
-- `src/layouts` como raiz independente
 - diretorios novos em `PascalCase`
 
 Para novas implementacoes:
