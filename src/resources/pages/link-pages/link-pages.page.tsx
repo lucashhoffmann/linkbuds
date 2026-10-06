@@ -46,6 +46,7 @@ import {
   AnalyticsTab,
 } from './components/editor/analytics-tab.component';
 import { FormsTab, ResponsesTab } from './components/forms-tabs.component';
+import { IntegrationsPanel } from './components/integrations-panel.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
   socialPlatformIcons,
@@ -356,9 +357,14 @@ export function LinkPagesPage() {
           <div>
             <h1 className='text-base font-semibold'>Páginas</h1>
             {usage && (
-              <p className='text-muted-foreground text-xs'>
-                {usage.usedClientPages} de {usage.maxClientPages} clientes
-              </p>
+              <>
+                <p className='text-muted-foreground text-xs'>
+                  {usage.usedClientPages} de {usage.maxClientPages} clientes
+                </p>
+                <p className='text-muted-foreground text-xs'>
+                  {usage.usedForms} de {usage.maxForms} formulários
+                </p>
+              </>
             )}
           </div>
           {usage && usage.remainingClientPages > 0 ? (
@@ -449,7 +455,13 @@ export function LinkPagesPage() {
 }
 
 type CanvasView =
-  'preview' | 'analytics' | 'posts' | 'forms' | 'responses' | 'share';
+  | 'preview'
+  | 'analytics'
+  | 'posts'
+  | 'forms'
+  | 'responses'
+  | 'integrations'
+  | 'share';
 
 function PageCanvas({
   page,
@@ -485,6 +497,7 @@ function PageCanvas({
     ...(page.type === 'FORM'
       ? [{ value: 'responses' as const, label: 'Respostas' }]
       : []),
+    { value: 'integrations', label: 'Integrações' },
     { value: 'share', label: 'Compartilhar' },
   ];
   const [view, setView] = useState<CanvasView>(
@@ -593,7 +606,11 @@ function PageCanvas({
           sheetConnected={Boolean(detail.data?.formWebhookUrl)}
         />
       ) : detail.data ? (
-        view === 'analytics' ? (
+        view === 'integrations' ? (
+          <div className='bg-card max-w-3xl rounded-2xl border p-4'>
+            <IntegrationsPanel linkPage={detail.data} />
+          </div>
+        ) : view === 'analytics' ? (
           <AnalyticsTab linkPage={detail.data} />
         ) : (
           <DevicePreview

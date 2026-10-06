@@ -43,6 +43,7 @@ export const tabs: Array<{ id: Tab; label: string }> = [
   { id: 'content', label: 'Conteúdo' },
   { id: 'appearance', label: 'Aparência' },
   { id: 'settings', label: 'Configurações' },
+  { id: 'integrations', label: 'Integrações' },
   { id: 'analytics', label: 'Análises' },
   { id: 'branding', label: 'Marca' },
 ];
@@ -161,7 +162,9 @@ export function isTrackingIdValid(value: string | null, pattern: RegExp) {
   return !value || pattern.test(value);
 }
 
-export function trackingIdsPayload(draft: LinkPageDetail) {
+export function trackingIdsPayload(
+  draft: Pick<LinkPageDetail, 'gtmContainerId' | 'ga4MeasurementId'>,
+) {
   return {
     ...(isTrackingIdValid(draft.gtmContainerId, gtmContainerIdPattern)
       ? { gtmContainerId: draft.gtmContainerId }

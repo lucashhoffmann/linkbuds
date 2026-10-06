@@ -220,6 +220,8 @@ export type LinkPagesUsage = {
   usedClientPages: number;
   maxClientPages: number;
   remainingClientPages: number;
+  usedForms: number;
+  maxForms: number;
 };
 
 export type LinkPagesListResponse = {

@@ -6,3 +6,4 @@ export {
   confirmAction,
 } from './confirm-dialog/confirm-dialog.component';
 export { IconTooltip } from './icon-tooltip/icon-tooltip.component';
+export { CodeBlock } from './code-block/code-block.component';

@@ -14,6 +14,7 @@ export interface ICompanyEntitlements {
   planCode: string;
   maxClientPages: number;
   maxMembers: number;
+  maxForms: number;
   analyticsTier: 'BASIC' | 'FULL';
   customDomain: boolean;
   whiteLabel: boolean;

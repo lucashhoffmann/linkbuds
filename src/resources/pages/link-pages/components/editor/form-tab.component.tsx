@@ -1,6 +1,5 @@
 import { type Dispatch, type SetStateAction } from 'react';
-import { ArrowDown, ArrowUp, Copy, Plus, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import type {
   FormConfig,
   FormField,
@@ -12,20 +11,6 @@ import { Input } from '@/resources/components/ui/input';
 import { Select } from '@/resources/components/ui/select';
 import type { AutosaveStatus } from './editor.types';
 import { EditorSection, Field } from './editor-fields.component';
-import { googleSheetsScript } from './google-sheets-script';
-
-// Same rule as the API (`appsScriptUrlPattern`); shown inline before autosave fails.
-const appsScriptUrlPattern =
-  /^https:\/\/script\.google\.com\/macros\/s\/[\w-]{10,200}\/exec$/;
-
-async function copyScript() {
-  try {
-    await navigator.clipboard.writeText(googleSheetsScript);
-    toast.success('Script copiado');
-  } catch {
-    toast.error('Não foi possível copiar.');
-  }
-}
 
 const fieldTypeLabels: Record<FormFieldType, string> = {
   TEXT: 'Texto curto',
@@ -263,96 +248,6 @@ export function FormTab({
         Cada envio guarda as respostas com data, IP, país e dispositivo. Veja em
         Páginas → este formulário → Respostas.
       </p>
-      <GoogleSheetsSection
-        value={draft.formWebhookUrl ?? ''}
-        onChange={(formWebhookUrl) =>
-          setDraft((current) => ({
-            ...current,
-            formWebhookUrl: formWebhookUrl || null,
-          }))
-        }
-      />
     </EditorSection>
-  );
-}
-
-/** Apps Script bridge: each answer becomes a row in the agency's sheet. */
-function GoogleSheetsSection({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const invalid =
-    value.trim() !== '' && !appsScriptUrlPattern.test(value.trim());
-
-  return (
-    <div className='grid gap-3 border-t pt-4'>
-      <div>
-        <h3 className='text-sm font-semibold'>Google Sheets</h3>
-        <p className='text-muted-foreground text-xs'>
-          Cada resposta vira uma linha na sua planilha (uma aba por formulário).
-        </p>
-      </div>
-      <ol className='text-muted-foreground list-decimal space-y-1 pl-5 text-sm'>
-        <li>
-          Abra a planilha no Google Sheets → <b>Extensões → Apps Script</b>.
-        </li>
-        <li>
-          Apague o código que aparecer e cole o script do LinkBuds.{' '}
-          <button
-            type='button'
-            onClick={() => void copyScript()}
-            className='text-foreground inline-flex items-center gap-1 font-medium underline underline-offset-2'
-          >
-            <Copy className='size-3.5' />
-            Copiar script
-          </button>
-        </li>
-        <li>
-          <b>Implantar → Nova implantação</b> → tipo <b>App da Web</b>, executar
-          como <b>Eu</b>, acesso <b>Qualquer pessoa</b> → Implantar e autorizar.
-        </li>
-        <li>
-          Copie a <b>URL do app da Web</b> (termina em <code>/exec</code>) e
-          cole abaixo.
-        </li>
-        <li>
-          Respostas anteriores: Páginas → este formulário → Respostas →{' '}
-          <b>Enviar pendentes à planilha</b>.
-        </li>
-      </ol>
-      <Field label='URL do app da Web'>
-        <Input
-          type='url'
-          placeholder='https://script.google.com/macros/s/.../exec'
-          aria-invalid={invalid || undefined}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </Field>
-      {invalid && (
-        <p
-          role='alert'
-          className='text-destructive text-xs'
-        >
-          Use a URL do app da Web do Apps Script (começa com
-          https://script.google.com/macros/s/ e termina em /exec).
-        </p>
-      )}
-      <details className='text-sm'>
-        <summary className='text-muted-foreground cursor-pointer'>
-          Ver script
-        </summary>
-        <pre className='bg-muted mt-2 max-h-72 overflow-auto rounded-lg p-3 text-xs'>
-          {googleSheetsScript}
-        </pre>
-      </details>
-      <p className='text-muted-foreground text-xs'>
-        A URL fica só no painel (não aparece na página pública). Mudou o script?
-        Faça <b>Gerenciar implantações → Editar → Nova versão</b>.
-      </p>
-    </div>
   );
 }

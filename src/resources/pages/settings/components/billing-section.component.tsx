@@ -104,7 +104,7 @@ export function BillingSection() {
         )}
       </div>
 
-      <div className='grid grid-cols-2 gap-2 sm:grid-cols-4'>
+      <div className='grid grid-cols-2 gap-2 sm:grid-cols-3'>
         <Limit
           label='Clientes'
           value={`até ${entitlements.maxClientPages}`}
@@ -112,6 +112,10 @@ export function BillingSection() {
         <Limit
           label='Usuários'
           value={`até ${entitlements.maxMembers}`}
+        />
+        <Limit
+          label='Formulários'
+          value={`até ${entitlements.maxForms}`}
         />
         <Limit
           label='Analytics'

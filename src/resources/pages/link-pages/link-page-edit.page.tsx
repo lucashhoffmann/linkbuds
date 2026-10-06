@@ -17,7 +17,8 @@ import {
 } from '@/resources/components/base/device-preview/device-preview.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import type { Tab, LinkClickCountMap } from './components/editor/editor.types';
-import { tabs, trackingIdsPayload } from './components/editor/editor.utils';
+import { tabs } from './components/editor/editor.utils';
+import { IntegrationsPanel } from './components/integrations-panel.component';
 import { useAutosaveSection } from './components/editor/use-autosave-section';
 import { ContentTab } from './components/editor/content-tab.component';
 import { AppearanceTab } from './components/editor/appearance-tab.component';
@@ -109,19 +110,15 @@ function LinkPageEditor({
       name: draft.name,
       slug: draft.slug,
       status: draft.status,
+      // Tracking ids and the Sheets URL save from the Integrações tab.
       ...(draft.type === 'POST'
         ? { postNetwork: draft.postNetwork, postUrl: draft.postUrl }
-        : draft.parentPageId
-          ? {}
-          : trackingIdsPayload(draft)),
+        : {}),
     },
     (payload) => mutations.update.mutateAsync(payload),
   );
   const formStatus = useAutosaveSection(
-    {
-      form: draft.form ? cleanFormConfig(draft.form) : null,
-      formWebhookUrl: draft.formWebhookUrl ?? null,
-    },
+    { form: draft.form ? cleanFormConfig(draft.form) : null },
     (payload) => mutations.update.mutateAsync(payload),
     draft.type === 'FORM',
   );
@@ -223,6 +220,9 @@ function LinkPageEditor({
                 setDraft={setDraft}
                 status={settingsStatus}
               />
+            )}
+            {tab === 'integrations' && (
+              <IntegrationsPanel linkPage={linkPage} />
             )}
             {tab === 'analytics' && <AnalyticsTab linkPage={draft} />}
             {tab === 'branding' && (

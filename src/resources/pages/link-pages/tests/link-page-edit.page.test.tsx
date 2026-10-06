@@ -385,8 +385,6 @@ describe('LinkPageEditPage', () => {
       name: 'Cliente Roma',
       slug: 'cliente-novo',
       status: 'ACTIVE',
-      gtmContainerId: null,
-      ga4MeasurementId: null,
     });
 
     fireEvent.click(screen.getByRole('radio', { name: 'Marca' }));

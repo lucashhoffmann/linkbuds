@@ -5,6 +5,7 @@ const NO_ENTITLEMENTS: ICompanyEntitlements = {
   planCode: '',
   maxClientPages: 0,
   maxMembers: 1,
+  maxForms: 0,
   analyticsTier: 'BASIC',
   custom: false,
   customDomain: false,
