@@ -121,7 +121,7 @@ export function SettingsTab({
           </p>
         </Field>
       </div>
-      {draft.type !== 'POST' && (
+      {!draft.parentPageId && (
         <div className='mt-6 grid gap-4 border-t pt-6'>
           <div>
             <h3 className='text-sm font-semibold'>Integrações</h3>

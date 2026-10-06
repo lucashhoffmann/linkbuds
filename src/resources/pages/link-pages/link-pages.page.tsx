@@ -2,6 +2,7 @@ import { confirmAction } from '@/resources/components/base';
 import {
   BarChart3,
   ChevronRight,
+  ClipboardList,
   Copy,
   Eye,
   ExternalLink,
@@ -44,6 +45,7 @@ import {
   AnalyticsSummary,
   AnalyticsTab,
 } from './components/editor/analytics-tab.component';
+import { FormsTab, ResponsesTab } from './components/forms-tabs.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
   socialPlatformIcons,
@@ -76,16 +78,18 @@ function Badge({ name }: { name: string }) {
   );
 }
 
-/** Posts get a link icon so they read apart from bios at a glance. */
+/** Posts and forms get an icon so they read apart from bios at a glance. */
 function PageIcon({ page }: { page: LinkPageSummary }) {
-  if (page.type !== 'POST') return <Badge name={page.name} />;
+  if (!page.parentPageId) return <Badge name={page.name} />;
+
+  const Icon = page.type === 'FORM' ? ClipboardList : Link2;
 
   return (
     <span
       aria-hidden='true'
       className='bg-muted text-muted-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
     >
-      <Link2 className='size-3.5' />
+      <Icon className='size-3.5' />
     </span>
   );
 }
@@ -141,7 +145,7 @@ function PageListItem({
         selected && 'bg-sidebar-accent font-medium shadow-xs',
       )}
     >
-      {page.type !== 'POST' &&
+      {!page.parentPageId &&
         (expanded === undefined ? (
           <span className='size-6 shrink-0' />
         ) : (
@@ -149,7 +153,7 @@ function PageListItem({
             type='button'
             onClick={onToggle}
             aria-expanded={expanded}
-            aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} posts de ${page.name}`}
+            aria-label={`${expanded ? 'Ocultar' : 'Mostrar'} posts e formulários de ${page.name}`}
             className='text-muted-foreground hover:text-foreground flex size-6 shrink-0 items-center justify-center rounded-md'
           >
             <ChevronRight
@@ -213,7 +217,7 @@ function PageListItem({
 const TREE_BRANCH =
   'relative pl-4 before:absolute before:top-0 before:left-0 before:h-full before:border-l before:border-border after:absolute after:top-5 after:left-0 after:w-3 after:border-t after:border-border last:before:h-5';
 
-/** A bio and its post sub-pages, collapsible. */
+/** A bio and its post/form sub-pages, collapsible. */
 function BioTree({
   bio,
   posts,
@@ -227,7 +231,7 @@ function BioTree({
   selectedId?: string;
   onSelect: (page: LinkPageSummary) => void;
   onRemove: (page: LinkPageSummary) => void;
-  /** Extra branch after the posts (mobile "new post" form). */
+  /** Extra branch after the sub-pages (mobile "new post/form" buttons). */
   children?: React.ReactNode;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -279,6 +283,7 @@ export function LinkPagesPage() {
     items.filter((page) => page.parentPageId === bioId);
   const selected =
     items.find((page) => page.id === searchParams.get('p')) ?? agencyPage;
+  const initialView = searchParams.get('v') ?? undefined;
   // Mobile has no canvas, so nothing is "selected" there.
   const selectedId = isMobile ? undefined : selected?.id;
   const createPost =
@@ -288,25 +293,51 @@ export function LinkPagesPage() {
         { parentId: bio.id, ...payload },
         { onSuccess: (post) => navigate(routes.linkPages.edit(post.id)) },
       );
+  const createForm =
+    (bio: LinkPageSummary) =>
+    ({ name, slug }: { name: string; slug: string }) =>
+      mutations.createForm.mutate(
+        { parentId: bio.id, name, slug },
+        { onSuccess: (form) => navigate(routes.linkPages.edit(form.id)) },
+      );
   const usage = data?.usage;
 
-  function select(page: LinkPageSummary) {
+  /** `view` opens a canvas tab (e.g. a form's responses). */
+  function select(page: LinkPageSummary, view?: string) {
     // Mobile has no canvas: go straight to the editor (it has the preview).
     if (isMobile) {
       navigate(routes.linkPages.edit(page.id));
       return;
     }
 
-    setSearchParams({ p: page.id }, { replace: true });
+    setSearchParams(view ? { p: page.id, v: view } : { p: page.id }, {
+      replace: true,
+    });
   }
+
+  const newSubPageButtons = (bio: LinkPageSummary) => (
+    <div className='flex flex-wrap gap-1'>
+      <NewPostForm
+        bio={bio}
+        onCreate={createPost(bio)}
+      />
+      <NewPostForm
+        kind='FORM'
+        bio={bio}
+        onCreate={createForm(bio)}
+      />
+    </div>
+  );
 
   async function remove(page: LinkPageSummary) {
     const confirmed = await confirmAction({
       title: `Excluir "${page.name}"?`,
       description:
         page.type === 'CLIENT'
-          ? 'Todos os posts deste cliente também serão excluídos. Essa ação não pode ser desfeita.'
-          : 'Essa ação não pode ser desfeita.',
+          ? 'Todos os posts e formulários (com as respostas) deste cliente também serão excluídos. Essa ação não pode ser desfeita.'
+          : page.type === 'FORM'
+            ? 'As respostas deste formulário também serão excluídas. Essa ação não pode ser desfeita.'
+            : 'Essa ação não pode ser desfeita.',
       confirmLabel: 'Excluir',
       destructive: true,
     });
@@ -365,12 +396,7 @@ export function LinkPagesPage() {
               onSelect={select}
               onRemove={(page) => void remove(page)}
             >
-              {isMobile && (
-                <NewPostForm
-                  bio={agencyPage}
-                  onCreate={createPost(agencyPage)}
-                />
-              )}
+              {isMobile && newSubPageButtons(agencyPage)}
             </BioTree>
           </ListGroup>
         )}
@@ -390,12 +416,7 @@ export function LinkPagesPage() {
               onSelect={select}
               onRemove={(page) => void remove(page)}
             >
-              {isMobile && (
-                <NewPostForm
-                  bio={client}
-                  onCreate={createPost(client)}
-                />
-              )}
+              {isMobile && newSubPageButtons(client)}
             </BioTree>
           ))}
         </ListGroup>
@@ -406,14 +427,15 @@ export function LinkPagesPage() {
           <PageCanvas
             key={selected.id}
             page={selected}
-            posts={postsOf(selected.id)}
+            subPages={postsOf(selected.id)}
+            initialView={initialView}
             onSelect={select}
-            onRemovePost={(post) => void remove(post)}
+            onRemoveSubPage={(subPage) => void remove(subPage)}
             onRemove={
               selected.type === 'AGENCY' ? undefined : () => remove(selected)
             }
-            onCreatePost={
-              selected.type === 'POST' ? undefined : createPost(selected)
+            newSubPage={
+              selected.parentPageId ? undefined : newSubPageButtons(selected)
             }
           />
         ) : (
@@ -426,29 +448,47 @@ export function LinkPagesPage() {
   );
 }
 
+type CanvasView =
+  'preview' | 'analytics' | 'posts' | 'forms' | 'responses' | 'share';
+
 function PageCanvas({
   page,
-  posts,
+  subPages,
+  initialView,
   onSelect,
-  onRemovePost,
+  onRemoveSubPage,
   onRemove,
-  onCreatePost,
+  newSubPage,
 }: {
   page: LinkPageSummary;
-  posts: LinkPageSummary[];
-  onSelect: (page: LinkPageSummary) => void;
-  onRemovePost: (post: LinkPageSummary) => void;
+  /** Bio only: its posts and forms. */
+  subPages: LinkPageSummary[];
+  initialView?: string;
+  onSelect: (page: LinkPageSummary, view?: string) => void;
+  onRemoveSubPage: (subPage: LinkPageSummary) => void;
   onRemove?: () => void;
-  onCreatePost?: (payload: {
-    name: string;
-    slug: string;
-    postUrl: string | null;
-  }) => void;
+  /** Bio only: "new post" / "new form" buttons. */
+  newSubPage?: React.ReactNode;
 }) {
   const detail = useGetLinkPageUseCase(page.id);
   const url = publicUrl(usePublicOrigin(), page);
-  const [view, setView] = useState<'preview' | 'analytics' | 'posts' | 'share'>(
-    'preview',
+  const isBio = !page.parentPageId;
+  const views: Array<{ value: CanvasView; label: string }> = [
+    { value: 'preview', label: 'Prévia' },
+    { value: 'analytics', label: 'Análises' },
+    ...(isBio
+      ? [
+          { value: 'posts' as const, label: 'Meus posts' },
+          { value: 'forms' as const, label: 'Formulários' },
+        ]
+      : []),
+    ...(page.type === 'FORM'
+      ? [{ value: 'responses' as const, label: 'Respostas' }]
+      : []),
+    { value: 'share', label: 'Compartilhar' },
+  ];
+  const [view, setView] = useState<CanvasView>(
+    views.find((option) => option.value === initialView)?.value ?? 'preview',
   );
   const { analyticsOpen, toggleAnalytics } = usePreviewStore();
 
@@ -519,25 +559,13 @@ function PageCanvas({
         </div>
       </header>
 
-      {onCreatePost && (
-        <NewPostForm
-          bio={page}
-          onCreate={onCreatePost}
-        />
-      )}
+      {newSubPage}
 
       <SegmentedControl
         label='Exibir'
         value={view}
         onChange={setView}
-        options={[
-          { value: 'preview', label: 'Prévia' },
-          { value: 'analytics', label: 'Análises' },
-          ...(page.type === 'POST'
-            ? []
-            : [{ value: 'posts' as const, label: 'Meus posts' }]),
-          { value: 'share', label: 'Compartilhar' },
-        ]}
+        options={views}
       />
 
       {view === 'share' ? (
@@ -547,9 +575,22 @@ function PageCanvas({
         />
       ) : view === 'posts' ? (
         <PostsTab
-          posts={posts}
-          onView={onSelect}
-          onRemove={onRemovePost}
+          posts={subPages.filter((subPage) => subPage.type === 'POST')}
+          onView={(post) => onSelect(post)}
+          onRemove={onRemoveSubPage}
+        />
+      ) : view === 'forms' ? (
+        <FormsTab
+          forms={subPages.filter((subPage) => subPage.type === 'FORM')}
+          onView={(form) => onSelect(form)}
+          onResponses={(form) => onSelect(form, 'responses')}
+          onRemove={onRemoveSubPage}
+        />
+      ) : view === 'responses' ? (
+        <ResponsesTab
+          form={page}
+          fields={detail.data?.form?.fields ?? []}
+          sheetConnected={Boolean(detail.data?.formWebhookUrl)}
         />
       ) : detail.data ? (
         view === 'analytics' ? (
@@ -844,18 +885,25 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, '');
 }
 
-/** Post sub-page: /p/:bio/:post — a destination for one social post. */
+/**
+ * Post sub-page (/p/:bio/:post, a destination for one social post) or, with
+ * `kind='FORM'`, a form sub-page (/p/:bio/:form). Same flow, forms skip the URL.
+ */
 function NewPostForm({
   bio,
+  kind = 'POST',
   onCreate,
 }: {
   bio: LinkPageSummary;
+  kind?: 'POST' | 'FORM';
   onCreate: (payload: {
     name: string;
     slug: string;
     postUrl: string | null;
   }) => void;
 }) {
+  const isForm = kind === 'FORM';
+  const idPrefix = isForm ? 'form' : 'post';
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [postUrl, setPostUrl] = useState('');
@@ -871,39 +919,46 @@ function NewPostForm({
         onClick={() => setOpen(true)}
       >
         <Plus className='size-4' />
-        Novo link de post
+        {isForm ? 'Novo formulário' : 'Novo link de post'}
       </Button>
     );
   }
 
   return (
     <form
-      className='grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end'
+      className={cn(
+        'grid basis-full gap-2 sm:items-end',
+        isForm ? 'sm:grid-cols-[1fr_auto]' : 'sm:grid-cols-[1fr_1fr_auto]',
+      )}
       onSubmit={(event) => {
         event.preventDefault();
         onCreate({ name, slug, postUrl: postUrl || null });
       }}
     >
       <div className='grid gap-1'>
-        <Label htmlFor={`post-name-${bio.id}`}>Nome do post</Label>
+        <Label htmlFor={`${idPrefix}-name-${bio.id}`}>
+          {isForm ? 'Nome do formulário' : 'Nome do post'}
+        </Label>
         <Input
-          id={`post-name-${bio.id}`}
+          id={`${idPrefix}-name-${bio.id}`}
           required
-          placeholder='Promo de terça'
+          placeholder={isForm ? 'Orçamento' : 'Promo de terça'}
           value={name}
           onChange={(event) => setName(event.target.value)}
         />
       </div>
-      <div className='grid gap-1'>
-        <Label htmlFor={`post-url-${bio.id}`}>Link do post (opcional)</Label>
-        <Input
-          id={`post-url-${bio.id}`}
-          type='url'
-          placeholder='https://instagram.com/p/...'
-          value={postUrl}
-          onChange={(event) => setPostUrl(event.target.value)}
-        />
-      </div>
+      {!isForm && (
+        <div className='grid gap-1'>
+          <Label htmlFor={`post-url-${bio.id}`}>Link do post (opcional)</Label>
+          <Input
+            id={`post-url-${bio.id}`}
+            type='url'
+            placeholder='https://instagram.com/p/...'
+            value={postUrl}
+            onChange={(event) => setPostUrl(event.target.value)}
+          />
+        </div>
+      )}
       <div className='flex gap-2 [&>button]:h-12'>
         <Button
           type='submit'
@@ -920,7 +975,7 @@ function NewPostForm({
         </Button>
       </div>
       {slug && (
-        <p className='text-muted-foreground truncate text-xs sm:col-span-3'>
+        <p className='text-muted-foreground col-span-full truncate text-xs'>
           /p/{bio.publicPath}/{slug}
         </p>
       )}

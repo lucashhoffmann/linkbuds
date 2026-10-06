@@ -5,3 +5,4 @@ export {
   ConfirmDialog,
   confirmAction,
 } from './confirm-dialog/confirm-dialog.component';
+export { IconTooltip } from './icon-tooltip/icon-tooltip.component';

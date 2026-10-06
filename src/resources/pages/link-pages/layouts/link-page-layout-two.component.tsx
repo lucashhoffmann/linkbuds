@@ -1,5 +1,6 @@
 import {
   ContentStream,
+  FormBlock,
   HorizontalLinkCards,
   LinkPageFooter,
   LinkPageHeader,
@@ -11,6 +12,7 @@ import type { LinkPageLayoutProps } from '../renderer/link-page-renderer.types';
 export function LinkPageLayoutTwo({
   horizontalLinks,
   linkPage,
+  onSubmitForm,
   onTrack,
   preview,
   verticalLinks,
@@ -23,6 +25,11 @@ export function LinkPageLayoutTwo({
       <div className='rounded-2xl bg-white/70 p-4 backdrop-blur'>
         <LinkPageHeader linkPage={linkPage} />
       </div>
+      <FormBlock
+        form={linkPage.form}
+        preview={preview}
+        onSubmit={onSubmitForm}
+      />
       <ContentStream
         links={verticalLinks}
         images={linkPage.images}

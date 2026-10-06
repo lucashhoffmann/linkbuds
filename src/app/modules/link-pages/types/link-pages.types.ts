@@ -1,5 +1,58 @@
-/** POST = sub-page of a bio for one social post (/p/:bio/:post). */
-export type LinkPageType = 'AGENCY' | 'CLIENT' | 'POST';
+/**
+ * POST = sub-page of a bio for one social post (/p/:bio/:post).
+ * FORM = sub-page of a bio with a form (/p/:bio/:form).
+ */
+export type LinkPageType = 'AGENCY' | 'CLIENT' | 'POST' | 'FORM';
+
+export type FormFieldType =
+  | 'TEXT'
+  | 'TEXTAREA'
+  | 'EMAIL'
+  | 'PHONE'
+  | 'NUMBER'
+  | 'DATE'
+  | 'SELECT'
+  | 'CHECKBOX';
+
+export type FormField = {
+  /** Stable key: answers are keyed by it. */
+  id: string;
+  type: FormFieldType;
+  label: string;
+  required: boolean;
+  placeholder?: string | null;
+  /** SELECT only. */
+  options?: string[];
+};
+
+export type FormConfig = {
+  fields: FormField[];
+  submitLabel: string;
+  successMessage: string;
+};
+
+export type FormAnswerValue = string | boolean | null;
+
+export type FormSubmission = {
+  id: string;
+  /** Label copied at submit time. */
+  answers: Array<{ id: string; label: string; value: FormAnswerValue }>;
+  visitorId: string | null;
+  ipAddress: string | null;
+  countryCode: string | null;
+  deviceType: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+  /** null = not in the Google Sheet yet (or no sheet configured). */
+  webhookDeliveredAt: string | null;
+  createdAt: string;
+};
+
+export type FormSubmissionsResponse = {
+  /** Newest first, capped at 500. */
+  items: FormSubmission[];
+  total: number;
+};
 export type LinkPageStatus = 'ACTIVE' | 'INACTIVE';
 export type LinkPageLayout = 'LAYOUT_1' | 'LAYOUT_2' | 'LAYOUT_3';
 export type LinkPageBackgroundType = 'SOLID' | 'IMAGE' | 'GRADIENT';
@@ -140,6 +193,10 @@ export type LinkPageDetail = LinkPageSummary & {
   /** Owner's GTM container (bio only; posts inherit on the public page). */
   gtmContainerId: string | null;
   ga4MeasurementId: string | null;
+  /** FORM pages only. */
+  form?: FormConfig | null;
+  /** FORM pages only: Apps Script URL feeding a Google Sheet. Not public. */
+  formWebhookUrl?: string | null;
   links: LinkPageLink[];
   socialLinks: LinkPageSocialLink[];
   images: LinkPageImage[];
@@ -155,7 +212,7 @@ export type PublicLinkPage = Omit<
   | 'publicPath'
   | 'parentPageId'
 > & {
-  /** Bio slug when this is a post sub-page. */
+  /** Bio slug when this is a post or form sub-page. */
   parentSlug: string | null;
 };
 
@@ -274,6 +331,8 @@ export type LinkPagesOverviewPage = LinkPageSummary & {
   pageViews: number;
   visitors: number;
   clicks: number;
+  /** Form responses, all-time. */
+  submissions: number;
 };
 
 /** Agency dashboard: traffic per page in the plan's analytics window. */

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import {
   Asterisk,
   ExternalLink,
@@ -12,6 +12,8 @@ import { resolveLinkHref } from '@/app/modules/link-pages/utils/contact-url.util
 import type {
   FooterSettings,
   AnalyticsTargetType,
+  FormConfig,
+  FormField,
   LinkPageImage,
   LinkPageLink,
   LinkPageSocialLink,
@@ -601,5 +603,219 @@ export function LinkPageFooter({
         Junte-se a {linkPage.title} no LinkBuds
       </a>
     </footer>
+  );
+}
+
+export type FormSubmitResult =
+  { ok: true } | { ok: false; message: string; invalid: string[] };
+
+export type SubmitFormFn = (
+  answers: Record<string, string | boolean>,
+  /** Honeypot value; real visitors leave it empty. */
+  website: string,
+) => Promise<FormSubmitResult>;
+
+const formInputClass =
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-950 outline-none focus:border-slate-500 aria-invalid:border-red-500';
+
+function FormFieldControl({
+  field,
+  value,
+  invalid,
+  onChange,
+}: {
+  field: FormField;
+  value: string | boolean | undefined;
+  invalid: boolean;
+  onChange: (value: string | boolean) => void;
+}) {
+  const id = `form-field-${field.id}`;
+  const common = {
+    id,
+    name: field.id,
+    required: field.required,
+    'aria-invalid': invalid || undefined,
+  };
+
+  if (field.type === 'CHECKBOX') {
+    return (
+      <label className='flex items-start gap-2 text-sm'>
+        <input
+          {...common}
+          type='checkbox'
+          className='mt-0.5 size-4'
+          checked={value === true}
+          onChange={(event) => onChange(event.target.checked)}
+        />
+        <span>
+          {field.label}
+          {field.required && ' *'}
+        </span>
+      </label>
+    );
+  }
+
+  const text = typeof value === 'string' ? value : '';
+  const control =
+    field.type === 'TEXTAREA' ? (
+      <textarea
+        {...common}
+        rows={4}
+        maxLength={5000}
+        placeholder={field.placeholder ?? undefined}
+        className={formInputClass}
+        value={text}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    ) : field.type === 'SELECT' ? (
+      <select
+        {...common}
+        className={formInputClass}
+        value={text}
+        onChange={(event) => onChange(event.target.value)}
+      >
+        <option value=''>{field.placeholder || 'Selecione'}</option>
+        {(field.options ?? []).filter(Boolean).map((option) => (
+          <option
+            key={option}
+            value={option}
+          >
+            {option}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        {...common}
+        type={
+          {
+            TEXT: 'text',
+            EMAIL: 'email',
+            PHONE: 'tel',
+            NUMBER: 'number',
+            DATE: 'date',
+          }[field.type]
+        }
+        maxLength={field.type === 'TEXT' ? 500 : undefined}
+        placeholder={field.placeholder ?? undefined}
+        className={formInputClass}
+        value={text}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    );
+
+  return (
+    <div className='grid gap-1'>
+      <label
+        htmlFor={id}
+        className='text-sm font-medium'
+      >
+        {field.label}
+        {field.required && ' *'}
+      </label>
+      {control}
+    </div>
+  );
+}
+
+/** FORM pages: native inputs; the API validates again. Preview never submits. */
+export function FormBlock({
+  form,
+  preview = false,
+  onSubmit,
+}: {
+  form?: FormConfig | null;
+  preview?: boolean;
+  onSubmit?: SubmitFormFn;
+}) {
+  const [values, setValues] = useState<Record<string, string | boolean>>({});
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<{ message: string; invalid: string[] }>();
+
+  if (!form) return null;
+
+  if (sent) {
+    return (
+      <section
+        role='status'
+        className={cn(
+          linkPageDesignTokens.spacing.section,
+          'rounded-2xl bg-white/90 p-5 text-center text-sm font-medium shadow-sm',
+        )}
+      >
+        {form.successMessage}
+      </section>
+    );
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (preview || !onSubmit) return;
+
+    const website = String(
+      new FormData(event.currentTarget).get('website') ?? '',
+    );
+    setSending(true);
+    const result = await onSubmit(values, website);
+    setSending(false);
+
+    if (result.ok) {
+      setSent(true);
+    } else {
+      setError(result);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={(event) => void submit(event)}
+      className={cn(
+        linkPageDesignTokens.spacing.section,
+        'grid gap-3 rounded-2xl bg-white/90 p-4 shadow-sm',
+      )}
+    >
+      {form.fields.map((field) => (
+        <FormFieldControl
+          key={field.id}
+          field={field}
+          value={values[field.id]}
+          invalid={error?.invalid.includes(field.id) ?? false}
+          onChange={(value) =>
+            setValues((current) => ({ ...current, [field.id]: value }))
+          }
+        />
+      ))}
+      {/* Honeypot: hidden from people, bots tend to fill every input. */}
+      <input
+        type='text'
+        name='website'
+        tabIndex={-1}
+        autoComplete='off'
+        aria-hidden='true'
+        className='absolute -left-[9999px] h-0 w-0 opacity-0'
+      />
+      {error && (
+        <p
+          role='alert'
+          className='text-sm text-red-600'
+        >
+          {error.message}
+        </p>
+      )}
+      <button
+        type='submit'
+        disabled={sending}
+        title={
+          preview ? 'Prévia: o envio funciona na página publicada' : undefined
+        }
+        className={cn(
+          linkPageDesignTokens.verticalLink.className,
+          'bg-slate-900 text-white disabled:opacity-60',
+        )}
+      >
+        {sending ? 'Enviando...' : form.submitLabel}
+      </button>
+    </form>
   );
 }

@@ -1,3 +1,4 @@
+import type { SubmitFormFn } from './link-page-renderer-parts';
 import type {
   AnalyticsTargetType,
   LinkPageLink,
@@ -8,6 +9,8 @@ export type LinkPageRendererProps = {
   linkPage: LinkPageViewModel;
   preview?: boolean;
   onTrack?: (targetType: AnalyticsTargetType, targetId: string) => void;
+  /** FORM pages; omitted in previews. */
+  onSubmitForm?: SubmitFormFn;
 };
 
 export type LinkPageLayoutProps = LinkPageRendererProps & {

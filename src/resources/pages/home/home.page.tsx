@@ -98,7 +98,7 @@ export function HomePage() {
     .sort((a, b) => b.clicks - a.clicks)
     .slice(0, 5);
   const pages = (data?.pages ?? [])
-    .filter((page) => page.type !== 'POST' && page.pageViews > 0)
+    .filter((page) => !page.parentPageId && page.pageViews > 0)
     .slice(0, 5);
 
   return (

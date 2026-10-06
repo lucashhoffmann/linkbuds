@@ -4,6 +4,7 @@ import type {
   AnalyticsTargetType,
   CompanyDomain,
   FooterSettings,
+  FormSubmissionsResponse,
   LinkPageAnalyticsGeo,
   LinkPageAnalyticsInsights,
   LinkPageDetail,
@@ -78,6 +79,50 @@ class LinkPagesService {
       payload,
     );
     return data.data;
+  }
+
+  async createForm(
+    parentId: string,
+    payload: { name: string; slug: string },
+  ): Promise<LinkPageDetail> {
+    const { data } = await HttpAuth.post<ApiResponse<LinkPageDetail>>(
+      `/link-pages/${parentId}/forms`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async listSubmissions(id: string): Promise<FormSubmissionsResponse> {
+    const { data } = await HttpAuth.get<ApiResponse<FormSubmissionsResponse>>(
+      `/link-pages/${id}/submissions`,
+    );
+    return data.data;
+  }
+
+  /** Pushes answers not yet in the form's Google Sheet. */
+  async resendSubmissions(
+    id: string,
+  ): Promise<{ sent: number; failed: number }> {
+    const { data } = await HttpAuth.post<
+      ApiResponse<{ sent: number; failed: number }>
+    >(`/link-pages/${id}/submissions/resend`);
+    return data.data;
+  }
+
+  async deleteSubmission(id: string, submissionId: string) {
+    await HttpAuth.delete(`/link-pages/${id}/submissions/${submissionId}`);
+  }
+
+  /** Public: plain `Http`, so a 4xx stays on the page (shown inline). */
+  async submitForm(
+    id: string,
+    payload: {
+      answers: Record<string, string | boolean>;
+      visitorId?: string | null;
+      website?: string;
+    },
+  ) {
+    await Http.post(`/public/link-pages/${id}/submissions`, payload);
   }
 
   async create(payload: {

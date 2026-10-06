@@ -82,6 +82,15 @@ export function useLinkPageMutations(id?: string) {
     }) => linkPagesService.createPost(parentId, payload),
     onSuccess: invalidate,
   });
+  const createForm = useMutationCache({
+    mutationFn: ({
+      parentId,
+      ...payload
+    }: Parameters<typeof linkPagesService.createForm>[1] & {
+      parentId: string;
+    }) => linkPagesService.createForm(parentId, payload),
+    onSuccess: invalidate,
+  });
   const update = useMutationCache({
     mutationFn: (payload: Partial<LinkPageDetail>) =>
       linkPagesService.update(id ?? '', payload),
@@ -177,6 +186,7 @@ export function useLinkPageMutations(id?: string) {
   return {
     create,
     createPost,
+    createForm,
     update,
     remove,
     updateFooter,
@@ -309,4 +319,34 @@ export function useFooterDefaultUseCase() {
   });
 
   return { ...query, update };
+}
+
+/** Responses of a FORM page + removing one. */
+export function useFormSubmissionsUseCase(id: string) {
+  const queryClient = useQueryClient();
+  const query = useQueryCache({
+    queryKey: [LinkPagesQueryKeys.SUBMISSIONS, id],
+    queryFn: () => linkPagesService.listSubmissions(id),
+  });
+  const remove = useMutationCache({
+    mutationFn: (submissionId: string) =>
+      linkPagesService.deleteSubmission(id, submissionId),
+    onSuccess: async () => {
+      await Promise.all(
+        [LinkPagesQueryKeys.SUBMISSIONS, LinkPagesQueryKeys.OVERVIEW].map(
+          (key) => queryClient.invalidateQueries({ queryKey: [key] }),
+        ),
+      );
+    },
+  });
+
+  const resend = useMutationCache({
+    mutationFn: () => linkPagesService.resendSubmissions(id),
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: [LinkPagesQueryKeys.SUBMISSIONS, id],
+      }),
+  });
+
+  return { ...query, remove, resend };
 }

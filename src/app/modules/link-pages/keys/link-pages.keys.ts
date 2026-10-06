@@ -8,4 +8,5 @@ export enum LinkPagesQueryKeys {
   ANALYTICS_LINK_CLICKS = 'link-pages:analytics-link-clicks',
   DOMAIN = 'link-pages:domain',
   FOOTER_DEFAULT = 'link-pages:footer-default',
+  SUBMISSIONS = 'link-pages:submissions',
 }

@@ -1,5 +1,6 @@
 import {
   ContentStream,
+  FormBlock,
   HorizontalLinkCards,
   LinkPageFooter,
   LinkPageHeader,
@@ -11,6 +12,7 @@ import type { LinkPageLayoutProps } from '../renderer/link-page-renderer.types';
 export function LinkPageLayoutThree({
   horizontalLinks,
   linkPage,
+  onSubmitForm,
   onTrack,
   preview,
   verticalLinks,
@@ -25,6 +27,11 @@ export function LinkPageLayoutThree({
         onTrack={onTrack}
       />
       <LinkPageHeader linkPage={linkPage} />
+      <FormBlock
+        form={linkPage.form}
+        preview={preview}
+        onSubmit={onSubmitForm}
+      />
       <ContentStream
         links={verticalLinks}
         images={linkPage.images}

@@ -24,6 +24,10 @@ import { AppearanceTab } from './components/editor/appearance-tab.component';
 import { SettingsTab } from './components/editor/settings-tab.component';
 import { AnalyticsTab } from './components/editor/analytics-tab.component';
 import { BrandingTab } from './components/editor/branding-tab.component';
+import {
+  cleanFormConfig,
+  FormTab,
+} from './components/editor/form-tab.component';
 
 // Kept for existing tests/importers.
 export { reorderContentForDrop } from './components/editor/editor.utils';
@@ -32,7 +36,8 @@ export function LinkPageEditPage() {
   const { id } = useParams();
   const { data, isLoading } = useGetLinkPageUseCase(id);
   // Lives here so the editor remount (key below changes when links/social/images/videos are added or removed) keeps the active tab.
-  const [tab, setTab] = useState<Tab>('content');
+  // Unset = page default: forms open on their fields.
+  const [tab, setTab] = useState<Tab>();
 
   if (isLoading) {
     return <p className='text-muted-foreground p-6 text-sm'>Carregando...</p>;
@@ -50,7 +55,7 @@ export function LinkPageEditPage() {
     <LinkPageEditor
       key={`${data.id}-${data.links.length}-${data.socialLinks.length}-${data.images.length}-${data.videos?.length ?? 0}`}
       linkPage={data}
-      tab={tab}
+      tab={tab ?? (data.type === 'FORM' ? 'form' : 'content')}
       setTab={setTab}
     />
   );
@@ -106,9 +111,19 @@ function LinkPageEditor({
       status: draft.status,
       ...(draft.type === 'POST'
         ? { postNetwork: draft.postNetwork, postUrl: draft.postUrl }
-        : trackingIdsPayload(draft)),
+        : draft.parentPageId
+          ? {}
+          : trackingIdsPayload(draft)),
     },
     (payload) => mutations.update.mutateAsync(payload),
+  );
+  const formStatus = useAutosaveSection(
+    {
+      form: draft.form ? cleanFormConfig(draft.form) : null,
+      formWebhookUrl: draft.formWebhookUrl ?? null,
+    },
+    (payload) => mutations.update.mutateAsync(payload),
+    draft.type === 'FORM',
   );
   const brandingStatus = useAutosaveSection(
     {
@@ -169,13 +184,23 @@ function LinkPageEditor({
               label='Seção do editor'
               value={tab}
               onChange={setTab}
-              options={tabs.map((item) => ({
+              options={(draft.type === 'FORM'
+                ? [{ id: 'form' as const, label: 'Formulário' }, ...tabs]
+                : tabs
+              ).map((item) => ({
                 value: item.id,
                 label: item.label,
               }))}
             />
           </div>
           <div className='p-4'>
+            {tab === 'form' && (
+              <FormTab
+                draft={draft}
+                setDraft={setDraft}
+                status={formStatus}
+              />
+            )}
             {tab === 'content' && (
               <ContentTab
                 draft={draft}

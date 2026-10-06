@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import linkPagesService from '@/app/modules/link-pages/service/link-pages.service';
@@ -13,6 +14,7 @@ import {
 } from './hooks/public-link-page-tracking';
 import { usePublicLinkPageSeo } from './hooks/use-public-link-page-seo';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
+import type { SubmitFormFn } from './renderer/link-page-renderer-parts';
 
 const visitorStorageKey = 'linkbuds_public_visitor_id';
 const sessionStorageKey = 'linkbuds_public_session_id';
@@ -72,6 +74,32 @@ function getUtmParams() {
     utmCampaign: params.get('utm_campaign'),
     utmContent: params.get('utm_content'),
     utmTerm: params.get('utm_term'),
+  };
+}
+
+function submitFormHandler(pageId: string, visitorId: string): SubmitFormFn {
+  return async (answers, website) => {
+    try {
+      await linkPagesService.submitForm(pageId, {
+        answers,
+        visitorId,
+        website,
+      });
+      return { ok: true };
+    } catch (error) {
+      const data = isAxiosError<{
+        message?: string;
+        errors?: Array<{ path?: string }>;
+      }>(error)
+        ? error.response?.data
+        : undefined;
+
+      return {
+        ok: false,
+        message: data?.message ?? 'Não foi possível enviar. Tente de novo.',
+        invalid: (data?.errors ?? []).flatMap((issue) => issue.path ?? []),
+      };
+    }
   };
 }
 
@@ -160,6 +188,7 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   return (
     <LinkPageRenderer
       linkPage={data}
+      onSubmitForm={submitFormHandler(data.id, visitorId)}
       onTrack={(targetType, targetId) => {
         linkPagesService.trackEventBeacon(data.id, {
           eventId: createId('event'),

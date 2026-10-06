@@ -1,7 +1,7 @@
 import type { LinkPageLink } from '@/app/modules/link-pages/types/link-pages.types';
 
 export type Tab =
-  'content' | 'appearance' | 'settings' | 'analytics' | 'branding';
+  'form' | 'content' | 'appearance' | 'settings' | 'analytics' | 'branding';
 export type AutosaveStatus = 'idle' | 'dirty' | 'saving' | 'saved' | 'error';
 export type LinkClickCountMap = Record<string, number>;
 export type LinkPageLinkStyle = Pick<
