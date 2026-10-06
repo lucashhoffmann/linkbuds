@@ -51,7 +51,7 @@ function PageRanking({
   title: string;
   empty: string;
   pages: LinkPagesOverviewPage[];
-  metric: 'pageViews' | 'clicks';
+  metric: 'pageViews' | 'clicks' | 'submissions';
 }) {
   return (
     <section className='bg-card rounded-2xl border'>
@@ -99,6 +99,10 @@ export function HomePage() {
     .slice(0, 5);
   const pages = (data?.pages ?? [])
     .filter((page) => !page.parentPageId && page.pageViews > 0)
+    .slice(0, 5);
+  const forms = (data?.pages ?? [])
+    .filter((page) => page.submissions > 0)
+    .sort((a, b) => b.submissions - a.submissions)
     .slice(0, 5);
 
   return (
@@ -184,6 +188,14 @@ export function HomePage() {
               pages={posts}
               metric='clicks'
             />
+            <div className='lg:col-span-2'>
+              <PageRanking
+                title='Formulários com mais respostas (total)'
+                empty='Ative um formulário numa página para captar contatos dos visitantes.'
+                pages={forms}
+                metric='submissions'
+              />
+            </div>
           </div>
         </>
       )}

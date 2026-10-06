@@ -36,6 +36,15 @@ import {
   SegmentedControl,
 } from '@/resources/components/base/device-preview/device-preview.component';
 import { Button } from '@/resources/components/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/resources/components/ui/dialog';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { Select } from '@/resources/components/ui/select';
@@ -48,6 +57,7 @@ import {
 } from './components/editor/analytics-tab.component';
 import { FormsTab, ResponsesTab } from './components/forms-tabs.component';
 import { IntegrationsPanel } from './components/integrations-panel.component';
+import { SubPagesPromoDialog } from './components/sub-pages-promo-dialog.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
   socialPlatformIcons,
@@ -376,6 +386,7 @@ export function LinkPagesPage() {
 
   return (
     <div className='flex min-h-0 flex-1'>
+      <SubPagesPromoDialog />
       <aside className='bg-sidebar flex w-full shrink-0 flex-col gap-4 overflow-y-auto p-3 md:w-64 md:border-r lg:w-80'>
         <div className='flex items-center justify-between px-2 pt-1'>
           <div>
@@ -990,76 +1001,91 @@ function NewPostForm({
   const [postUrl, setPostUrl] = useState('');
   const slug = slugify(name);
 
-  if (!open) {
-    return (
-      <Button
-        type='button'
-        variant='ghost'
-        size='sm'
-        className='justify-start'
-        onClick={() => setOpen(true)}
-      >
-        <Plus className='size-4' />
-        {isForm ? 'Novo formulário' : 'Novo link de post'}
-      </Button>
-    );
-  }
+  const title = isForm ? 'Novo formulário' : 'Novo link de post';
 
   return (
-    <form
-      className={cn(
-        'grid basis-full gap-2 sm:items-end',
-        isForm ? 'sm:grid-cols-[1fr_auto]' : 'sm:grid-cols-[1fr_1fr_auto]',
-      )}
-      onSubmit={(event) => {
-        event.preventDefault();
-        onCreate({ name, slug, postUrl: postUrl || null });
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setName('');
+          setPostUrl('');
+        }
       }}
     >
-      <div className='grid gap-1'>
-        <Label htmlFor={`${idPrefix}-name-${bio.id}`}>
-          {isForm ? 'Nome do formulário' : 'Nome do post'}
-        </Label>
-        <Input
-          id={`${idPrefix}-name-${bio.id}`}
-          required
-          placeholder={isForm ? 'Orçamento' : 'Promo de terça'}
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-        />
-      </div>
-      {!isForm && (
-        <div className='grid gap-1'>
-          <Label htmlFor={`post-url-${bio.id}`}>Link do post (opcional)</Label>
-          <Input
-            id={`post-url-${bio.id}`}
-            type='url'
-            placeholder='https://instagram.com/p/...'
-            value={postUrl}
-            onChange={(event) => setPostUrl(event.target.value)}
-          />
-        </div>
-      )}
-      <div className='flex gap-2 [&>button]:h-12'>
-        <Button
-          type='submit'
-          disabled={!slug}
-        >
-          Criar
-        </Button>
+      <DialogTrigger asChild>
         <Button
           type='button'
           variant='ghost'
-          onClick={() => setOpen(false)}
+          size='sm'
+          className='justify-start'
         >
-          Cancelar
+          <Plus className='size-4' />
+          {title}
         </Button>
-      </div>
-      {slug && (
-        <p className='text-muted-foreground col-span-full truncate text-xs'>
-          /p/{bio.publicPath}/{slug}
-        </p>
-      )}
-    </form>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <form
+          className='grid gap-4'
+          onSubmit={(event) => {
+            event.preventDefault();
+            onCreate({ name, slug, postUrl: postUrl || null });
+          }}
+        >
+          <div className='grid gap-1'>
+            <Label htmlFor={`${idPrefix}-name-${bio.id}`}>
+              {isForm ? 'Nome do formulário' : 'Nome do post'}
+            </Label>
+            <Input
+              id={`${idPrefix}-name-${bio.id}`}
+              required
+              autoFocus
+              placeholder={isForm ? 'Orçamento' : 'Promo de terça'}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            {slug && (
+              <p className='text-muted-foreground truncate text-xs'>
+                /p/{bio.publicPath}/{slug}
+              </p>
+            )}
+          </div>
+          {!isForm && (
+            <div className='grid gap-1'>
+              <Label htmlFor={`post-url-${bio.id}`}>
+                Link do post (opcional)
+              </Label>
+              <Input
+                id={`post-url-${bio.id}`}
+                type='url'
+                placeholder='https://instagram.com/p/...'
+                value={postUrl}
+                onChange={(event) => setPostUrl(event.target.value)}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button
+                type='button'
+                variant='ghost'
+              >
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button
+              type='submit'
+              disabled={!slug}
+            >
+              Criar
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

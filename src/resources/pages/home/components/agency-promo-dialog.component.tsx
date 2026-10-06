@@ -68,7 +68,7 @@ function PageMockup({ agency }: { agency: string }) {
 
 const SEEN_KEY = 'lb-agency-promo';
 
-function wasSeen(key: string) {
+export function wasSeen(key: string) {
   try {
     return localStorage.getItem(key) === '1';
   } catch {
@@ -76,7 +76,7 @@ function wasSeen(key: string) {
   }
 }
 
-function markSeen(key: string) {
+export function markSeen(key: string) {
   try {
     localStorage.setItem(key, '1');
   } catch {
