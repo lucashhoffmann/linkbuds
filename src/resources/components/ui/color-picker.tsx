@@ -85,10 +85,11 @@ export function ColorPicker({
         </button>
       </Popover.Trigger>
       <Popover.Portal>
+        {/* z-[90]: above dialogs (z-[80]), same layer as primitive-combobox. */}
         <Popover.Content
           align='start'
           sideOffset={8}
-          className='bg-popover text-popover-foreground z-50 w-64 rounded-md border p-3 shadow-md outline-none'
+          className='bg-popover text-popover-foreground z-[90] w-64 rounded-md border p-3 shadow-md outline-none'
         >
           <div
             className='grid grid-cols-4 gap-2'

@@ -28,6 +28,10 @@ const authHighlights = [
   },
 ];
 
+const authHeadline = 'Todos os links dos seus clientes. Um painel.';
+const authSubheadline =
+  'Bio, links de post, domínio próprio e métricas que mostram qual publicação gera contato.';
+
 const AUTH_VIEWS = {
   login: LoginView,
   register: RegisterView,
@@ -86,7 +90,7 @@ export function AuthPage({ view = 'login' }: AuthPageProps) {
         </div>
       </header>
 
-      <div className='mx-auto grid w-full max-w-6xl flex-1 md:grid-cols-2'>
+      <div className='mx-auto flex w-full max-w-6xl flex-1 flex-col md:grid md:grid-cols-2'>
         <aside className='hidden flex-col justify-center gap-6 p-8 md:flex lg:p-12'>
           <span className='bg-card text-muted-foreground inline-flex w-fit items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium'>
             <Link2 className='size-3.5' />
@@ -94,12 +98,9 @@ export function AuthPage({ view = 'login' }: AuthPageProps) {
           </span>
           <div className='max-w-md space-y-2.5'>
             <h1 className='text-3xl leading-tight font-semibold tracking-tight xl:text-4xl'>
-              Todos os links dos seus clientes. Um painel.
+              {authHeadline}
             </h1>
-            <p className='text-muted-foreground'>
-              Bio, links de post, domínio próprio e métricas que mostram qual
-              publicação gera contato.
-            </p>
+            <p className='text-muted-foreground'>{authSubheadline}</p>
           </div>
           <div className='grid max-w-md grid-cols-3 gap-2'>
             {authHighlights.map(({ icon: Icon, label, value }) => (
@@ -120,8 +121,24 @@ export function AuthPage({ view = 'login' }: AuthPageProps) {
           </div>
         </aside>
 
-        <main className='flex justify-center px-4 py-8 md:items-center md:py-12'>
-          <div className='bg-card w-full max-w-md rounded-2xl border p-5 shadow-xs sm:p-8'>
+        <section className='animate-in fade-in mx-auto flex w-full max-w-[30.5rem] flex-col gap-3 px-5 pt-5 duration-500 sm:max-w-[30rem] sm:px-4 md:hidden'>
+          <span className='bg-card text-muted-foreground inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium'>
+            <Link2 className='size-3' />
+            Links de bio para agências
+          </span>
+          <p className='text-xl leading-snug font-semibold tracking-tight'>
+            {authHeadline}
+          </p>
+          <div
+            aria-hidden
+            className='-mx-5 flex h-36 justify-center overflow-hidden [mask-image:linear-gradient(to_bottom,black_55%,transparent)]'
+          >
+            <AuthHeroShowcase />
+          </div>
+        </section>
+
+        <main className='bg-card relative z-10 -mt-6 flex flex-1 justify-center rounded-t-3xl border-t px-5 pt-6 pb-8 shadow-[0_-8px_24px_-12px_rgb(0_0_0/0.25)] sm:px-4 md:mt-0 md:items-center md:rounded-none md:border-t-0 md:bg-transparent md:py-12 md:shadow-none'>
+          <div className='md:bg-card w-full max-w-md md:rounded-2xl md:border md:p-8 md:shadow-xs'>
             <View />
           </div>
         </main>

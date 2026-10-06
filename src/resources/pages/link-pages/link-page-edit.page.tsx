@@ -26,12 +26,12 @@ import { AnalyticsTab } from './components/editor/analytics-tab.component';
 import { BrandingTab } from './components/editor/branding-tab.component';
 
 // Kept for existing tests/importers.
-export { reorderLinksForDrop } from './components/editor/editor.utils';
+export { reorderContentForDrop } from './components/editor/editor.utils';
 
 export function LinkPageEditPage() {
   const { id } = useParams();
   const { data, isLoading } = useGetLinkPageUseCase(id);
-  // Lives here so the editor remount (key below changes when links/social/images are added or removed) keeps the active tab.
+  // Lives here so the editor remount (key below changes when links/social/images/videos are added or removed) keeps the active tab.
   const [tab, setTab] = useState<Tab>('content');
 
   if (isLoading) {
@@ -48,7 +48,7 @@ export function LinkPageEditPage() {
 
   return (
     <LinkPageEditor
-      key={`${data.id}-${data.links.length}-${data.socialLinks.length}-${data.images.length}`}
+      key={`${data.id}-${data.links.length}-${data.socialLinks.length}-${data.images.length}-${data.videos?.length ?? 0}`}
       linkPage={data}
       tab={tab}
       setTab={setTab}
@@ -91,6 +91,16 @@ function LinkPageEditor({
       backgroundType: draft.backgroundType,
       backgroundColor: draft.backgroundColor,
       backgroundImageUrl: draft.backgroundImageUrl,
+      titleColor: draft.titleColor ?? null,
+      subtitleColor: draft.subtitleColor ?? null,
+      footerColor: draft.footerColor ?? null,
+      backgroundGradientColor: draft.backgroundGradientColor ?? '#FFFFFF',
+      titleBold: draft.titleBold ?? true,
+      subtitleBold: draft.subtitleBold ?? false,
+      footerBold: draft.footerBold ?? false,
+      footerStyle: draft.footerStyle ?? 'TEXT',
+      footerBackgroundColor: draft.footerBackgroundColor ?? null,
+      footerBorderColor: draft.footerBorderColor ?? null,
     },
     (payload) => mutations.update.mutateAsync(payload),
   );

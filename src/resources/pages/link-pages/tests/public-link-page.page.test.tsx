@@ -46,6 +46,7 @@ const publicPage: PublicLinkPage = {
   ],
   socialLinks: [],
   images: [],
+  videos: [],
 };
 
 function getMeta(attribute: 'name' | 'property', key: string) {

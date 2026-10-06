@@ -1,11 +1,10 @@
 import {
-  ContentImages,
+  ContentStream,
   HorizontalLinkCards,
   LinkPageFooter,
   LinkPageHeader,
   LinkPageShell,
   SocialLinks,
-  VerticalLinks,
 } from '../renderer/link-page-renderer-parts';
 import type { LinkPageLayoutProps } from '../renderer/link-page-renderer.types';
 
@@ -30,12 +29,10 @@ export function LinkPageLayoutOne({
         links={horizontalLinks}
         onTrack={onTrack}
       />
-      <VerticalLinks
+      <ContentStream
         links={verticalLinks}
-        onTrack={onTrack}
-      />
-      <ContentImages
         images={linkPage.images}
+        videos={linkPage.videos}
         onTrack={onTrack}
       />
       <LinkPageFooter linkPage={linkPage} />

@@ -2,8 +2,9 @@
 export type LinkPageType = 'AGENCY' | 'CLIENT' | 'POST';
 export type LinkPageStatus = 'ACTIVE' | 'INACTIVE';
 export type LinkPageLayout = 'LAYOUT_1' | 'LAYOUT_2' | 'LAYOUT_3';
-export type LinkPageBackgroundType = 'SOLID' | 'IMAGE';
+export type LinkPageBackgroundType = 'SOLID' | 'IMAGE' | 'GRADIENT';
 export type LinkPageFooterMode = 'LINKBUDS' | 'CUSTOM' | 'HIDDEN';
+export type LinkPageFooterStyle = 'TEXT' | 'PILL' | 'BOX';
 
 export type FooterSettings = {
   footerMode: LinkPageFooterMode;
@@ -15,6 +16,8 @@ export type LinkPageLinkPlacement = 'HORIZONTAL' | 'VERTICAL';
 /** PREVIEW = vertical card with image + description (from the site's OG tags). */
 export type LinkPageLinkKind = 'LINK' | 'CONTACT' | 'PREVIEW';
 export type LinkPageContactType = 'WHATSAPP' | 'EMAIL' | 'PHONE';
+/** Media height; CUSTOM uses `customHeight` (px, 80–800). */
+export type LinkPageMediaSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'CUSTOM';
 export type SocialPlatform =
   | 'INSTAGRAM'
   | 'FACEBOOK'
@@ -42,6 +45,9 @@ export type LinkPageLink = {
   contactValue: string | null;
   previewImageUrl?: string | null;
   previewDescription?: string | null;
+  /** Image height of a PREVIEW card. */
+  displaySize?: LinkPageMediaSize;
+  customHeight?: number | null;
   textColor: string;
   backgroundColor: string;
   borderColor: string;
@@ -63,6 +69,19 @@ export type LinkPageImage = {
   imageUrl: string;
   altText: string | null;
   targetUrl: string | null;
+  sortOrder: number;
+  active: boolean;
+};
+
+/** YouTube, Vimeo or a direct .mp4/.webm/.mov file. */
+export type LinkPageVideo = {
+  id: string;
+  url: string;
+  title: string | null;
+  autoplay: boolean;
+  controls: boolean;
+  size: LinkPageMediaSize;
+  customHeight: number | null;
   sortOrder: number;
   active: boolean;
 };
@@ -90,6 +109,19 @@ export type LinkPageDetail = LinkPageSummary & {
   backgroundType: LinkPageBackgroundType;
   backgroundColor: string;
   backgroundImageUrl: string | null;
+  /** Text colors; null = renderer default. */
+  titleColor?: string | null;
+  subtitleColor?: string | null;
+  footerColor?: string | null;
+  /** End color when backgroundType is GRADIENT (top → bottom). */
+  backgroundGradientColor?: string;
+  titleBold?: boolean;
+  subtitleBold?: boolean;
+  footerBold?: boolean;
+  /** CUSTOM footer shape; background/border apply to PILL and BOX. */
+  footerStyle?: LinkPageFooterStyle;
+  footerBackgroundColor?: string | null;
+  footerBorderColor?: string | null;
   avatarUrl: string | null;
   footerMode: LinkPageFooterMode;
   footerText: string | null;
@@ -101,6 +133,7 @@ export type LinkPageDetail = LinkPageSummary & {
   links: LinkPageLink[];
   socialLinks: LinkPageSocialLink[];
   images: LinkPageImage[];
+  videos: LinkPageVideo[];
 };
 
 export type PublicLinkPage = Omit<

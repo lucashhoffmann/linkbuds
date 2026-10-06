@@ -8,6 +8,7 @@ import type {
   LinkPageAnalyticsInsights,
   LinkPageDetail,
   LinkPageImage,
+  LinkPageVideo,
   LinkPageLink,
   LinkPageLinkClicksResponse,
   LinkPreview,
@@ -17,6 +18,7 @@ import type {
   PublicLinkPage,
   SocialPlatform,
 } from '../types/link-pages.types';
+import type { ContentType } from '../utils/content-order.util';
 import { guessCountryCode } from '../utils/country-guess.util';
 
 type ApiResponse<T> = {
@@ -157,16 +159,29 @@ class LinkPagesService {
     await HttpAuth.delete(`/link-pages/${id}/links/${linkId}`);
   }
 
-  async reorderLinks(
+  /** One shared order for links, images and videos. */
+  async reorderContent(
     id: string,
-    payload: Array<{ id: string; sortOrder: number }>,
+    payload: Array<{ type: ContentType; id: string; sortOrder: number }>,
   ) {
-    await HttpAuth.patch(`/link-pages/${id}/links/reorder`, payload);
+    await HttpAuth.patch(`/link-pages/${id}/content/reorder`, payload);
   }
 
   async createSocialLink(id: string, payload: Omit<LinkPageSocialLink, 'id'>) {
     const { data } = await HttpAuth.post<ApiResponse<LinkPageSocialLink>>(
       `/link-pages/${id}/social-links`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async updateSocialLink(
+    id: string,
+    socialLinkId: string,
+    payload: Partial<LinkPageSocialLink>,
+  ) {
+    const { data } = await HttpAuth.patch<ApiResponse<LinkPageSocialLink>>(
+      `/link-pages/${id}/social-links/${socialLinkId}`,
       payload,
     );
     return data.data;
@@ -186,6 +201,30 @@ class LinkPagesService {
 
   async deleteImage(id: string, imageId: string) {
     await HttpAuth.delete(`/link-pages/${id}/images/${imageId}`);
+  }
+
+  async createVideo(id: string, payload: Omit<LinkPageVideo, 'id'>) {
+    const { data } = await HttpAuth.post<ApiResponse<LinkPageVideo>>(
+      `/link-pages/${id}/videos`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async updateVideo(
+    id: string,
+    videoId: string,
+    payload: Partial<Omit<LinkPageVideo, 'id'>>,
+  ) {
+    const { data } = await HttpAuth.patch<ApiResponse<LinkPageVideo>>(
+      `/link-pages/${id}/videos/${videoId}`,
+      payload,
+    );
+    return data.data;
+  }
+
+  async deleteVideo(id: string, videoId: string) {
+    await HttpAuth.delete(`/link-pages/${id}/videos/${videoId}`);
   }
 
   async analyticsInsights(

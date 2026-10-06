@@ -1,5 +1,6 @@
 import { confirmAction } from '@/resources/components/base';
 import {
+  BarChart3,
   ChevronRight,
   Copy,
   Eye,
@@ -17,6 +18,7 @@ import {
   useSearchParams,
 } from 'react-router-dom';
 import { toast } from 'sonner';
+import { usePreviewStore } from '@/app/store/preview-store/use-preview-store';
 import type { LinkPageSummary } from '@/app/modules/link-pages/types/link-pages.types';
 import {
   useGetLinkPageUseCase,
@@ -36,7 +38,10 @@ import { Select } from '@/resources/components/ui/select';
 import { routes } from '@/shared/constants/router.constants';
 import { useIsMobile } from '@/shared/hooks/use-mobile';
 import { cn } from '@/shared/lib/utils';
-import { AnalyticsTab } from './components/editor/analytics-tab.component';
+import {
+  AnalyticsSummary,
+  AnalyticsTab,
+} from './components/editor/analytics-tab.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
   socialPlatformIcons,
@@ -443,6 +448,7 @@ function PageCanvas({
   const [view, setView] = useState<'preview' | 'analytics' | 'posts'>(
     'preview',
   );
+  const { analyticsOpen, toggleAnalytics } = usePreviewStore();
 
   async function copy() {
     try {
@@ -541,7 +547,29 @@ function PageCanvas({
         view === 'analytics' ? (
           <AnalyticsTab linkPage={detail.data} />
         ) : (
-          <DevicePreview>
+          <DevicePreview
+            aside={
+              analyticsOpen ? (
+                <div className='w-80'>
+                  <AnalyticsSummary
+                    linkPage={detail.data}
+                    onShowAll={() => setView('analytics')}
+                    onHide={toggleAnalytics}
+                  />
+                </div>
+              ) : (
+                <Button
+                  variant='outline'
+                  size='icon'
+                  title='Mostrar análises'
+                  aria-label='Mostrar análises'
+                  onClick={toggleAnalytics}
+                >
+                  <BarChart3 className='size-4' />
+                </Button>
+              )
+            }
+          >
             <LinkPageRenderer
               linkPage={detail.data}
               preview

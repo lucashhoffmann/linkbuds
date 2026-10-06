@@ -6,7 +6,6 @@ import type { AutosaveStatus, LinkClickCountMap } from './editor.types';
 import { Field, EditorSection } from './editor-fields.component';
 import { LinksManager } from './links-manager.component';
 import { SocialManager } from './social-manager.component';
-import { ImagesManager } from './images-manager.component';
 
 export function ContentTab({
   clicksByLinkId,
@@ -71,10 +70,6 @@ export function ContentTab({
         setDraft={setDraft}
       />
       <SocialManager
-        draft={draft}
-        mutations={mutations}
-      />
-      <ImagesManager
         draft={draft}
         mutations={mutations}
       />

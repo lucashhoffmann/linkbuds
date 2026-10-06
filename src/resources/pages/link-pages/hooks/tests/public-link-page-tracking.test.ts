@@ -12,6 +12,7 @@ const page = {
   links: [{ id: 'link-1', label: 'Site', url: 'https://site.com' }],
   socialLinks: [],
   images: [],
+  videos: [],
 } as unknown as PublicLinkPage;
 
 describe('public link page third-party tracking', () => {

@@ -14,8 +14,17 @@ import type {
   LinkPageImage,
   LinkPageLink,
   LinkPageSocialLink,
+  LinkPageVideo,
   LinkPageViewModel,
 } from '@/app/modules/link-pages/types/link-pages.types';
+import {
+  mediaHeight,
+  videoEmbed,
+} from '@/app/modules/link-pages/utils/media.util';
+import {
+  contentKey,
+  orderContent,
+} from '@/app/modules/link-pages/utils/content-order.util';
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 import { linkPageDesignTokens } from '../design-system/link-page-design-tokens';
@@ -93,7 +102,11 @@ export function LinkPageShell({
       ? {
           backgroundImage: `linear-gradient(rgba(255,255,255,.78), rgba(255,255,255,.78)), url(${linkPage.backgroundImageUrl})`,
         }
-      : { backgroundColor: linkPage.backgroundColor };
+      : linkPage.backgroundType === 'GRADIENT'
+        ? {
+            backgroundImage: `linear-gradient(180deg, ${linkPage.backgroundColor}, ${linkPage.backgroundGradientColor ?? '#FFFFFF'})`,
+          }
+        : { backgroundColor: linkPage.backgroundColor };
 
   // Background fills the whole frame, content stays a centered column, same
   // as the public page — so Desktop/Tablet previews match reality.
@@ -140,11 +153,23 @@ export function LinkPageHeader({ linkPage }: { linkPage: LinkPageViewModel }) {
           <Link2 className='size-8' />
         </div>
       )}
-      <h1 className='mt-4 text-2xl font-semibold tracking-tight'>
+      <h1
+        className={cn(
+          'mt-4 text-2xl tracking-tight',
+          (linkPage.titleBold ?? true) ? 'font-semibold' : 'font-normal',
+        )}
+        style={{ color: linkPage.titleColor ?? undefined }}
+      >
         {linkPage.title}
       </h1>
       {linkPage.subtitle && (
-        <p className='mt-2 text-sm leading-relaxed text-slate-600'>
+        <p
+          className={cn(
+            'mt-2 text-sm leading-relaxed text-slate-600',
+            linkPage.subtitleBold && 'font-semibold',
+          )}
+          style={{ color: linkPage.subtitleColor ?? undefined }}
+        >
           {linkPage.subtitle}
         </p>
       )}
@@ -248,14 +273,23 @@ export function HorizontalLinkCards({
   );
 }
 
-export function VerticalLinks({
+/**
+ * Vertical links, images and videos in the one order the owner set in the
+ * editor (horizontal links keep their own carousel).
+ */
+export function ContentStream({
+  images,
   links,
   onTrack,
+  videos,
 }: {
+  images?: LinkPageImage[];
   links: LinkPageLink[];
   onTrack?: TrackFn;
+  videos?: LinkPageVideo[];
 }) {
-  if (!links.length) return null;
+  const items = orderContent(links, images, videos);
+  if (!items.length) return null;
 
   return (
     <section
@@ -264,33 +298,62 @@ export function VerticalLinks({
         linkPageDesignTokens.spacing.stack,
       )}
     >
-      {links.map((link) =>
-        link.kind === 'PREVIEW' ? (
-          <PreviewLinkCard
-            key={link.id}
-            link={link}
+      {items.map((entry) =>
+        entry.type === 'IMAGE' ? (
+          <ContentImage
+            key={contentKey(entry)}
+            image={entry.item}
             onTrack={onTrack}
           />
+        ) : entry.type === 'VIDEO' ? (
+          <VideoCard
+            key={contentKey(entry)}
+            video={entry.item}
+          />
         ) : (
-          <a
-            key={link.id}
-            href={resolveLinkHref(link)}
-            className={cn(
-              linkPageDesignTokens.verticalLink.className,
-              'flex items-center justify-between',
-            )}
-            style={itemStyle(link)}
-            onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
-          >
-            <span>{link.label}</span>
-            <LinkActionIcon
-              link={link}
-              className='size-4 opacity-70'
-            />
-          </a>
+          <VerticalLinkItem
+            key={contentKey(entry)}
+            link={entry.item}
+            onTrack={onTrack}
+          />
         ),
       )}
     </section>
+  );
+}
+
+function VerticalLinkItem({
+  link,
+  onTrack,
+}: {
+  link: LinkPageLink;
+  onTrack?: TrackFn;
+}) {
+  if (link.kind === 'PREVIEW') {
+    return (
+      <PreviewLinkCard
+        link={link}
+        onTrack={onTrack}
+      />
+    );
+  }
+
+  return (
+    <a
+      href={resolveLinkHref(link)}
+      className={cn(
+        linkPageDesignTokens.verticalLink.className,
+        'flex items-center justify-between',
+      )}
+      style={itemStyle(link)}
+      onClick={() => onTrack?.('VERTICAL_LINK', link.id)}
+    >
+      <span>{link.label}</span>
+      <LinkActionIcon
+        link={link}
+        className='size-4 opacity-70'
+      />
+    </a>
   );
 }
 
@@ -324,7 +387,8 @@ function PreviewLinkCard({
           src={link.previewImageUrl}
           alt=''
           loading='lazy'
-          className='aspect-[1.91/1] w-full object-cover'
+          className='w-full object-cover'
+          style={{ height: mediaHeight(link.displaySize, link.customHeight) }}
         />
       )}
       <span className='block px-4 py-3'>
@@ -378,41 +442,84 @@ export function SocialLinks({
   );
 }
 
-export function ContentImages({
-  images,
+function ContentImage({
+  image,
   onTrack,
 }: {
-  images: LinkPageImage[];
+  image: LinkPageImage;
   onTrack?: TrackFn;
 }) {
-  if (!images.length) return null;
+  const content = (
+    <img
+      src={image.imageUrl}
+      alt={image.altText ?? ''}
+      className={linkPageDesignTokens.contentImage.className}
+    />
+  );
+
+  if (!image.targetUrl) {
+    return <div>{content}</div>;
+  }
 
   return (
-    <section className={cn(linkPageDesignTokens.spacing.section, 'space-y-3')}>
-      {images.map((image) => {
-        const content = (
-          <img
-            src={image.imageUrl}
-            alt={image.altText ?? ''}
-            className={linkPageDesignTokens.contentImage.className}
-          />
-        );
+    <a
+      href={image.targetUrl}
+      className='block'
+      onClick={() => onTrack?.('IMAGE', image.id)}
+    >
+      {content}
+    </a>
+  );
+}
 
-        if (!image.targetUrl) {
-          return <div key={image.id}>{content}</div>;
-        }
+/** Same card shape as PreviewLinkCard, with a player instead of the image. */
+function VideoCard({ video }: { video: LinkPageVideo }) {
+  const embed = videoEmbed(video.url, video.autoplay, video.controls);
+  if (!embed) return null;
 
-        return (
-          <a
-            key={image.id}
-            href={image.targetUrl}
-            onClick={() => onTrack?.('IMAGE', image.id)}
-          >
-            {content}
-          </a>
-        );
-      })}
-    </section>
+  const height = mediaHeight(video.size, video.customHeight);
+
+  return (
+    <div
+      data-testid='video-card'
+      className='overflow-hidden rounded-lg bg-white text-slate-900 shadow-sm'
+    >
+      {embed.type === 'iframe' ? (
+        <iframe
+          src={embed.src}
+          title={video.title ?? 'Vídeo'}
+          className='block w-full border-0'
+          style={{ height }}
+          loading='lazy'
+          allow='autoplay; encrypted-media; picture-in-picture; fullscreen'
+          allowFullScreen
+        />
+      ) : (
+        <video
+          src={embed.src}
+          className='block w-full bg-black object-cover'
+          style={{ height }}
+          controls={video.controls}
+          playsInline
+          autoPlay={video.autoplay}
+          muted={video.autoplay}
+          loop={video.autoplay}
+          preload='metadata'
+          // Without controls, a tap still plays/pauses.
+          onClick={(event) => {
+            if (video.controls) return;
+            const player = event.currentTarget;
+            if (player.paused) void player.play();
+            else player.pause();
+          }}
+        />
+      )}
+      {video.title && (
+        <span className='block px-4 py-3 text-sm font-semibold'>
+          {video.title}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -420,26 +527,45 @@ export function LinkPageFooter({ linkPage }: { linkPage: LinkPageViewModel }) {
   if (linkPage.footerMode === 'HIDDEN') return null;
 
   if (linkPage.footerMode === 'CUSTOM') {
-    const content = (
-      <span className='inline-flex items-center justify-center gap-2'>
-        {linkPage.footerLogoUrl && (
-          <img
-            src={linkPage.footerLogoUrl}
-            alt=''
-            className='size-5 rounded object-cover'
-          />
-        )}
-        {linkPage.footerText || 'Com LinkBuds'}
-      </span>
-    );
+    const style = linkPage.footerStyle ?? 'TEXT';
+    const boxed = style !== 'TEXT';
+    const border = boxed ? linkPage.footerBorderColor : null;
+    const Tag = linkPage.footerUrl ? 'a' : 'span';
 
     return (
-      <footer className='mt-8 text-center text-xs text-slate-500'>
-        {linkPage.footerUrl ? (
-          <a href={linkPage.footerUrl}>{content}</a>
-        ) : (
-          content
+      <footer
+        className={cn(
+          'mt-8 text-center text-xs',
+          boxed ? 'text-slate-950' : 'text-slate-500',
+          linkPage.footerBold && 'font-semibold',
         )}
+      >
+        <Tag
+          href={linkPage.footerUrl ?? undefined}
+          className={cn(
+            'inline-flex max-w-full items-center justify-center gap-2',
+            boxed && 'px-4 py-2 shadow-lg',
+            boxed && !border && 'ring-1 ring-black/5',
+            style === 'PILL' && 'rounded-full',
+            style === 'BOX' && 'rounded-lg',
+          )}
+          style={{
+            color: linkPage.footerColor ?? undefined,
+            backgroundColor: boxed
+              ? (linkPage.footerBackgroundColor ?? '#FFFFFF')
+              : undefined,
+            border: border ? `1px solid ${border}` : undefined,
+          }}
+        >
+          {linkPage.footerLogoUrl && (
+            <img
+              src={linkPage.footerLogoUrl}
+              alt=''
+              className='size-5 rounded object-cover'
+            />
+          )}
+          {linkPage.footerText || 'Com LinkBuds'}
+        </Tag>
       </footer>
     );
   }

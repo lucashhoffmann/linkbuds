@@ -7,6 +7,7 @@ import type {
   FooterSettings,
   LinkPageDetail,
   LinkPageImage,
+  LinkPageVideo,
   LinkPageLink,
   LinkPageSocialLink,
 } from '../types/link-pages.types';
@@ -115,15 +116,26 @@ export function useLinkPageMutations(id?: string) {
       linkPagesService.deleteLink(id ?? '', linkId),
     onSuccess: invalidate,
   });
-  const reorderLinks = useMutationCache({
-    mutationFn: (payload: Array<{ id: string; sortOrder: number }>) =>
-      linkPagesService.reorderLinks(id ?? '', payload),
+  const reorderContent = useMutationCache({
+    mutationFn: (
+      payload: Parameters<typeof linkPagesService.reorderContent>[1],
+    ) => linkPagesService.reorderContent(id ?? '', payload),
     onError: invalidate,
     onSuccess: invalidate,
   });
   const createSocialLink = useMutationCache({
     mutationFn: (payload: Omit<LinkPageSocialLink, 'id'>) =>
       linkPagesService.createSocialLink(id ?? '', payload),
+    onSuccess: invalidate,
+  });
+  const updateSocialLink = useMutationCache({
+    mutationFn: ({
+      socialLinkId,
+      payload,
+    }: {
+      socialLinkId: string;
+      payload: Partial<LinkPageSocialLink>;
+    }) => linkPagesService.updateSocialLink(id ?? '', socialLinkId, payload),
     onSuccess: invalidate,
   });
   const deleteSocialLink = useMutationCache({
@@ -141,6 +153,26 @@ export function useLinkPageMutations(id?: string) {
       linkPagesService.deleteImage(id ?? '', imageId),
     onSuccess: invalidate,
   });
+  const createVideo = useMutationCache({
+    mutationFn: (payload: Omit<LinkPageVideo, 'id'>) =>
+      linkPagesService.createVideo(id ?? '', payload),
+    onSuccess: invalidate,
+  });
+  const updateVideo = useMutationCache({
+    mutationFn: ({
+      videoId,
+      payload,
+    }: {
+      videoId: string;
+      payload: Partial<Omit<LinkPageVideo, 'id'>>;
+    }) => linkPagesService.updateVideo(id ?? '', videoId, payload),
+    onSuccess: invalidate,
+  });
+  const deleteVideo = useMutationCache({
+    mutationFn: (videoId: string) =>
+      linkPagesService.deleteVideo(id ?? '', videoId),
+    onSuccess: invalidate,
+  });
 
   return {
     create,
@@ -151,11 +183,15 @@ export function useLinkPageMutations(id?: string) {
     createLink,
     updateLink,
     deleteLink,
-    reorderLinks,
+    reorderContent,
     createSocialLink,
+    updateSocialLink,
     deleteSocialLink,
     createImage,
     deleteImage,
+    createVideo,
+    updateVideo,
+    deleteVideo,
   };
 }
 

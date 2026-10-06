@@ -137,6 +137,7 @@ function buildPreviewLinkPage({
       },
     ],
     images: [],
+    videos: [],
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
   };

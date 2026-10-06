@@ -1,11 +1,10 @@
 import {
-  ContentImages,
+  ContentStream,
   HorizontalLinkCards,
   LinkPageFooter,
   LinkPageHeader,
   LinkPageShell,
   SocialLinks,
-  VerticalLinks,
 } from '../renderer/link-page-renderer-parts';
 import type { LinkPageLayoutProps } from '../renderer/link-page-renderer.types';
 
@@ -24,16 +23,14 @@ export function LinkPageLayoutTwo({
       <div className='rounded-2xl bg-white/70 p-4 backdrop-blur'>
         <LinkPageHeader linkPage={linkPage} />
       </div>
-      <VerticalLinks
+      <ContentStream
         links={verticalLinks}
+        images={linkPage.images}
+        videos={linkPage.videos}
         onTrack={onTrack}
       />
       <HorizontalLinkCards
         links={horizontalLinks}
-        onTrack={onTrack}
-      />
-      <ContentImages
-        images={linkPage.images}
         onTrack={onTrack}
       />
       <SocialLinks

@@ -2,8 +2,11 @@ import { arrayMove } from '@dnd-kit/sortable';
 import type {
   LinkPageAnalyticsTarget,
   LinkPageDetail,
-  LinkPageLink,
 } from '@/app/modules/link-pages/types/link-pages.types';
+import {
+  contentKey,
+  type ContentItem,
+} from '@/app/modules/link-pages/utils/content-order.util';
 import { socialPlatformLabels } from '../../renderer/social-platform-icons';
 import type { Tab, LinkPageLinkStyle, LinkFormValues } from './editor.types';
 
@@ -31,6 +34,8 @@ export function createLinkForm(): LinkFormValues {
     contactValue: null,
     previewImageUrl: null,
     previewDescription: null,
+    displaySize: 'MEDIUM',
+    customHeight: null,
   };
 }
 
@@ -105,22 +110,47 @@ export function targetLabel(
   );
 }
 
-export function reorderLinksForDrop(
-  links: LinkPageLink[],
-  activeId: string,
-  overId: string,
+/** Moves one row of the shared content list and renumbers every position. */
+export function reorderContentForDrop(
+  items: ContentItem[],
+  activeKey: string,
+  overKey: string,
 ) {
-  const oldIndex = links.findIndex((link) => link.id === activeId);
-  const newIndex = links.findIndex((link) => link.id === overId);
+  const oldIndex = items.findIndex((entry) => contentKey(entry) === activeKey);
+  const newIndex = items.findIndex((entry) => contentKey(entry) === overKey);
 
   if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) {
-    return links;
+    return items;
   }
 
-  return arrayMove(links, oldIndex, newIndex).map((link, sortOrder) => ({
-    ...link,
-    sortOrder,
-  }));
+  return arrayMove(items, oldIndex, newIndex).map(
+    (entry, sortOrder) =>
+      ({ ...entry, item: { ...entry.item, sortOrder } }) as ContentItem,
+  );
+}
+
+/** Copies the list's positions back into the draft's links/images/videos. */
+export function applyContentOrder(
+  draft: LinkPageDetail,
+  items: ContentItem[],
+): LinkPageDetail {
+  const orderByKey = new Map(
+    items.map((entry) => [contentKey(entry), entry.item.sortOrder]),
+  );
+  const withOrder = <T extends { id: string; sortOrder: number }>(
+    type: ContentItem['type'],
+    item: T,
+  ) => ({
+    ...item,
+    sortOrder: orderByKey.get(`${type}:${item.id}`) ?? item.sortOrder,
+  });
+
+  return {
+    ...draft,
+    links: draft.links.map((item) => withOrder('LINK', item)),
+    images: draft.images.map((item) => withOrder('IMAGE', item)),
+    videos: draft.videos.map((item) => withOrder('VIDEO', item)),
+  };
 }
 
 // Same formats the API enforces; invalid values stay local until fixed.

@@ -1,4 +1,7 @@
 import { type ReactNode } from 'react';
+import type { LinkPageMediaSize } from '@/app/modules/link-pages/types/link-pages.types';
+import { mediaSizeOptions } from '@/app/modules/link-pages/utils/media.util';
+import { Input } from '@/resources/components/ui/input';
 import { Button } from '@/resources/components/ui/button';
 import { ColorPicker } from '@/resources/components/ui/color-picker';
 import { Label } from '@/resources/components/ui/label';
@@ -43,9 +46,11 @@ export function ColorField({
 
 export function BorderEnabledField({
   checked,
+  label = 'Borda',
   onChange,
 }: {
   checked: boolean;
+  label?: string;
   onChange: (checked: boolean) => void;
 }) {
   return (
@@ -56,8 +61,73 @@ export function BorderEnabledField({
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
       />
-      Borda
+      {label}
     </label>
+  );
+}
+
+export function MediaSizeField({
+  customHeight,
+  id,
+  onChange,
+  size,
+}: {
+  customHeight: number | null;
+  id: string;
+  onChange: (value: {
+    size: LinkPageMediaSize;
+    customHeight: number | null;
+  }) => void;
+  size: LinkPageMediaSize;
+}) {
+  return (
+    <div className='grid gap-3 sm:grid-cols-2'>
+      <div className='grid gap-2'>
+        <Label htmlFor={`${id}-size`}>Tamanho</Label>
+        <select
+          id={`${id}-size`}
+          className='border-input bg-background focus-visible:ring-ring/50 focus-visible:border-ring h-12 w-full rounded-md border px-3 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:outline-none'
+          value={size}
+          onChange={(event) => {
+            const next = event.target.value as LinkPageMediaSize;
+            onChange({
+              size: next,
+              customHeight: next === 'CUSTOM' ? (customHeight ?? 240) : null,
+            });
+          }}
+        >
+          {mediaSizeOptions.map((option) => (
+            <option
+              key={option.value}
+              value={option.value}
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {size === 'CUSTOM' && (
+        <div className='grid gap-2'>
+          <Label htmlFor={`${id}-height`}>Altura (px)</Label>
+          <Input
+            id={`${id}-height`}
+            type='number'
+            min={80}
+            max={800}
+            required
+            value={customHeight ?? ''}
+            onChange={(event) =>
+              onChange({
+                size,
+                customHeight: event.target.value
+                  ? Number(event.target.value)
+                  : null,
+              })
+            }
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -3,7 +3,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
-import { LinkPageEditPage, reorderLinksForDrop } from '../link-page-edit.page';
+import {
+  LinkPageEditPage,
+  reorderContentForDrop,
+} from '../link-page-edit.page';
+import { orderContent } from '@/app/modules/link-pages/utils/content-order.util';
 
 const mocks = vi.hoisted(() => ({
   useEntitlements: vi.fn(),
@@ -102,6 +106,7 @@ const page: LinkPageDetail = {
   ],
   socialLinks: [],
   images: [],
+  videos: [],
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 };
@@ -123,13 +128,16 @@ function createMutationsMock() {
     createLink: createMutationMock(),
     updateLink: createMutationMock(),
     deleteLink: createMutationMock(),
-    reorderLinks: createMutationMock(),
+    reorderContent: createMutationMock(),
     createSocialLink: createMutationMock(),
     updateSocialLink: createMutationMock(),
     deleteSocialLink: createMutationMock(),
     createImage: createMutationMock(),
     updateImage: createMutationMock(),
     deleteImage: createMutationMock(),
+    createVideo: createMutationMock(),
+    updateVideo: createMutationMock(),
+    deleteVideo: createMutationMock(),
   };
 }
 
@@ -226,6 +234,91 @@ describe('LinkPageEditPage', () => {
     vi.restoreAllMocks();
   });
 
+  it('edits a saved video: autoplay and controls can be toggled again', async () => {
+    mocks.useGetLinkPageUseCase.mockReturnValue({
+      data: {
+        ...page,
+        videos: [
+          {
+            id: 'video-a',
+            url: 'https://youtu.be/dQw4w9WgXcQ',
+            title: 'Video novo todo dia!',
+            autoplay: true,
+            controls: true,
+            size: 'MEDIUM',
+            customHeight: null,
+            sortOrder: 0,
+            active: true,
+          },
+        ],
+      },
+      isLoading: false,
+    });
+    const mutations = createMutationsMock();
+    mocks.useLinkPageMutations.mockReturnValue(mutations);
+
+    renderLinkPageEditPage();
+
+    const videoRow = screen.getByTestId('content-row-video');
+    expect(videoRow).toHaveTextContent('Vídeo · Médio · autoplay');
+    fireEvent.click(within(videoRow).getByRole('button', { name: 'Editar' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.click(
+      within(dialog).getByLabelText('Tocar automaticamente (sem som)'),
+    );
+    fireEvent.click(within(dialog).getByLabelText('Mostrar controles'));
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Salvar alterações' }),
+      );
+    });
+
+    expect(mutations.updateVideo.mutateAsync).toHaveBeenCalledWith({
+      videoId: 'video-a',
+      payload: {
+        url: 'https://youtu.be/dQw4w9WgXcQ',
+        title: 'Video novo todo dia!',
+        autoplay: false,
+        controls: false,
+        size: 'MEDIUM',
+        customHeight: null,
+      },
+    });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('content-row-video')).toHaveTextContent(
+      'Vídeo · Médio · sem controles',
+    );
+  });
+
+  it('adds a video from its modal at the end of the shared order', async () => {
+    const mutations = createMutationsMock();
+    mocks.useLinkPageMutations.mockReturnValue(mutations);
+
+    renderLinkPageEditPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Vídeo' }));
+    const dialog = screen.getByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('URL do vídeo'), {
+      target: { value: 'https://vimeo.com/76979871' },
+    });
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Adicionar vídeo' }),
+      );
+    });
+
+    expect(mutations.createVideo.mutateAsync).toHaveBeenCalledWith({
+      url: 'https://vimeo.com/76979871',
+      title: null,
+      autoplay: false,
+      controls: true,
+      size: 'MEDIUM',
+      customHeight: null,
+      sortOrder: 3,
+      active: true,
+    });
+  });
+
   it('autosaves header fields once after debounce', async () => {
     const mutations = createMutationsMock();
     mocks.useLinkPageMutations.mockReturnValue(mutations);
@@ -271,6 +364,16 @@ describe('LinkPageEditPage', () => {
       backgroundImageUrl: null,
       backgroundType: 'SOLID',
       layout: 'LAYOUT_2',
+      titleColor: null,
+      subtitleColor: null,
+      footerColor: null,
+      backgroundGradientColor: '#FFFFFF',
+      titleBold: true,
+      subtitleBold: false,
+      footerBold: false,
+      footerStyle: 'TEXT',
+      footerBackgroundColor: null,
+      footerBorderColor: null,
     });
 
     fireEvent.click(screen.getByRole('radio', { name: 'Configurações' }));
@@ -335,6 +438,8 @@ describe('LinkPageEditPage', () => {
       borderEnabled: true,
       contactType: null,
       contactValue: null,
+      customHeight: null,
+      displaySize: 'MEDIUM',
       kind: 'LINK',
       label: 'Reservar',
       placement: 'VERTICAL',
@@ -447,6 +552,8 @@ describe('LinkPageEditPage', () => {
       borderEnabled: false,
       contactType: 'WHATSAPP',
       contactValue: '5511999999999',
+      customHeight: null,
+      displaySize: 'MEDIUM',
       kind: 'CONTACT',
       label: 'WhatsApp',
       placement: 'VERTICAL',
@@ -498,6 +605,8 @@ describe('LinkPageEditPage', () => {
         borderEnabled: true,
         contactType: null,
         contactValue: null,
+        customHeight: null,
+        displaySize: 'MEDIUM',
         kind: 'LINK',
         label: 'A',
         placement: 'VERTICAL',
@@ -716,15 +825,39 @@ describe('LinkPageEditPage', () => {
   });
 });
 
-describe('reorderLinksForDrop', () => {
-  it('updates visual order and sortOrder values', () => {
-    const reordered = reorderLinksForDrop(page.links, 'link-c', 'link-a');
+describe('reorderContentForDrop', () => {
+  it('moves a video above links and renumbers the shared order', () => {
+    const items = orderContent(
+      page.links,
+      [],
+      [
+        {
+          id: 'video-a',
+          url: 'https://youtu.be/dQw4w9WgXcQ',
+          title: null,
+          autoplay: false,
+          controls: true,
+          size: 'MEDIUM',
+          customHeight: null,
+          sortOrder: 3,
+          active: true,
+        },
+      ],
+    );
+    const reordered = reorderContentForDrop(
+      items,
+      'VIDEO:video-a',
+      'LINK:link-a',
+    );
 
-    expect(reordered.map((link) => link.id)).toEqual([
-      'link-c',
+    expect(reordered.map((entry) => entry.item.id)).toEqual([
+      'video-a',
       'link-a',
       'link-b',
+      'link-c',
     ]);
-    expect(reordered.map((link) => link.sortOrder)).toEqual([0, 1, 2]);
+    expect(reordered.map((entry) => entry.item.sortOrder)).toEqual([
+      0, 1, 2, 3,
+    ]);
   });
 });

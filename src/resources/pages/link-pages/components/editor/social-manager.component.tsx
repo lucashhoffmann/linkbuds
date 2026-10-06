@@ -1,4 +1,4 @@
-import { type FormEvent } from 'react';
+import { type FormEvent, useState } from 'react';
 import { useLinkPageMutations } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
   LinkPageDetail,
@@ -20,6 +20,26 @@ export function SocialManager({
   draft: LinkPageDetail;
   mutations: ReturnType<typeof useLinkPageMutations>;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const submitEdit = (
+    event: FormEvent<HTMLFormElement>,
+    socialLinkId: string,
+  ) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    mutations.updateSocialLink.mutate(
+      {
+        socialLinkId,
+        payload: {
+          platform: String(formData.get('platform')) as SocialPlatform,
+          url: String(formData.get('url') ?? ''),
+        },
+      },
+      { onSuccess: () => setEditingId(null) },
+    );
+  };
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -65,26 +85,92 @@ export function SocialManager({
           const Icon = socialPlatformIcons[socialLink.platform];
           const label = socialPlatformLabels[socialLink.platform];
 
+          if (editingId === socialLink.id) {
+            return (
+              <form
+                key={socialLink.id}
+                className='bg-background grid gap-2 rounded-md border p-2 shadow-xs md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_auto_auto]'
+                onSubmit={(event) => submitEdit(event, socialLink.id)}
+              >
+                <Select
+                  name='platform'
+                  defaultValue={socialLink.platform}
+                >
+                  {Object.entries(socialPlatformLabels).map(
+                    ([platform, platformLabel]) => (
+                      <option
+                        key={platform}
+                        value={platform}
+                      >
+                        {platformLabel}
+                      </option>
+                    ),
+                  )}
+                </Select>
+                <Input
+                  name='url'
+                  defaultValue={socialLink.url}
+                  placeholder='https://...'
+                  required
+                  autoFocus
+                />
+                <Button
+                  type='submit'
+                  className='h-12'
+                  disabled={mutations.updateSocialLink.isPending}
+                >
+                  Salvar
+                </Button>
+                <Button
+                  type='button'
+                  variant='outline'
+                  className='h-12'
+                  onClick={() => setEditingId(null)}
+                >
+                  Cancelar
+                </Button>
+              </form>
+            );
+          }
+
           return (
             <div
               key={socialLink.id}
-              className='bg-background flex items-center justify-between rounded-md border p-2 text-sm shadow-xs'
+              className='bg-background flex items-center justify-between gap-2 rounded-md border p-2 text-sm shadow-xs'
             >
               <span className='flex min-w-0 items-center gap-2'>
                 <Icon
                   className='size-4 shrink-0'
                   aria-hidden='true'
                 />
-                <span className='truncate'>{label}</span>
+                <span className='shrink-0'>{label}</span>
+                <span
+                  className='text-muted-foreground truncate'
+                  title={socialLink.url}
+                >
+                  {socialLink.url}
+                </span>
               </span>
-              <Button
-                type='button'
-                size='sm'
-                variant='outline'
-                onClick={() => mutations.deleteSocialLink.mutate(socialLink.id)}
-              >
-                Remover
-              </Button>
+              <span className='flex shrink-0 gap-2'>
+                <Button
+                  type='button'
+                  size='sm'
+                  variant='outline'
+                  onClick={() => setEditingId(socialLink.id)}
+                >
+                  Editar
+                </Button>
+                <Button
+                  type='button'
+                  size='sm'
+                  variant='outline'
+                  onClick={() =>
+                    mutations.deleteSocialLink.mutate(socialLink.id)
+                  }
+                >
+                  Remover
+                </Button>
+              </span>
             </div>
           );
         })}

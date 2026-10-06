@@ -22,14 +22,24 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Archive, GripVertical, MousePointerClick, Pencil } from 'lucide-react';
+import {
+  Archive,
+  Film,
+  GripVertical,
+  ImageIcon,
+  MousePointerClick,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import {
   useLinkPageMutations,
   useLinkPreviewUseCase,
 } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
   LinkPageDetail,
+  LinkPageImage,
   LinkPageLink,
+  LinkPageVideo,
   LinkPageLinkKind,
   LinkPageLinkPlacement,
 } from '@/app/modules/link-pages/types/link-pages.types';
@@ -43,6 +53,13 @@ import {
 } from '@/resources/components/ui/dialog';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
+import {
+  contentKey,
+  nextSortOrder,
+  orderContent,
+  type ContentItem,
+} from '@/app/modules/link-pages/utils/content-order.util';
+import { mediaSizeOptions } from '@/app/modules/link-pages/utils/media.util';
 import { cn } from '@/shared/lib/utils';
 import type { LinkClickCountMap, LinkFormValues } from './editor.types';
 import {
@@ -50,12 +67,20 @@ import {
   whatsAppLinkStyle,
   createLinkForm,
   formatNumber,
-  reorderLinksForDrop,
+  applyContentOrder,
+  reorderContentForDrop,
 } from './editor.utils';
+import {
+  ImageDialog,
+  VideoDialog,
+  type ImagePayload,
+  type VideoPayload,
+} from './media-dialogs.component';
 import {
   ColorField,
   BorderEnabledField,
   EditorSection,
+  MediaSizeField,
 } from './editor-fields.component';
 
 export function LinksManager({
@@ -70,6 +95,11 @@ export function LinksManager({
   setDraft: Dispatch<SetStateAction<LinkPageDetail>>;
 }) {
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  // null = closed; { video: null } = new video.
+  const [videoDialog, setVideoDialog] = useState<{
+    video: LinkPageVideo | null;
+  } | null>(null);
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<LinkPageLink | null>(null);
   const [linkForm, setLinkForm] = useState<LinkFormValues>(() =>
     createLinkForm(),
@@ -114,6 +144,8 @@ export function LinksManager({
       contactValue: link.contactValue,
       previewImageUrl: link.previewImageUrl ?? null,
       previewDescription: link.previewDescription ?? null,
+      displaySize: link.displaySize ?? 'MEDIUM',
+      customHeight: link.customHeight ?? null,
       textColor: link.textColor,
       backgroundColor: link.backgroundColor,
       borderColor: link.borderColor,
@@ -208,6 +240,52 @@ export function LinksManager({
 
   const activeLinks = draft.links.filter((link) => link.active);
   const archivedLinks = draft.links.filter((link) => !link.active);
+  // One draggable list: links, images and videos share the page order.
+  const contentItems = orderContent(activeLinks, draft.images, draft.videos);
+
+  const saveVideo = async (payload: VideoPayload) => {
+    const editing = videoDialog?.video;
+    if (!editing) {
+      await mutations.createVideo.mutateAsync({
+        ...payload,
+        sortOrder: nextSortOrder(draft),
+        active: true,
+      });
+      return;
+    }
+
+    await mutations.updateVideo.mutateAsync({ videoId: editing.id, payload });
+    // Same count = no editor remount, so sync the local draft here.
+    setDraft((current) => ({
+      ...current,
+      videos: current.videos.map((video) =>
+        video.id === editing.id ? { ...video, ...payload } : video,
+      ),
+    }));
+  };
+
+  const saveImage = async (payload: ImagePayload) => {
+    await mutations.createImage.mutateAsync({
+      ...payload,
+      sortOrder: nextSortOrder(draft),
+      active: true,
+    });
+  };
+
+  const removeMedia = async (entry: ContentItem) => {
+    const isVideo = entry.type === 'VIDEO';
+    if (
+      await confirmAction({
+        title: isVideo ? 'Excluir vídeo?' : 'Excluir imagem?',
+        description: 'Essa ação não pode ser desfeita.',
+        confirmLabel: 'Excluir',
+        destructive: true,
+      })
+    ) {
+      if (isVideo) mutations.deleteVideo.mutate(entry.item.id);
+      else mutations.deleteImage.mutate(entry.item.id);
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -226,7 +304,7 @@ export function LinksManager({
       } else {
         await mutations.createLink.mutateAsync({
           ...linkForm,
-          sortOrder: draft.links.length,
+          sortOrder: nextSortOrder(draft),
           active: true,
         });
       }
@@ -243,33 +321,62 @@ export function LinksManager({
       return;
     }
 
-    const reorderedLinks = reorderLinksForDrop(
-      draft.links,
+    const reordered = reorderContentForDrop(
+      contentItems,
       String(active.id),
       String(over.id),
     );
 
-    if (reorderedLinks === draft.links) {
+    if (reordered === contentItems) {
       return;
     }
 
-    setDraft((current) => ({
-      ...current,
-      links: reorderedLinks,
-    }));
-    mutations.reorderLinks.mutate(
-      reorderedLinks.map((link) => ({
-        id: link.id,
-        sortOrder: link.sortOrder,
+    setDraft((current) => applyContentOrder(current, reordered));
+    mutations.reorderContent.mutate(
+      reordered.map((entry) => ({
+        type: entry.type,
+        id: entry.item.id,
+        sortOrder: entry.item.sortOrder,
       })),
     );
   };
 
   return (
     <EditorSection
-      title='Links'
-      action={<Button onClick={openNewLinkDialog}>Adicionar link</Button>}
+      title='Links e mídia'
+      action={
+        <div className='flex flex-wrap justify-end gap-2'>
+          <Button onClick={openNewLinkDialog}>Adicionar link</Button>
+          <Button
+            variant='outline'
+            onClick={() => setImageDialogOpen(true)}
+          >
+            <ImageIcon className='size-4' />
+            Imagem
+          </Button>
+          <Button
+            variant='outline'
+            onClick={() => setVideoDialog({ video: null })}
+          >
+            <Film className='size-4' />
+            Vídeo
+          </Button>
+        </div>
+      }
     >
+      {videoDialog && (
+        <VideoDialog
+          video={videoDialog.video}
+          onSave={saveVideo}
+          onClose={() => setVideoDialog(null)}
+        />
+      )}
+      {imageDialogOpen && (
+        <ImageDialog
+          onSave={saveImage}
+          onClose={() => setImageDialogOpen(false)}
+        />
+      )}
       <Dialog
         open={linkDialogOpen}
         onOpenChange={(open) => {
@@ -411,6 +518,14 @@ export function LinksManager({
                     />
                   </div>
                 </div>
+                <MediaSizeField
+                  id='link-preview'
+                  size={linkForm.displaySize ?? 'MEDIUM'}
+                  customHeight={linkForm.customHeight ?? null}
+                  onChange={({ size, customHeight }) =>
+                    updateLinkForm({ displaySize: size, customHeight })
+                  }
+                />
               </div>
             )}
             <div className='bg-muted/20 grid gap-4 rounded-md border p-3'>
@@ -458,32 +573,45 @@ export function LinksManager({
           </form>
         </DialogContent>
       </Dialog>
-      {activeLinks.length ? (
+      {contentItems.length ? (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
-            items={activeLinks.map((link) => link.id)}
+            items={contentItems.map(contentKey)}
             strategy={verticalListSortingStrategy}
           >
             <div className='grid gap-2'>
-              {activeLinks.map((link) => (
-                <SortableLinkRow
-                  key={link.id}
-                  clicks={clicksByLinkId[link.id] ?? 0}
-                  link={link}
-                  onArchive={() => void setLinkActive(link, false)}
-                  onEdit={() => openEditLinkDialog(link)}
-                />
-              ))}
+              {contentItems.map((entry) =>
+                entry.type === 'LINK' ? (
+                  <SortableLinkRow
+                    key={contentKey(entry)}
+                    clicks={clicksByLinkId[entry.item.id] ?? 0}
+                    link={entry.item}
+                    onArchive={() => void setLinkActive(entry.item, false)}
+                    onEdit={() => openEditLinkDialog(entry.item)}
+                  />
+                ) : (
+                  <SortableMediaRow
+                    key={contentKey(entry)}
+                    entry={entry}
+                    onEdit={
+                      entry.type === 'VIDEO'
+                        ? () => setVideoDialog({ video: entry.item })
+                        : undefined
+                    }
+                    onRemove={() => void removeMedia(entry)}
+                  />
+                ),
+              )}
             </div>
           </SortableContext>
         </DndContext>
       ) : (
         <p className='text-muted-foreground rounded-md border border-dashed p-3 text-sm'>
-          Nenhum link ativo.
+          Nenhum link, imagem ou vídeo ativo.
         </p>
       )}
       {archivedLinks.length > 0 && (
@@ -541,7 +669,7 @@ export function SortableLinkRow({
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: link.id });
+  } = useSortable({ id: contentKey({ type: 'LINK', item: link }) });
   const detail =
     link.kind === 'CONTACT'
       ? 'WhatsApp'
@@ -561,15 +689,11 @@ export function SortableLinkRow({
         isDragging && 'relative z-10 opacity-70',
       )}
     >
-      <button
-        type='button'
-        className='text-muted-foreground hover:bg-accent flex size-9 cursor-grab items-center justify-center rounded-md transition-colors active:cursor-grabbing'
-        aria-label={`Arrastar ${link.label}`}
+      <DragHandle
+        label={link.label}
         {...attributes}
         {...listeners}
-      >
-        <GripVertical className='size-4' />
-      </button>
+      />
       <div className='min-w-0 flex-1'>
         <p className='truncate font-medium'>{link.label}</p>
         <div className='text-muted-foreground mt-1 flex min-w-0 items-center gap-2 text-xs'>
@@ -611,6 +735,124 @@ export function SortableLinkRow({
         >
           <Archive className='size-4 sm:hidden' />
           <span className='hidden sm:inline'>Arquivar</span>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DragHandle({
+  label,
+  ...props
+}: { label: string } & Record<string, unknown>) {
+  return (
+    <button
+      type='button'
+      className='text-muted-foreground hover:bg-accent flex size-9 shrink-0 cursor-grab items-center justify-center rounded-md transition-colors active:cursor-grabbing'
+      aria-label={`Arrastar ${label}`}
+      {...props}
+    >
+      <GripVertical className='size-4' />
+    </button>
+  );
+}
+
+function mediaRowText(entry: Exclude<ContentItem, { type: 'LINK' }>) {
+  if (entry.type === 'IMAGE') {
+    const image: LinkPageImage = entry.item;
+    return {
+      title: image.altText || 'Imagem',
+      detail: `Imagem · ${image.imageUrl}`,
+    };
+  }
+
+  const video = entry.item;
+  const size =
+    mediaSizeOptions.find((option) => option.value === video.size)?.label +
+    (video.size === 'CUSTOM' ? ` ${video.customHeight}px` : '');
+  return {
+    title: video.title || 'Vídeo',
+    detail: [
+      'Vídeo',
+      size,
+      video.autoplay && 'autoplay',
+      !video.controls && 'sem controles',
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  };
+}
+
+function SortableMediaRow({
+  entry,
+  onEdit,
+  onRemove,
+}: {
+  entry: Exclude<ContentItem, { type: 'LINK' }>;
+  onEdit?: () => void;
+  onRemove: () => void;
+}) {
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: contentKey(entry) });
+  const { title, detail } = mediaRowText(entry);
+  const Icon = entry.type === 'VIDEO' ? Film : ImageIcon;
+
+  return (
+    <div
+      ref={setNodeRef}
+      data-testid={`content-row-${entry.type.toLowerCase()}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={cn(
+        'bg-background flex min-w-0 items-center gap-2 rounded-md border p-2 text-sm shadow-xs',
+        isDragging && 'relative z-10 opacity-70',
+      )}
+    >
+      <DragHandle
+        label={title}
+        {...attributes}
+        {...listeners}
+      />
+      <Icon
+        className='text-muted-foreground size-4 shrink-0'
+        aria-hidden='true'
+      />
+      <div className='min-w-0 flex-1'>
+        <p className='truncate font-medium'>{title}</p>
+        <p className='text-muted-foreground mt-1 truncate text-xs'>{detail}</p>
+      </div>
+      <div className='flex shrink-0 items-center gap-1'>
+        {onEdit && (
+          <Button
+            type='button'
+            size='sm'
+            variant='outline'
+            aria-label='Editar'
+            className='size-9 px-0 sm:w-auto sm:px-3'
+            onClick={onEdit}
+          >
+            <Pencil className='size-4 sm:hidden' />
+            <span className='hidden sm:inline'>Editar</span>
+          </Button>
+        )}
+        <Button
+          type='button'
+          size='sm'
+          variant='outline'
+          aria-label='Excluir'
+          className='size-9 px-0 sm:w-auto sm:px-3'
+          onClick={onRemove}
+        >
+          <Trash2 className='size-4 sm:hidden' />
+          <span className='hidden sm:inline'>Excluir</span>
         </Button>
       </div>
     </div>

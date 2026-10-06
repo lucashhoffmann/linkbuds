@@ -11,6 +11,7 @@ import {
   Lock,
   Maximize2,
   MousePointerClick,
+  PanelLeftClose,
   Radio,
   Users,
 } from 'lucide-react';
@@ -63,6 +64,86 @@ const CountriesGlobeDialog = lazy(() =>
     default: module.CountriesGlobeDialog,
   })),
 );
+
+/** Compact last-30-days summary shown beside the page preview. */
+export function AnalyticsSummary({
+  linkPage,
+  onShowAll,
+  onHide,
+}: {
+  linkPage: LinkPageDetail;
+  onShowAll: () => void;
+  onHide: () => void;
+}) {
+  const insights = useLinkPageAnalyticsInsightsUseCase(linkPage.id, {
+    from: startOfDayIso(dateInputValue(30)),
+    to: endOfDayIso(dateInputValue(0)),
+  });
+  const data = insights.data;
+  const summary = data?.summary;
+
+  return (
+    <div className='space-y-3'>
+      <div className='flex items-center justify-between gap-2'>
+        <div className='flex items-center gap-2 font-medium whitespace-nowrap'>
+          <BarChart3 className='size-4' />
+          {data?.tier === 'FULL' ? 'Últimos 30 dias' : 'Últimos 7 dias'}
+        </div>
+        <Button
+          variant='ghost'
+          size='sm'
+          onClick={onHide}
+        >
+          <PanelLeftClose className='size-4' />
+          Ocultar
+        </Button>
+      </div>
+      <div className='grid grid-cols-2 gap-3'>
+        <MetricCard
+          icon={<Activity className='size-4' />}
+          label='Visualizações'
+          value={formatNumber(summary?.pageViews)}
+        />
+        <MetricCard
+          icon={<Users className='size-4' />}
+          label='Visitantes'
+          value={formatNumber(summary?.uniqueVisitors)}
+        />
+        <MetricCard
+          icon={<MousePointerClick className='size-4' />}
+          label='Cliques'
+          value={formatNumber(summary?.totalClicks)}
+        />
+        <MetricCard
+          icon={<BarChart3 className='size-4' />}
+          label='CTR'
+          value={formatPercent(summary?.clickThroughRate ?? 0)}
+        />
+      </div>
+      <AnalyticsPanel
+        title='Principais links'
+        icon={<MousePointerClick className='size-4' />}
+      >
+        <RankedList
+          chart
+          emptyLabel='Nenhum clique registrado no período.'
+          items={(data?.topTargets ?? []).slice(0, 5).map((target) => ({
+            label: targetLabel(linkPage, target),
+            count: toNumber(target.clicks),
+          }))}
+        />
+      </AnalyticsPanel>
+      <Button
+        variant='outline'
+        size='sm'
+        className='w-full'
+        onClick={onShowAll}
+      >
+        Ver análises completas
+      </Button>
+    </div>
+  );
+}
 
 export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
   const [fromDate, setFromDate] = useState(() => dateInputValue(30));
