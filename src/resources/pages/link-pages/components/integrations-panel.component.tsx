@@ -79,7 +79,7 @@ export function IntegrationsPanel({ linkPage }: { linkPage: LinkPageDetail }) {
             <IntegrationCard
               icon='G'
               title='Google'
-              subtitle='Usa o Tag Manager / GA4 da bio'
+              subtitle='Usa o Tag Manager / GA4 da página principal'
             />
           </div>
         )}
@@ -95,8 +95,8 @@ export function IntegrationsPanel({ linkPage }: { linkPage: LinkPageDetail }) {
       </div>
       {!isBio && (
         <p className='text-muted-foreground text-xs'>
-          Tag Manager e GA4 são configurados na bio e valem para os posts e
-          formulários dela.
+          Tag Manager e GA4 são configurados na página principal e valem para os
+          posts e formulários dela.
         </p>
       )}
     </EditorSection>
@@ -194,7 +194,7 @@ function GoogleTagsCard({
   return (
     <CardDialog
       title='Google'
-      description='Os scripts carregam só na página pública. Valem também para os posts e formulários desta bio.'
+      description='Os scripts carregam só na página pública. Valem também para os posts e formulários desta página principal.'
       trigger={
         <IntegrationCard
           icon='G'

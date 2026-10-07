@@ -13,6 +13,7 @@ import { useLinkPagesOverviewUseCase } from '@/app/modules/link-pages/use-cases/
 import { Button } from '@/resources/components/ui/button';
 import { FormLimitBar } from '@/resources/pages/link-pages/components/form-limit-bar.component';
 import { routes } from '@/shared/constants/router.constants';
+import { cn } from '@/shared/lib/utils';
 import { AgencyPromoDialog } from './components/agency-promo-dialog.component';
 
 const number = new Intl.NumberFormat('pt-BR');
@@ -21,24 +22,67 @@ function count(value: number, singular: string, plural: string) {
   return `${number.format(value)} ${value === 1 ? singular : plural}`;
 }
 
+/** Window total, % vs the previous window and one bar per day. */
 function Stat({
   icon,
   label,
   value,
+  previous,
+  series,
 }: {
   icon: ReactNode;
   label: string;
   value: number;
+  previous: number;
+  series: number[];
 }) {
+  const change = previous
+    ? Math.round(((value - previous) / previous) * 100)
+    : null;
+  const max = Math.max(...series, 1);
+
   return (
     <div className='bg-card rounded-2xl border p-4'>
       <div className='text-muted-foreground flex items-center gap-2 text-sm'>
         {icon}
         {label}
       </div>
-      <p className='mt-2 text-2xl font-semibold tracking-tight'>
-        {number.format(value)}
-      </p>
+      <div className='mt-2 flex items-end justify-between gap-4'>
+        <div>
+          <p className='text-2xl leading-tight font-semibold tracking-tight'>
+            {number.format(value)}
+          </p>
+          {change !== null && (
+            <p
+              className={cn(
+                'text-xs font-medium',
+                change >= 0
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-destructive',
+              )}
+            >
+              {change > 0 ? '+' : ''}
+              {change}%
+            </p>
+          )}
+        </div>
+        <div
+          role='img'
+          aria-label={`${label} por dia: ${series.join(', ')}`}
+          className='flex h-12 max-w-40 flex-1 items-end justify-end gap-px'
+        >
+          {series.map((day, index) => (
+            <span
+              key={index}
+              style={{
+                height: `${Math.max((day / max) * 100, 8)}%`,
+                animationDelay: `${index * (560 / series.length)}ms`,
+              }}
+              className='bg-primary motion-safe:animate-lb-grow max-w-2 flex-1 origin-bottom rounded-full'
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -165,21 +209,27 @@ export function HomePage() {
 
       {data && (
         <>
-          <div className='grid grid-cols-1 gap-3 sm:grid-cols-3'>
+          <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
             <Stat
               icon={<Eye className='size-4' />}
               label='Visualizações'
               value={data.totals.pageViews}
+              previous={data.previousTotals?.pageViews ?? 0}
+              series={data.daily?.pageViews ?? []}
             />
             <Stat
               icon={<Users className='size-4' />}
               label='Visitantes'
               value={data.totals.visitors}
+              previous={data.previousTotals?.visitors ?? 0}
+              series={data.daily?.visitors ?? []}
             />
             <Stat
               icon={<MousePointerClick className='size-4' />}
               label='Cliques'
               value={data.totals.clicks}
+              previous={data.previousTotals?.clicks ?? 0}
+              series={data.daily?.clicks ?? []}
             />
           </div>
 

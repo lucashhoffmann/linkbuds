@@ -33,7 +33,7 @@ const steps = [
     path: 'cliente/promo-do-post',
     title: 'Um link para cada post',
     description:
-      'Crie uma sub-página da bio para a publicação e veja qual post gerou contato: bio → post → WhatsApp.',
+      'Crie uma sub-página para a publicação e veja qual post gerou contato: página principal → post → WhatsApp.',
   },
   {
     icon: ClipboardList,

@@ -313,6 +313,8 @@ export type LinkPagesListResponse = {
 export type LinkPageAnalyticsSummary = {
   onlineNow: number;
   pageViews: number;
+  /** Page views that came from the share tab's QR code (?utm_source=qrcode). */
+  qrCodeViews: number;
   uniqueVisitors: number;
   totalClicks: number;
   clickThroughRate: number;
@@ -432,6 +434,10 @@ export type LinkPagesOverview = {
   tier: 'BASIC' | 'FULL';
   range: { from: string; to: string };
   totals: { pageViews: number; visitors: number; clicks: number };
+  /** Same metrics for the window of equal length right before `range`. */
+  previousTotals: { pageViews: number; visitors: number; clicks: number };
+  /** One entry per day of `range`, oldest first. */
+  daily: { pageViews: number[]; visitors: number[]; clicks: number[] };
   pages: LinkPagesOverviewPage[];
 };
 

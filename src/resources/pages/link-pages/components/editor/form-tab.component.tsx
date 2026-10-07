@@ -1,4 +1,20 @@
-import { type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react';
 import type {
   FormConfig,
@@ -12,8 +28,10 @@ import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Select } from '@/resources/components/ui/select';
 import { Switch } from '@/resources/components/ui/switch';
+import { cn } from '@/shared/lib/utils';
 import type { AutosaveStatus } from './editor.types';
 import { EditorSection, Field } from './editor-fields.component';
+import { DragHandle } from './links-manager.component';
 
 const fieldTypeLabels: Record<FormFieldType, string> = {
   TEXT: 'Texto curto',
@@ -57,6 +75,43 @@ export function cleanFormConfig(form: FormConfig): FormConfig {
   };
 }
 
+/** Option row that drags by its handle; ids are indexes (options can repeat). */
+function SortableOption({
+  index,
+  label,
+  children,
+}: {
+  index: number;
+  label: string;
+  children: ReactNode;
+}) {
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: String(index) });
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        'flex items-center gap-2',
+        isDragging && 'relative z-10 opacity-70',
+      )}
+    >
+      <DragHandle
+        label={label}
+        {...attributes}
+        {...listeners}
+      />
+      {children}
+    </li>
+  );
+}
+
 /**
  * One row per option: text, score control (when scoring is on) and remove.
  * `points` stays aligned with `options` by index.
@@ -73,6 +128,12 @@ function OptionsEditor({
   const options = field.options ?? [];
   const points = options.map((_, index) => field.points?.[index] ?? 0);
   const multiple = field.type === 'MULTI_CHOICE';
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
   const setPoint = (index: number, point: number) =>
     onChange({
       options,
@@ -96,77 +157,100 @@ function OptionsEditor({
             : 'Opções'
       }
     >
-      <ul className='grid gap-2'>
-        {options.map((option, index) => (
-          <li
-            key={index}
-            className='flex items-center gap-2'
-          >
-            {kind === 'CORRECT' && (
-              <input
-                type={multiple ? 'checkbox' : 'radio'}
-                name={`correta-${field.id}`}
-                aria-label={`Opção ${index + 1} é correta`}
-                title='Correta'
-                className='size-4 shrink-0'
-                checked={points[index] > 0}
-                onChange={(event) =>
-                  setPoint(index, event.target.checked ? 1 : 0)
-                }
-              />
-            )}
-            <Input
-              aria-label={`Opção ${index + 1}`}
-              placeholder={`Opção ${index + 1}`}
-              maxLength={120}
-              value={option}
-              onChange={(event) =>
-                onChange({
-                  options: options.map((current, i) =>
-                    i === index ? event.target.value : current,
-                  ),
-                  points,
-                })
-              }
-            />
-            {kind === 'POINTS' && (
-              <Input
-                type='number'
-                aria-label={`Pontos da opção ${index + 1}`}
-                title='Pontos'
-                min={-1000}
-                max={1000}
-                className='w-24 shrink-0'
-                value={points[index]}
-                onChange={(event) =>
-                  setPoint(
-                    index,
-                    Math.max(
-                      -1000,
-                      Math.min(1000, Math.trunc(Number(event.target.value))),
-                    ) || 0,
-                  )
-                }
-              />
-            )}
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              aria-label={`Remover opção ${index + 1}`}
-              disabled={options.length <= 1}
-              onClick={() =>
-                onChange({
-                  options: options.filter((_, i) => i !== index),
-                  points: points.filter((_, i) => i !== index),
-                })
-              }
-            >
-              <X className='size-4' />
-            </Button>
-          </li>
-        ))}
-      </ul>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={({ active, over }) => {
+          if (!over || active.id === over.id) return;
+          const from = Number(active.id);
+          const to = Number(over.id);
+          onChange({
+            options: arrayMove(options, from, to),
+            points: arrayMove(points, from, to),
+          });
+        }}
+      >
+        <SortableContext
+          items={options.map((_, index) => String(index))}
+          strategy={verticalListSortingStrategy}
+        >
+          <ul className='grid gap-2'>
+            {options.map((option, index) => (
+              <SortableOption
+                key={index}
+                index={index}
+                label={option || `Opção ${index + 1}`}
+              >
+                {kind === 'CORRECT' && (
+                  <input
+                    type={multiple ? 'checkbox' : 'radio'}
+                    name={`correta-${field.id}`}
+                    aria-label={`Opção ${index + 1} é correta`}
+                    title='Correta'
+                    className='size-4 shrink-0'
+                    checked={points[index] > 0}
+                    onChange={(event) =>
+                      setPoint(index, event.target.checked ? 1 : 0)
+                    }
+                  />
+                )}
+                <Input
+                  aria-label={`Opção ${index + 1}`}
+                  placeholder={`Opção ${index + 1}`}
+                  maxLength={120}
+                  value={option}
+                  onChange={(event) =>
+                    onChange({
+                      options: options.map((current, i) =>
+                        i === index ? event.target.value : current,
+                      ),
+                      points,
+                    })
+                  }
+                />
+                {kind === 'POINTS' && (
+                  <Input
+                    type='number'
+                    aria-label={`Pontos da opção ${index + 1}`}
+                    title='Pontos'
+                    min={-1000}
+                    max={1000}
+                    className='w-24 shrink-0'
+                    value={points[index]}
+                    onChange={(event) =>
+                      setPoint(
+                        index,
+                        Math.max(
+                          -1000,
+                          Math.min(
+                            1000,
+                            Math.trunc(Number(event.target.value)),
+                          ),
+                        ) || 0,
+                      )
+                    }
+                  />
+                )}
+                <Button
+                  type='button'
+                  variant='ghost'
+                  size='icon'
+                  aria-label={`Remover opção ${index + 1}`}
+                  disabled={options.length <= 1}
+                  onClick={() =>
+                    onChange({
+                      options: options.filter((_, i) => i !== index),
+                      points: points.filter((_, i) => i !== index),
+                    })
+                  }
+                >
+                  <X className='size-4' />
+                </Button>
+              </SortableOption>
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
       <Button
         type='button'
         variant='outline'

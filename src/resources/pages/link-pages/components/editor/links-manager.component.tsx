@@ -855,7 +855,7 @@ export function SortableLinkRow({
   );
 }
 
-function DragHandle({
+export function DragHandle({
   label,
   ...props
 }: { label: string } & Record<string, unknown>) {

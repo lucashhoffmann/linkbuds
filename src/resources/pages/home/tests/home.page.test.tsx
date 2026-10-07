@@ -115,4 +115,32 @@ describe('HomePage', () => {
     expect(screen.getByText(/Ainda sem visitas/)).toBeInTheDocument();
     expect(screen.getByText(/Crie links de post/)).toBeInTheDocument();
   });
+
+  it('shows each total with change vs previous window and daily bars', () => {
+    mocks.useLinkPagesOverviewUseCase.mockReturnValue({
+      isLoading: false,
+      data: {
+        tier: 'BASIC',
+        range: { from: '', to: '' },
+        totals: { pageViews: 300, visitors: 90, clicks: 0 },
+        previousTotals: { pageViews: 200, visitors: 100, clicks: 0 },
+        daily: {
+          pageViews: [10, 20, 30, 40, 50, 60, 90],
+          visitors: [1, 2, 3, 4, 5, 6, 7],
+          clicks: [0, 0, 0, 0, 0, 0, 0],
+        },
+        pages: [],
+      },
+    });
+
+    render(<HomePage />, { wrapper: MemoryRouter });
+
+    expect(screen.getByText('+50%')).toBeInTheDocument();
+    expect(screen.getByText('-10%')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(
+        'Visualizações por dia: 10, 20, 30, 40, 50, 60, 90',
+      ),
+    ).toBeInTheDocument();
+  });
 });

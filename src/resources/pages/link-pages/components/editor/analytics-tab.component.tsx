@@ -17,8 +17,10 @@ import {
   Maximize2,
   MousePointerClick,
   PanelLeftClose,
+  QrCode,
   Radio,
   Target,
+  TriangleAlert,
   Users,
 } from 'lucide-react';
 import { useLinkPageAnalyticsInsightsUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
@@ -166,6 +168,25 @@ export function AnalyticsSummary({
         Ver análises completas
       </Button>
     </div>
+  );
+}
+
+/** QR code scans in the last 30 days (7 on basic plans), shown beside the share QR. */
+export function QrCodeVisitsCard({ linkPage }: { linkPage: LinkPageDetail }) {
+  // Same range as AnalyticsSummary, so both share the cached query.
+  const insights = useLinkPageAnalyticsInsightsUseCase(linkPage.id, {
+    from: startOfDayIso(dateInputValue(30)),
+    to: endOfDayIso(dateInputValue(0)),
+  });
+  const data = insights.data;
+
+  return (
+    <MetricCard
+      icon={<QrCode className='size-4' />}
+      label={`Visitas via QR code · ${data?.tier === 'FULL' ? '30' : '7'} dias`}
+      hint='Visualizações que vieram do QR code desta aba. QR codes baixados antes desta contagem não são identificados.'
+      value={formatNumber(data?.summary.qrCodeViews)}
+    />
   );
 }
 
@@ -373,7 +394,7 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
       )}
 
       <div
-        className={`grid grid-cols-2 gap-3 @md:grid-cols-3 ${linkPage.type === 'FORM' ? '' : '@4xl:grid-cols-6'}`}
+        className={`grid grid-cols-2 gap-3 @md:grid-cols-3 ${linkPage.type === 'FORM' ? '' : '@4xl:grid-cols-7'}`}
       >
         <MetricCard
           icon={<Radio className='size-4' />}
@@ -405,6 +426,12 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
           icon={<Clock3 className='size-4' />}
           label='Duração média'
           value={formatDuration(summary?.averageDurationMs ?? 0)}
+        />
+        <MetricCard
+          icon={<QrCode className='size-4' />}
+          label='Via QR code'
+          hint='Visualizações que vieram do QR code da aba Compartilhar.'
+          value={formatNumber(summary?.qrCodeViews)}
         />
         {linkPage.type === 'FORM' && (
           <FormMetricCards
@@ -558,6 +585,9 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
   );
 }
 
+/** Above this, answers outnumber visitors — likely the owner testing the form. */
+const ANSWER_RATE_TEST_THRESHOLD = 1;
+
 /** Answers and answer rate (answers ÷ visitors) for form pages. */
 function FormMetricCards({
   summary,
@@ -568,6 +598,7 @@ function FormMetricCards({
 }) {
   const answers = summary?.formSubmissions ?? 0;
   const visitors = summary?.uniqueVisitors ?? 0;
+  const rate = visitors ? answers / visitors : 0;
   return (
     <>
       <MetricCard
@@ -579,7 +610,12 @@ function FormMetricCards({
         icon={<ClipboardCheck className='size-4' />}
         label='Taxa de resposta'
         hint='Respostas ÷ visitantes. Quanto menor, mais gente visitou o formulário sem responder.'
-        value={formatPercent(visitors ? answers / visitors : 0)}
+        value={formatPercent(rate)}
+        warning={
+          rate > ANSWER_RATE_TEST_THRESHOLD
+            ? 'Mais respostas que visitantes: parece teste (mesma pessoa respondendo várias vezes).'
+            : undefined
+        }
       />
       <MetricCard
         icon={<Hourglass className='size-4' />}
@@ -619,11 +655,13 @@ export function MetricCard({
   icon,
   label,
   value,
+  warning,
 }: {
   hint?: string;
   icon: ReactNode;
   label: string;
   value: string;
+  warning?: string;
 }) {
   return (
     <div className='rounded-md border p-3'>
@@ -645,6 +683,12 @@ export function MetricCard({
         )}
       </div>
       <p className='mt-2 text-xl font-semibold'>{value}</p>
+      {warning && (
+        <p className='mt-1 flex items-start gap-1 text-xs text-amber-600 dark:text-amber-500'>
+          <TriangleAlert className='mt-0.5 size-3 shrink-0' />
+          {warning}
+        </p>
+      )}
     </div>
   );
 }

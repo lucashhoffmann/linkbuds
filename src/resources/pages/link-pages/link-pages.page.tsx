@@ -55,6 +55,7 @@ import { cn } from '@/shared/lib/utils';
 import {
   AnalyticsSummary,
   AnalyticsTab,
+  QrCodeVisitsCard,
 } from './components/editor/analytics-tab.component';
 import { FormsTab, ResponsesTab } from './components/forms-tabs.component';
 import { IntegrationsPanel } from './components/integrations-panel.component';
@@ -658,10 +659,17 @@ function PageCanvas({
       />
 
       {view === 'share' ? (
-        <ShareTab
-          defaultUrl={url}
-          name={page.publicPath}
-        />
+        <div className='flex flex-wrap items-start gap-6'>
+          <ShareTab
+            defaultUrl={url}
+            name={page.publicPath}
+          />
+          {detail.data && (
+            <div className='w-64'>
+              <QrCodeVisitsCard linkPage={detail.data} />
+            </div>
+          )}
+        </div>
       ) : view === 'posts' ? (
         <PostsTab
           posts={subPages.filter((subPage) => subPage.type === 'POST')}
@@ -731,13 +739,16 @@ function ShareTab({ defaultUrl, name }: { defaultUrl: string; name: string }) {
   const [transparent, setTransparent] = useState(false);
   const [dataUrl, setDataUrl] = useState('');
   const text = value.trim();
+  // Own page link gets tagged so scans show up as "qrcode" under Análises → origens.
+  const qrText =
+    text === defaultUrl ? `${defaultUrl}?utm_source=qrcode` : text;
   // Stale while the next one renders; empty input shows nothing.
   const qr = text ? dataUrl : '';
 
   useEffect(() => {
-    if (!text) return;
+    if (!qrText) return;
     let active = true;
-    void QRCode.toDataURL(text, {
+    void QRCode.toDataURL(qrText, {
       width: 2048,
       margin: 2,
       color: { light: transparent ? '#0000' : '#ffffff' },
@@ -747,10 +758,10 @@ function ShareTab({ defaultUrl, name }: { defaultUrl: string; name: string }) {
     return () => {
       active = false;
     };
-  }, [text, transparent]);
+  }, [qrText, transparent]);
 
   return (
-    <div className='grid max-w-md gap-4'>
+    <div className='grid w-full max-w-md gap-4'>
       <div className='grid gap-2'>
         <Label htmlFor='share-url'>Link</Label>
         <div className='flex gap-2'>
