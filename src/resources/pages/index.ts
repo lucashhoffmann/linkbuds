@@ -6,6 +6,7 @@ export {
   AccountSettingsPage,
   DomainSettingsPage,
   FooterSettingsPage,
+  HistorySettingsPage,
   SettingsPage,
 } from './settings/settings.page';
 export { TeamPage } from './team/team.page';

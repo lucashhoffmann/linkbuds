@@ -56,6 +56,7 @@ import {
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { printElement } from '@/shared/utils/print-element.util';
 import { downloadCsv } from '@/app/modules/link-pages/utils/csv.util';
 import {
   dateInputValue,
@@ -209,28 +210,12 @@ export function AnalyticsTab({ linkPage }: { linkPage: LinkPageDetail }) {
 
   /** Print only the panel in a clean window; the user saves it as PDF. */
   function exportPdf() {
-    const win = window.open('', '_blank');
-    if (!win || !printRef.current) {
+    if (
+      !printRef.current ||
+      !printElement(printRef.current, `Análises - ${linkPage.name}`)
+    ) {
       toast.error('Permita pop-ups para exportar o PDF.');
-      return;
     }
-    const styles = [
-      ...document.querySelectorAll('style, link[rel="stylesheet"]'),
-    ]
-      .map((node) =>
-        node instanceof HTMLLinkElement
-          ? `<link rel="stylesheet" href="${node.href}">`
-          : node.outerHTML,
-      )
-      .join('');
-    win.document.write(
-      `<!doctype html><html class="${document.documentElement.className}"><head><title>Análises - ${linkPage.name}</title>${styles}</head><body class="p-6">${printRef.current.outerHTML}</body></html>`,
-    );
-    win.document.close();
-    win.addEventListener('load', () => {
-      win.print();
-      win.close();
-    });
   }
 
   /** One sheet, long format (Seção; Item; Valor): opens in Excel as-is. */

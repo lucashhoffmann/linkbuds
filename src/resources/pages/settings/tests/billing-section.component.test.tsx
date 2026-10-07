@@ -107,7 +107,6 @@ const ledgerEntry = {
   payment: {
     status: 'PAID',
     card: { brand: 'Mastercard', last4: '8829' },
-    receiptUrl: 'https://asaas.test/comprovantes/1',
   },
 };
 
@@ -141,40 +140,6 @@ describe('BillingSection', () => {
       (id: string | null) =>
         id ? { data: ledgerEntry, isLoading: false } : { isLoading: false },
     );
-  });
-
-  it('opens the receipt of a history entry with fee and time', () => {
-    mocks.useBillingOverviewUseCase.mockReturnValue({
-      data: overview({
-        ledger: [
-          {
-            id: 'entry-1',
-            type: 'PAYMENT',
-            amountCents: 168784,
-            currency: 'BRL',
-            description: 'Pagamento recebido',
-            createdAt: '2026-10-06T04:49:00.000Z',
-          },
-        ],
-      }),
-    });
-    renderSection();
-
-    fireEvent.click(screen.getByRole('button', { name: /Pagamento recebido/ }));
-
-    const dialog = screen.getByRole('dialog');
-    expect(dialog).toHaveTextContent('Agência · anual');
-    expect(dialog).toHaveTextContent(/Valor do plano\s*R\$\s1\.620,00/);
-    expect(dialog).toHaveTextContent(
-      /Taxa de processamento do cartão\s*R\$\s67,84/,
-    );
-    expect(dialog).toHaveTextContent(
-      /Mastercard •••• 8829 · 12x de R\$\s140,65/,
-    );
-    expect(dialog).toHaveTextContent(/06\/10\/2026 às \d{2}:49/);
-    expect(
-      screen.getByRole('link', { name: /Ver comprovante/ }),
-    ).toHaveAttribute('href', 'https://asaas.test/comprovantes/1');
   });
 
   it('shows prices with fees by cycle and opens the payment form', () => {

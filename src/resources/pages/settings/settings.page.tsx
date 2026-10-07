@@ -7,12 +7,14 @@ import { useCompanyDomainUseCase } from '@/app/modules/link-pages/use-cases/use-
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 import { AccountSection } from './components/account-section.component';
+import { BillingHistorySection } from './components/billing-history-section.component';
 import { BillingSection } from './components/billing-section.component';
 import { DomainPanel } from './components/domain-panel.component';
 import { FooterDefaultSection } from './components/footer-default-section.component';
 
 const SETTINGS_TABS = [
   { label: 'Plano', to: routes.settings },
+  { label: 'Histórico', to: routes.settingsHistory },
   { label: 'Domínio', to: routes.settingsDomain },
   { label: 'Rodapé', to: routes.settingsFooter },
   { label: 'Conta', to: routes.settingsAccount },
@@ -57,6 +59,14 @@ export function SettingsPage() {
   return (
     <SettingsLayout>
       <BillingSection />
+    </SettingsLayout>
+  );
+}
+
+export function HistorySettingsPage() {
+  return (
+    <SettingsLayout>
+      <BillingHistorySection />
     </SettingsLayout>
   );
 }

@@ -8,6 +8,7 @@ export const routes = {
   home: '/home',
   team: '/team',
   settings: '/settings',
+  settingsHistory: '/settings/history',
   settingsDomain: '/settings/domain',
   settingsFooter: '/settings/footer',
   settingsAccount: '/settings/account',

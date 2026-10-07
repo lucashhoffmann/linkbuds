@@ -1,5 +1,5 @@
-import { Copy, ExternalLink, ReceiptText } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { Copy, Download, ReceiptText } from 'lucide-react';
+import { useRef, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import type { IBillingLedgerEntry } from '@/app/modules/billing/types/billing.types';
 import { useBillingLedgerEntryUseCase } from '@/app/modules/billing/use-cases/use-billing.use-case';
@@ -12,6 +12,7 @@ import {
 } from '@/resources/components/ui/dialog';
 import { Skeleton } from '@/resources/components/ui/skeleton';
 import { cn } from '@/shared/lib/utils';
+import { printElement } from '@/shared/utils/print-element.util';
 import { formatMoney as money } from './subscribe-dialog/payment-format.util';
 
 const TYPE_LABEL = {
@@ -94,6 +95,19 @@ export function LedgerEntryDialog({
 }) {
   const { data: entry, isLoading } = useBillingLedgerEntryUseCase(entryId);
   const status = entry?.payment ? STATUS[entry.payment.status] : null;
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const hasReceipt =
+    entry?.payment?.status === 'PAID' || entry?.payment?.status === 'REFUNDED';
+
+  /** Our own receipt: the dialog content printed as PDF, no gateway link. */
+  function downloadReceipt() {
+    if (
+      !receiptRef.current ||
+      !printElement(receiptRef.current, 'Comprovante LinkBuds')
+    ) {
+      toast.error('Permita pop-ups para baixar o comprovante.');
+    }
+  }
 
   return (
     <Dialog
@@ -116,89 +130,90 @@ export function LedgerEntryDialog({
           </div>
         ) : (
           <>
-            <div className='bg-muted/70 grid gap-1 p-6 pr-12 sm:rounded-t-lg'>
-              <div className='flex flex-wrap items-center gap-2'>
-                <ReceiptText className='text-muted-foreground size-4' />
-                <DialogTitle className='text-sm font-medium'>
-                  {TYPE_LABEL[entry.type]}
-                </DialogTitle>
-                {status && (
-                  <span
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-xs font-medium',
-                      status.className,
-                    )}
-                  >
-                    {status.label}
-                  </span>
-                )}
-              </div>
-              <p className='text-3xl font-semibold tracking-tight'>
-                {entry.type === 'REFUND' ? '− ' : ''}
-                {money(entry.amountCents)}
+            <div ref={receiptRef}>
+              <p className='hidden pb-4 text-sm font-semibold print:block'>
+                LinkBuds · Comprovante de pagamento
               </p>
-              <DialogDescription>{dateTime(entry.createdAt)}</DialogDescription>
+              <div className='bg-muted/70 grid gap-1 p-6 pr-12 sm:rounded-t-lg'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <ReceiptText className='text-muted-foreground size-4' />
+                  <DialogTitle className='text-sm font-medium'>
+                    {TYPE_LABEL[entry.type]}
+                  </DialogTitle>
+                  {status && (
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-xs font-medium',
+                        status.className,
+                      )}
+                    >
+                      {status.label}
+                    </span>
+                  )}
+                </div>
+                <p className='text-3xl font-semibold tracking-tight'>
+                  {entry.type === 'REFUND' ? '− ' : ''}
+                  {money(entry.amountCents)}
+                </p>
+                <DialogDescription>
+                  {dateTime(entry.createdAt)}
+                </DialogDescription>
+              </div>
+
+              <dl className='divide-y px-6 py-2'>
+                <Row label='Descrição'>{entry.description}</Row>
+                {entry.plan && (
+                  <Row label='Plano'>
+                    {entry.plan.name}
+                    {entry.billingCycle &&
+                      ` · ${entry.billingCycle === 'YEARLY' ? 'anual' : 'mensal'}`}
+                  </Row>
+                )}
+                {entry.breakdown && (
+                  <>
+                    <Row label='Valor do plano'>
+                      {money(entry.breakdown.planCents)}
+                    </Row>
+                    <Row label='Taxa de processamento do cartão'>
+                      {money(entry.breakdown.feeCents)}
+                    </Row>
+                    <Row
+                      label='Total'
+                      strong
+                    >
+                      {money(entry.amountCents)}
+                    </Row>
+                  </>
+                )}
+                {entry.type !== 'CREDIT' && (
+                  <Row label='Forma de pagamento'>{paymentMethod(entry)}</Row>
+                )}
+                <Row label='Data e hora'>{dateTime(entry.createdAt)}</Row>
+                {entry.transactionId && (
+                  <Row label='ID da transação'>
+                    <button
+                      type='button'
+                      className='hover:text-foreground inline-flex max-w-full items-center gap-1.5 font-mono text-xs'
+                      onClick={() => void copy(entry.transactionId!)}
+                      aria-label={`Copiar ID da transação ${entry.transactionId}`}
+                    >
+                      <span className='truncate'>{entry.transactionId}</span>
+                      <Copy className='size-3.5 shrink-0 print:hidden' />
+                    </button>
+                  </Row>
+                )}
+              </dl>
             </div>
 
-            <dl className='divide-y px-6 py-2'>
-              <Row label='Descrição'>{entry.description}</Row>
-              {entry.plan && (
-                <Row label='Plano'>
-                  {entry.plan.name}
-                  {entry.billingCycle &&
-                    ` · ${entry.billingCycle === 'YEARLY' ? 'anual' : 'mensal'}`}
-                </Row>
-              )}
-              {entry.breakdown && (
-                <>
-                  <Row label='Valor do plano'>
-                    {money(entry.breakdown.planCents)}
-                  </Row>
-                  <Row label='Taxa de processamento do cartão'>
-                    {money(entry.breakdown.feeCents)}
-                  </Row>
-                  <Row
-                    label='Total'
-                    strong
-                  >
-                    {money(entry.amountCents)}
-                  </Row>
-                </>
-              )}
-              {entry.type !== 'CREDIT' && (
-                <Row label='Forma de pagamento'>{paymentMethod(entry)}</Row>
-              )}
-              <Row label='Data e hora'>{dateTime(entry.createdAt)}</Row>
-              {entry.transactionId && (
-                <Row label='ID da transação'>
-                  <button
-                    type='button'
-                    className='hover:text-foreground inline-flex max-w-full items-center gap-1.5 font-mono text-xs'
-                    onClick={() => void copy(entry.transactionId!)}
-                    aria-label={`Copiar ID da transação ${entry.transactionId}`}
-                  >
-                    <span className='truncate'>{entry.transactionId}</span>
-                    <Copy className='size-3.5 shrink-0' />
-                  </button>
-                </Row>
-              )}
-            </dl>
-
-            {entry.payment?.receiptUrl && (
+            {hasReceipt && (
               <div className='px-6 pb-6'>
                 <Button
-                  asChild
                   variant='outline'
                   className='w-full rounded-full'
+                  onClick={downloadReceipt}
                 >
-                  <a
-                    href={entry.payment.receiptUrl}
-                    target='_blank'
-                    rel='noreferrer'
-                  >
-                    Ver comprovante
-                    <ExternalLink className='size-4' />
-                  </a>
+                  Baixar comprovante
+                  <Download className='size-4' />
                 </Button>
               </div>
             )}

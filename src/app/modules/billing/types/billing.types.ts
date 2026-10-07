@@ -99,6 +99,5 @@ export interface IBillingLedgerEntry {
   payment: {
     status: 'PAID' | 'PENDING' | 'REFUNDED' | 'FAILED';
     card: { brand: string; last4: string } | null;
-    receiptUrl: string | null;
   } | null;
 }

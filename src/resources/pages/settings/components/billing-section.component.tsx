@@ -1,5 +1,5 @@
 import { confirmAction } from '@/resources/components/base';
-import { Check, ChevronRight, Sparkles, Ticket } from 'lucide-react';
+import { Check, Sparkles, Ticket } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useSession } from '@/app/modules/auth/hooks';
 import type {
@@ -18,7 +18,6 @@ import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { cn } from '@/shared/lib/utils';
 import { formatMoney as money } from './subscribe-dialog/payment-format.util';
-import { LedgerEntryDialog } from './ledger-entry-dialog.component';
 import { SubscribeDialog } from './subscribe-dialog/subscribe-dialog.component';
 const date = (value: string | null) =>
   value ? new Date(value).toLocaleDateString('pt-BR') : '—';
@@ -30,13 +29,6 @@ const STATUS_LABEL = {
   CANCELED: 'Cancelada',
 } as const;
 
-const LEDGER_LABEL = {
-  CHARGE: 'Cobrança',
-  PAYMENT: 'Pagamento',
-  REFUND: 'Estorno',
-  CREDIT: 'Crédito',
-} as const;
-
 function Limit({ label, value }: { label: string; value: string }) {
   return (
     <div className='bg-background rounded-xl p-3'>
@@ -46,7 +38,7 @@ function Limit({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Plan, special conditions/coupons, subscription and billing history. */
+/** Plan, special conditions/coupons and subscription (history: BillingHistorySection). */
 export function BillingSection() {
   const { userAuthenticated } = useSession();
   const isOwner = userAuthenticated?.role === 'OWNER';
@@ -55,7 +47,6 @@ export function BillingSection() {
   const [cycle, setCycle] = useState<BillingCycle>('MONTHLY');
   const [coupon, setCoupon] = useState('');
   const [selected, setSelected] = useState<IBillingQuote | null>(null);
-  const [openEntry, setOpenEntry] = useState<string | null>(null);
   const quote = useBillingQuoteUseCase(isOwner);
   // Catalog copy (description, features) so the upgrade shows what it unlocks.
   const { pricingPlansCatalog } = useGetPricingPlansUseCase();
@@ -294,38 +285,6 @@ export function BillingSection() {
         </form>
       )}
 
-      {data.ledger.length > 0 && (
-        <div className='grid gap-1'>
-          <h3 className='text-sm font-medium'>Histórico</h3>
-          <ul className='divide-y text-sm'>
-            {data.ledger.map((entry) => (
-              <li key={entry.id}>
-                <button
-                  type='button'
-                  className='hover:bg-muted/60 focus-visible:ring-ring/50 -mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors outline-none focus-visible:ring-[3px]'
-                  onClick={() => setOpenEntry(entry.id)}
-                >
-                  <span className='text-muted-foreground hidden w-20 shrink-0 text-xs sm:inline'>
-                    {date(entry.createdAt)}
-                  </span>
-                  <span className='min-w-0 flex-1 truncate'>
-                    {LEDGER_LABEL[entry.type]} · {entry.description}
-                  </span>
-                  <span className='shrink-0 font-medium'>
-                    {money(entry.amountCents)}
-                  </span>
-                  <ChevronRight className='text-muted-foreground size-4 shrink-0' />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <LedgerEntryDialog
-        entryId={openEntry}
-        onClose={() => setOpenEntry(null)}
-      />
       <SubscribeDialog
         quote={selected}
         onClose={() => setSelected(null)}

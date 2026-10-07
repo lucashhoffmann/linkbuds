@@ -18,6 +18,7 @@ import {
   SettingsPage,
   DomainSettingsPage,
   FooterSettingsPage,
+  HistorySettingsPage,
   AccountSettingsPage,
   TeamPage,
   TermsPage,
@@ -131,6 +132,11 @@ export function Router() {
             <Route
               path={routes.settings}
               element={<SettingsPage />}
+            />
+
+            <Route
+              path={routes.settingsHistory}
+              element={<HistorySettingsPage />}
             />
 
             <Route
