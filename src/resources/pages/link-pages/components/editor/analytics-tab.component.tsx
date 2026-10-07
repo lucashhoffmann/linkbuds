@@ -815,7 +815,7 @@ export function TimeseriesBars({
 export function LockedAnalyticsLabel() {
   return (
     <p className='text-muted-foreground text-sm'>
-      Disponível nos planos Agência e Personalizado.
+      Disponível em planos superiores. Faça upgrade para liberar.
     </p>
   );
 }

@@ -740,8 +740,7 @@ function ShareTab({ defaultUrl, name }: { defaultUrl: string; name: string }) {
   const [dataUrl, setDataUrl] = useState('');
   const text = value.trim();
   // Own page link gets tagged so scans show up as "qrcode" under Análises → origens.
-  const qrText =
-    text === defaultUrl ? `${defaultUrl}?utm_source=qrcode` : text;
+  const qrText = text === defaultUrl ? `${defaultUrl}?utm_source=qrcode` : text;
   // Stale while the next one renders; empty input shows nothing.
   const qr = text ? dataUrl : '';
 
@@ -782,7 +781,10 @@ function ShareTab({ defaultUrl, name }: { defaultUrl: string; name: string }) {
         </div>
       </div>
       <label className='flex items-center gap-2 text-sm'>
-        <Switch checked={transparent} onCheckedChange={setTransparent} />
+        <Switch
+          checked={transparent}
+          onCheckedChange={setTransparent}
+        />
         Fundo transparente
       </label>
       {qr ? (
@@ -856,7 +858,7 @@ function PostsTab({
   if (posts.length === 0) {
     return (
       <p className='text-muted-foreground text-sm'>
-        Nenhum link de post ainda.
+        Nenhum link de post ainda. Use “Novo link de post" acima.
       </p>
     );
   }

@@ -18,7 +18,7 @@ describe('SubPagesPromoDialog', () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it('alternates post and form steps on its own', () => {
+  it('cycles post, form and questionnaire steps on its own', () => {
     render(<SubPagesPromoDialog />);
     expect(screen.getByText('Um link para cada post')).toBeInTheDocument();
 
@@ -26,6 +26,9 @@ describe('SubPagesPromoDialog', () => {
     expect(
       screen.getByText('Formulários que captam contatos'),
     ).toBeInTheDocument();
+
+    act(() => vi.advanceTimersByTime(STEP_MS));
+    expect(screen.getByText('Questionários com nota')).toBeInTheDocument();
 
     act(() => vi.advanceTimersByTime(STEP_MS));
     expect(screen.getByText('Um link para cada post')).toBeInTheDocument();

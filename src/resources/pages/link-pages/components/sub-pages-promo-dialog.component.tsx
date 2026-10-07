@@ -2,6 +2,7 @@ import {
   ClipboardList,
   ImageIcon,
   Link2,
+  ListChecks,
   Lock,
   MessageCircle,
   Sparkles,
@@ -24,7 +25,8 @@ import { cn } from '@/shared/lib/utils';
 /** Long enough to read the step text and look at the mockup. */
 export const STEP_MS = 6000;
 
-const SEEN_KEY = 'lb-subpages-promo';
+// v2: re-shows the dialog to everyone who saw it before the questionnaire step.
+const SEEN_KEY = 'lb-subpages-promo-v2';
 
 const steps = [
   {
@@ -42,6 +44,14 @@ const steps = [
     title: 'Formulários que captam contatos',
     description:
       'Monte campos como nome, email e telefone. Cada envio vira uma resposta no painel.',
+  },
+  {
+    icon: ListChecks,
+    label: 'Questionário',
+    path: 'cliente/quiz',
+    title: 'Questionários com nota',
+    description:
+      'Uma pergunta por tela, com pontos por opção. Cada resposta chega com a nota no painel.',
   },
 ];
 
@@ -79,8 +89,39 @@ function FormMockup() {
   );
 }
 
+function QuizMockup() {
+  return (
+    <>
+      <span className='text-muted-foreground text-[10px]'>Pergunta 2 de 5</span>
+      <span className='bg-muted h-1 w-full overflow-hidden rounded-full'>
+        <span className='bg-primary block h-full w-2/5' />
+      </span>
+      <span className='bg-muted mt-1 h-2 w-32 rounded-full' />
+      {['Opção A', 'Opção B', 'Opção C'].map((option, i) => (
+        <span
+          key={option}
+          className={cn(
+            'flex h-6 w-full items-center rounded-lg border px-2 text-[10px]',
+            i === 1
+              ? 'border-primary text-primary font-medium'
+              : 'text-muted-foreground',
+          )}
+        >
+          {option}
+        </span>
+      ))}
+      <span className='bg-primary text-primary-foreground motion-safe:animate-lb-tap flex h-7 w-full items-center justify-center rounded-lg text-[10px] font-medium'>
+        Próxima
+      </span>
+    </>
+  );
+}
+
+const mockups = [PostMockup, FormMockup, QuizMockup];
+
 /** Mini browser with the current step's sub-page. */
 function SubPageMockup({ step }: { step: number }) {
+  const Mockup = mockups[step];
   return (
     <div
       aria-hidden
@@ -107,15 +148,15 @@ function SubPageMockup({ step }: { step: number }) {
         key={step}
         className='motion-safe:animate-lb-pop flex h-48 flex-col items-center gap-2 px-6 pt-4 pb-3'
       >
-        {step === 0 ? <PostMockup /> : <FormMockup />}
+        <Mockup />
       </div>
     </div>
   );
 }
 
 /**
- * Shown once on Páginas: explains post links and forms, alternating the two
- * steps on a timer until the user picks one.
+ * Shown once on Páginas: explains post links, forms and questionnaires,
+ * cycling the steps on a timer until the user picks one.
  */
 export function SubPagesPromoDialog() {
   const { company } = useSession();
@@ -155,7 +196,7 @@ export function SubPagesPromoDialog() {
         <div
           role='tablist'
           aria-label='Recursos'
-          className='grid grid-cols-2 gap-2'
+          className='grid grid-cols-3 gap-2'
         >
           {steps.map((s, i) => (
             <button
@@ -200,7 +241,7 @@ export function SubPagesPromoDialog() {
           <DialogDescription>{current.description}</DialogDescription>
         </div>
         <p className='text-muted-foreground text-xs'>
-          Selecione um cliente e use os botões de post ou formulário para criar.
+          Selecione um cliente e use os botões de post ou formulário para criar. O questionário é um modo do formulário.
         </p>
         <div className='flex justify-end'>
           <Button onClick={close}>Entendi</Button>
