@@ -15,11 +15,11 @@ const DOMAIN_STATUS: Record<
 > = {
   PENDING: {
     label: 'Aguardando DNS',
-    help: 'Criou os dois registros abaixo? Clique em Verificar. Se o DNS ainda estiver propagando, tente de novo em alguns minutos.',
+    help: 'Crie os dois registros abaixo. Verificamos sozinhos a cada 2 minutos e o status muda aqui; para checar na hora, clique em Verificar.',
   },
   VERIFIED: {
     label: 'Falta o apontamento',
-    help: 'Posse confirmada. Crie o registro de apontamento (CNAME) e clique em Verificar.',
+    help: 'Posse confirmada. Crie o registro de apontamento (CNAME); verificamos sozinhos a cada 2 minutos ou clique em Verificar.',
   },
   ACTIVE: {
     label: 'Ativo',
@@ -97,8 +97,8 @@ export function DomainPanel({
         </p>
         <div className='bg-muted/40 mt-3 grid gap-3 rounded-md p-3'>
           <p className='text-muted-foreground'>
-            Crie os dois registros no provedor do domínio e clique em Verificar.
-            A propagação do DNS pode levar alguns minutos.
+            Crie os dois registros no provedor do domínio. A propagação do DNS
+            pode levar alguns minutos; checamos automaticamente até 72h.
           </p>
           {currentDomain.dnsRecords.map((record) => (
             <div

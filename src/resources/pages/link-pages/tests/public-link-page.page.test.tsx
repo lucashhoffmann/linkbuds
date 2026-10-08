@@ -10,6 +10,11 @@ import {
   isDomainHomeUnavailable,
 } from '../public-link-page.page';
 
+const customDomain = vi.hoisted(() => ({ value: false }));
+vi.mock('@/app/modules/link-pages/utils/custom-domain.util', () => ({
+  isCustomDomain: () => customDomain.value,
+}));
+
 const publicPage: PublicLinkPage = {
   id: 'page-id',
   name: 'Cliente Roma',
@@ -101,6 +106,7 @@ describe('PublicLinkPagePage', () => {
       .forEach((element) => element.remove());
     window.localStorage.clear();
     window.sessionStorage.clear();
+    customDomain.value = false;
     // App host: `_home` (custom-domain root) does not exist.
     vi.spyOn(linkPagesService, 'getPublic').mockImplementation((slug) =>
       slug === '_home'
@@ -196,6 +202,7 @@ describe('PublicLinkPagePage', () => {
 
   it('moves the agency page to the root of its custom domain', async () => {
     // Custom domain: `_home` resolves to this same page.
+    customDomain.value = true;
     vi.spyOn(linkPagesService, 'getPublic').mockResolvedValue(publicPage);
     vi.spyOn(linkPagesService, 'trackEvent').mockResolvedValue(undefined);
     vi.spyOn(linkPagesService, 'trackPresence').mockResolvedValue({
@@ -222,5 +229,21 @@ describe('PublicLinkPagePage', () => {
       false,
     );
     expect(isDomainHomeUnavailable(new Error('network'))).toBe(false);
+  });
+
+  it('hides the LinkBuds sign-up pitch on a customer domain', async () => {
+    customDomain.value = true;
+    vi.spyOn(linkPagesService, 'getPublic').mockRejectedValue(
+      new Error('not found'),
+    );
+
+    renderPublicPage();
+
+    expect(
+      await screen.findByText('LinkBud não encontrado'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Criar meu LinkBud' }),
+    ).not.toBeInTheDocument();
   });
 });

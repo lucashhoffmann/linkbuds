@@ -32,6 +32,7 @@ import {
   isDomainHomeUnavailable,
 } from '@/resources/pages/link-pages/public-link-page.page';
 import { useSession } from '@/app/modules/auth/hooks';
+import { isCustomDomain } from '@/app/modules/link-pages/utils/custom-domain.util';
 import { useGetPublicLinkPageUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 
 /**
@@ -59,7 +60,42 @@ function InitialRedirect() {
   );
 }
 
+/** Customer domains serve only the public pages; app routes go to `/`. */
+function CustomDomainRouter() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path={routes.initial}
+          element={<PublicLinkPagePage slug={DOMAIN_HOME_SLUG} />}
+        />
+        <Route
+          path={routes.publicLinkPage()}
+          element={<PublicLinkPagePage />}
+        />
+        <Route
+          path={routes.publicPostPage}
+          element={<PublicLinkPagePage />}
+        />
+        <Route
+          path='*'
+          element={
+            <Navigate
+              to={routes.initial}
+              replace
+            />
+          }
+        />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
 export function Router() {
+  if (isCustomDomain()) {
+    return <CustomDomainRouter />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>

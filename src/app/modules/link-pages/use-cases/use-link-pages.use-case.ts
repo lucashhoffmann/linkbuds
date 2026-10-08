@@ -293,6 +293,9 @@ export function useCompanyDomainUseCase(enabled = true) {
     queryFn: () => linkPagesService.getDomain(),
     enabled,
     retry: false,
+    // The API re-checks DNS every 2 min; refresh the status until it is active.
+    refetchInterval: (query) =>
+      query.state.data && query.state.data.status !== 'ACTIVE' ? 30_000 : false,
   });
   const create = useMutationCache({
     mutationFn: (hostname: string) => linkPagesService.createDomain(hostname),

@@ -5,4 +5,5 @@ export const env: IEnv = {
   VITE_APP_URL_ROOT:
     import.meta.env.VITE_APP_URL_ROOT || 'http://localhost:3030',
   GOOGLE_AUTH_ENABLED: import.meta.env.VITE_GOOGLE_AUTH_ENABLED,
+  APP_HOST: import.meta.env.VITE_APP_HOST,
 };

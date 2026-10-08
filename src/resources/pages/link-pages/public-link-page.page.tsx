@@ -3,6 +3,7 @@ import { Asterisk } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, Link as RouterLink, useParams } from 'react-router-dom';
 import linkPagesService from '@/app/modules/link-pages/service/link-pages.service';
+import { isCustomDomain } from '@/app/modules/link-pages/utils/custom-domain.util';
 import { useGetPublicLinkPageUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
   AnalyticsEventType,
@@ -135,10 +136,10 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   const [sessionId] = useState(() => getSessionId());
   const { data, isError, isLoading } = useGetPublicLinkPageUseCase(slug);
   // On a custom domain the agency page lives at `/`, not `/p/:slug`.
-  // ponytail: one extra (cached) request per bio view; 404 on the app host.
+  const onCustomDomain = isCustomDomain();
   const isBioRoute = !slugProp && !params.postSlug;
   const domainHome = useGetPublicLinkPageUseCase(
-    isBioRoute && data ? DOMAIN_HOME_SLUG : undefined,
+    onCustomDomain && isBioRoute && data ? DOMAIN_HOME_SLUG : undefined,
   );
   usePublicLinkPageSeo(data, isError || (!isLoading && !data));
 
@@ -214,27 +215,30 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
           <p className='mt-2 text-sm text-slate-600'>
             A página pode estar inativa ou o endereço não existe.
           </p>
-          <div className='mt-6 grid gap-3 border-t pt-6'>
-            <span className='mx-auto flex items-center gap-1.5 text-sm font-semibold'>
-              <Asterisk className='size-4' />
-              LinkBuds
-            </span>
-            <p className='text-sm text-slate-600'>
-              Crie a sua página de links em minutos, com a cara da sua marca.
-            </p>
-            <span className='mx-auto flex max-w-full items-center rounded-full px-3 py-1 text-xs ring-1 ring-slate-300'>
-              <Swap
-                from='linkbuds.com/p/sua-marca'
-                to='links.suamarca.com.br'
-              />
-            </span>
-            <RouterLink
-              to={routes.register}
-              className='rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800'
-            >
-              Criar meu LinkBud
-            </RouterLink>
-          </div>
+          {/* The visitor is on the agency's domain: no LinkBuds sign-up pitch. */}
+          {!onCustomDomain && (
+            <div className='mt-6 grid gap-3 border-t pt-6'>
+              <span className='mx-auto flex items-center gap-1.5 text-sm font-semibold'>
+                <Asterisk className='size-4' />
+                LinkBuds
+              </span>
+              <p className='text-sm text-slate-600'>
+                Crie a sua página de links em minutos, com a cara da sua marca.
+              </p>
+              <span className='mx-auto flex max-w-full items-center rounded-full px-3 py-1 text-xs ring-1 ring-slate-300'>
+                <Swap
+                  from='linkbuds.com/p/sua-marca'
+                  to='links.suamarca.com.br'
+                />
+              </span>
+              <RouterLink
+                to={routes.register}
+                className='rounded-lg bg-slate-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800'
+              >
+                Criar meu LinkBud
+              </RouterLink>
+            </div>
+          )}
         </div>
       </main>
     );

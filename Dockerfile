@@ -3,6 +3,8 @@ FROM node:22-alpine AS build
 
 # Argumentos de Build para o Vite
 ARG VITE_APP_URL_ROOT
+# App hostname (no scheme). Any other host is served as a customer domain.
+ARG VITE_APP_HOST
 ARG VITE_ENV=production
 ARG VITE_GOOGLE_AUTH_ENABLED=false
 
@@ -20,11 +22,14 @@ COPY . .
 
 # Injeta as variáveis de ambiente para o build do Vite
 ENV VITE_APP_URL_ROOT=$VITE_APP_URL_ROOT
+ENV VITE_APP_HOST=$VITE_APP_HOST
 ENV VITE_ENV=$VITE_ENV
 ENV VITE_GOOGLE_AUTH_ENABLED=$VITE_GOOGLE_AUTH_ENABLED
 
 # Sem a URL da API o bundle cai em http://localhost:3030 (env.config.ts)
 RUN test -n "$VITE_APP_URL_ROOT" || (echo "VITE_APP_URL_ROOT is required" && exit 1)
+# Without it customer domains would also serve /login and the rest of the app
+RUN test -n "$VITE_APP_HOST" || (echo "VITE_APP_HOST is required" && exit 1)
 RUN pnpm run build
 
 # Serve estático
