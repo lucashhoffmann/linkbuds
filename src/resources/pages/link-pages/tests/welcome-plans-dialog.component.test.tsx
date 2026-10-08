@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import billingService from '@/app/modules/billing/service/billing.service';
 import pricingPlansService from '@/app/modules/pricing-plans/service/pricing-plans.service';
 import type { PricingPlan } from '@/app/modules/pricing-plans/types/pricing-plans.types';
-import { WelcomePlansDialog } from '../components/welcome-plans-dialog.component';
+import { WelcomePlansDialog } from '../components/welcome-plans-dialog/welcome-plans-dialog.component';
 
 const mocks = vi.hoisted(() => ({ useSession: vi.fn() }));
 

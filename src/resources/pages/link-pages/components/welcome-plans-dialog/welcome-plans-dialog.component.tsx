@@ -1,14 +1,11 @@
 import { ArrowRight } from 'lucide-react';
-import { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useSession } from '@/app/modules/auth/hooks';
-import type { IBillingQuote } from '@/app/modules/billing/types/billing.types';
-import { useBillingQuoteUseCase } from '@/app/modules/billing/use-cases/use-billing.use-case';
 import { PricingPlansContent } from '@/resources/pages/auth/components/pricing-plans-dialog/pricing-plans-dialog.component';
 import { SubscribeDialog } from '@/resources/pages/settings/components/subscribe-dialog/subscribe-dialog.component';
 import { Button } from '@/resources/components/ui/button';
 import { Dialog, DialogContent } from '@/resources/components/ui/dialog';
 import { routes } from '@/shared/constants/router.constants';
+import { useWelcomePlansDialog } from './use-welcome-plans-dialog.component';
 
 interface IWelcomePlansDialogProps {
   onClose: () => void;
@@ -16,13 +13,15 @@ interface IWelcomePlansDialogProps {
 
 /** First access after sign-up: everyone starts on Grátis, so pitch the plans once. */
 export function WelcomePlansDialog({ onClose }: IWelcomePlansDialogProps) {
-  const { company, userAuthenticated } = useSession();
-  const planCode = company?.entitlements.planCode;
-  const firstName = userAuthenticated?.name.split(' ')[0];
-  const isOwner = userAuthenticated?.role === 'OWNER';
-  // Charged prices (card fee included): what the checkout needs.
-  const quote = useBillingQuoteUseCase(isOwner);
-  const [selected, setSelected] = useState<IBillingQuote | null>(null);
+  const {
+    title,
+    currentPlanCode,
+    selected,
+    setSelected,
+    checkoutFor,
+    closeCheckout,
+    onQuoteChanged,
+  } = useWelcomePlansDialog(onClose);
 
   return (
     <>
@@ -32,12 +31,10 @@ export function WelcomePlansDialog({ onClose }: IWelcomePlansDialogProps) {
       >
         <DialogContent className='max-h-[calc(100dvh-1rem)] overflow-hidden p-0 sm:max-w-5xl lg:max-w-6xl xl:max-w-7xl'>
           <PricingPlansContent
-            title={
-              firstName ? `Bem-vindo, ${firstName}!` : 'Bem-vindo ao LinkBuds!'
-            }
+            title={title}
             description='Sua conta começa no plano Grátis. Faça upgrade quando quiser para atender mais clientes, liberar mais formulários e métricas completas.'
             renderAction={(plan, billingCycle) => {
-              if (plan.code === planCode) {
+              if (plan.code === currentPlanCode) {
                 return (
                   <Button
                     variant='outline'
@@ -49,11 +46,7 @@ export function WelcomePlansDialog({ onClose }: IWelcomePlansDialogProps) {
                 );
               }
 
-              const cycle = billingCycle === 'yearly' ? 'YEARLY' : 'MONTHLY';
-              const checkout = quote.data?.quotes.find(
-                (item) =>
-                  item.planCode === plan.code && item.billingCycle === cycle,
-              );
+              const checkout = checkoutFor(plan.code, billingCycle);
 
               if (checkout) {
                 return (
@@ -89,14 +82,8 @@ export function WelcomePlansDialog({ onClose }: IWelcomePlansDialogProps) {
 
       <SubscribeDialog
         quote={selected}
-        onClose={() => {
-          setSelected(null);
-          onClose();
-        }}
-        onQuoteChanged={() => {
-          setSelected(null);
-          void quote.refetch();
-        }}
+        onClose={closeCheckout}
+        onQuoteChanged={onQuoteChanged}
       />
     </>
   );

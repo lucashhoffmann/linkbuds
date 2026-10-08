@@ -203,6 +203,42 @@ Regras adicionais:
   mover para `resources/components/base`
 - se ele for um primitive visual generico, mover para `resources/components/ui`
 
+### O que vai para o hook
+
+Sinal de que o componente ja pede pasta + hook (qualquer um basta):
+
+- `useState`, `useRef`, `useEffect` ou `useMemo` proprios
+- chamada de use-case/mutation (`use*UseCase`, `use*Mutations`) ou `useSession`
+- handlers com mais de uma linha (`submit`, `confirmAction` + mutate, validacao)
+- derivacoes de dados (filtros, `find`, totais, mensagens montadas)
+
+O hook (`use-<nome>.component.ts`, sem JSX) devolve valores prontos e handlers;
+o componente so desestrutura e renderiza. Constantes e funcoes puras usadas so
+pela logica (ex.: `validate`, estado inicial do formulario) moram no hook.
+
+```text
+billing-section/
+├── billing-section.component.tsx      -> JSX + subcomponentes visuais
+└── use-billing-section.component.ts   -> estado, queries, mutations, handlers
+```
+
+Referencias no codigo: `settings/components/billing-section`,
+`settings/components/subscribe-dialog`,
+`link-pages/components/welcome-plans-dialog`.
+
+## Corrigir o legado ao mexer (obrigatorio)
+
+Muitos componentes atuais ainda misturam logica e renderizacao num arquivo so.
+Nao e preciso migrar tudo de uma vez, mas:
+
+- **todo componente novo** ja nasce no padrao (arquivo direto sem logica,
+  pasta + hook com logica)
+- **ao alterar um componente fora do padrao**, migrar ele na mesma mudanca:
+  criar a pasta, mover o arquivo, extrair o hook e atualizar imports e testes
+- a migracao nao muda comportamento: os testes existentes devem passar sem
+  alteracao alem do caminho de import
+- ao revisar codigo, componente tocado e nao migrado e motivo de ajuste
+
 ## Boas praticas
 
 - novas regras de negocio entram em `app/modules/<feature>`
@@ -236,3 +272,4 @@ padrao para novas implementacoes:
 - nomes em `kebab-case` com sufixos claros
 - regra local de componente: arquivo direto sem logica, pasta com hook quando
   houver logica propria
+- mexeu em componente fora do padrao: migra na mesma mudanca

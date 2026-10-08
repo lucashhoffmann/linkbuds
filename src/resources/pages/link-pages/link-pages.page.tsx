@@ -60,7 +60,7 @@ import {
 import { FormsTab, ResponsesTab } from './components/forms-tabs.component';
 import { IntegrationsPanel } from './components/integrations-panel.component';
 import { SubPagesPromoDialog } from './components/sub-pages-promo-dialog.component';
-import { WelcomePlansDialog } from './components/welcome-plans-dialog.component';
+import { WelcomePlansDialog } from './components/welcome-plans-dialog/welcome-plans-dialog.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
   socialPlatformIcons,
