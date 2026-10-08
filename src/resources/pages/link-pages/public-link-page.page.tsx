@@ -210,14 +210,14 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   if (isError || !data) {
     return (
       <main className='flex min-h-dvh items-center justify-center bg-slate-100 p-5'>
-        <div className='w-full max-w-sm rounded-xl border bg-white p-6 text-center shadow-sm'>
+        <div className='w-full max-w-sm rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-900 shadow-sm'>
           <h1 className='font-semibold'>LinkBud não encontrado</h1>
           <p className='mt-2 text-sm text-slate-600'>
             A página pode estar inativa ou o endereço não existe.
           </p>
           {/* The visitor is on the agency's domain: no LinkBuds sign-up pitch. */}
           {!onCustomDomain && (
-            <div className='mt-6 grid gap-3 border-t pt-6'>
+            <div className='mt-6 grid gap-3 border-t border-slate-200 pt-6'>
               <span className='mx-auto flex items-center gap-1.5 text-sm font-semibold'>
                 <Asterisk className='size-4' />
                 LinkBuds
