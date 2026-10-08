@@ -9,6 +9,7 @@ ARG VITE_GOOGLE_AUTH_ENABLED=false
 # Enable pnpm
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV CI=true
 RUN corepack enable
 
 WORKDIR /app
@@ -22,6 +23,8 @@ ENV VITE_APP_URL_ROOT=$VITE_APP_URL_ROOT
 ENV VITE_ENV=$VITE_ENV
 ENV VITE_GOOGLE_AUTH_ENABLED=$VITE_GOOGLE_AUTH_ENABLED
 
+# Sem a URL da API o bundle cai em http://localhost:3030 (env.config.ts)
+RUN test -n "$VITE_APP_URL_ROOT" || (echo "VITE_APP_URL_ROOT is required" && exit 1)
 RUN pnpm run build
 
 # Serve estático

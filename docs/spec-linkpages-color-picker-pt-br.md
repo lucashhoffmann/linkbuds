@@ -29,7 +29,7 @@ baseline_commit: '64bb065fe7386f273443e76cb0a708a6b0e039d8'
 | Scenario       | Input / State                               | Expected Output / Behavior                                        | Error Handling                                 |
 | -------------- | ------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------- |
 | Escolha de cor | Usuário altera cor do fundo, texto ou borda | Componente emite HEX válido em maiúsculas e a prévia é atualizada | Entrada HEX inválida não substitui a cor atual |
-| Página pública | Rodapé LinksBuds visível                    | Ações auxiliares aparecem em PT-BR                                | N/A                                            |
+| Página pública | Rodapé LinkBuds visível                    | Ações auxiliares aparecem em PT-BR                                | N/A                                            |
 
 </frozen-after-approval>
 
@@ -52,7 +52,7 @@ baseline_commit: '64bb065fe7386f273443e76cb0a708a6b0e039d8'
 **Acceptance Criteria:**
 
 - Given uma LinkPage em edição, when a pessoa escolhe uma cor, then a prévia e a persistência recebem HEX opaco em maiúsculas.
-- Given uma LinkPage pública com rodapé LinksBuds, when a visitante a abre, then vê “Denunciar · Privacidade” e “Mais do LinksBuds”.
+- Given uma LinkPage pública com rodapé LinkBuds, when a visitante a abre, then vê “Denunciar · Privacidade” e “Mais do LinkBuds”.
 - Given o editor, when uma pessoa navega pelas seções, then não vê rótulos visíveis em inglês.
 
 ## Verification
