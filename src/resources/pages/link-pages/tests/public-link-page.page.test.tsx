@@ -231,7 +231,7 @@ describe('PublicLinkPagePage', () => {
     expect(isDomainHomeUnavailable(new Error('network'))).toBe(false);
   });
 
-  it('hides the LinkBuds sign-up pitch on a customer domain', async () => {
+  it('offers LinkBuds sign-up on a customer domain via the app host', async () => {
     customDomain.value = true;
     vi.spyOn(linkPagesService, 'getPublic').mockRejectedValue(
       new Error('not found'),
@@ -243,7 +243,10 @@ describe('PublicLinkPagePage', () => {
       await screen.findByText('LinkBud não encontrado'),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', { name: 'Criar meu LinkBud' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('link', { name: 'Criar meu LinkBud' }),
+    ).toHaveAttribute(
+      'href',
+      expect.stringMatching(/^https:\/\/.+\/register$/),
+    );
   });
 });
