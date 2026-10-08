@@ -15,6 +15,7 @@ import {
   formatDate as date,
   formatMoney as money,
 } from '../subscribe-dialog/payment-format.util';
+import type { IUpgradeResult } from '../upgrade-success-dialog.component';
 
 export function useBillingSection() {
   const { userAuthenticated } = useSession();
@@ -24,6 +25,7 @@ export function useBillingSection() {
   const [cycle, setCycle] = useState<BillingCycle>('MONTHLY');
   const [coupon, setCoupon] = useState('');
   const [selected, setSelected] = useState<IBillingQuote | null>(null);
+  const [upgraded, setUpgraded] = useState<IUpgradeResult | null>(null);
   const quote = useBillingQuoteUseCase(isOwner);
   // Catalog copy (description, features) so the upgrade shows what it unlocks.
   const { pricingPlansCatalog } = useGetPricingPlansUseCase();
@@ -69,10 +71,16 @@ export function useBillingSection() {
             : 'Fazer upgrade',
       })
     ) {
-      mutations.upgrade.mutate({
-        planCode: item.planCode,
-        expectedTotalCents: item.upgrade.totalCents,
-      });
+      mutations.upgrade.mutate(
+        {
+          planCode: item.planCode,
+          expectedTotalCents: item.upgrade.totalCents,
+        },
+        {
+          onSuccess: ({ chargedCents }) =>
+            setUpgraded({ planName: item.planName, chargedCents, renewal }),
+        },
+      );
     }
   }
 
@@ -117,6 +125,8 @@ export function useBillingSection() {
     setCoupon,
     selected,
     setSelected,
+    upgraded,
+    closeUpgraded: () => setUpgraded(null),
     upgradePending: mutations.upgrade.isPending,
     redeemPending: mutations.redeemCoupon.isPending,
     upgrade,

@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BillingSection } from '../components/billing-section/billing-section.component';
@@ -260,16 +266,26 @@ describe('BillingSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fazer upgrade' }));
 
     await waitFor(() =>
-      expect(mutations.upgrade.mutate).toHaveBeenCalledWith({
-        planCode: 'AGENCY',
-        expectedTotalCents: 4041,
-      }),
+      expect(mutations.upgrade.mutate).toHaveBeenCalledWith(
+        { planCode: 'AGENCY', expectedTotalCents: 4041 },
+        expect.any(Object),
+      ),
     );
     expect(mocks.confirmAction).toHaveBeenCalledWith(
       expect.objectContaining({
         confirmLabel: expect.stringMatching(/Pagar R\$\s40,41/),
       }),
     );
+
+    // Paid: the confirmation modal tells what was charged.
+    const [, options] = mutations.upgrade.mutate.mock.calls[0];
+    act(() => options.onSuccess({ planCode: 'AGENCY', chargedCents: 4041 }));
+    expect(
+      await screen.findByRole('heading', { name: 'Upgrade concluído' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Pagamento de R\$\s40,41 confirmado/),
+    ).toBeInTheDocument();
   });
 
   it('sends S/N when the address has no number', () => {

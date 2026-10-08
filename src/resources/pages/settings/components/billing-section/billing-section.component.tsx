@@ -9,6 +9,7 @@ import {
   formatMoney as money,
 } from '../subscribe-dialog/payment-format.util';
 import { SubscribeDialog } from '../subscribe-dialog/subscribe-dialog.component';
+import { UpgradeSuccessDialog } from '../upgrade-success-dialog.component';
 import { useBillingSection } from './use-billing-section.component';
 
 const STATUS_LABEL = {
@@ -45,6 +46,8 @@ export function BillingSection() {
     setCoupon,
     selected,
     setSelected,
+    upgraded,
+    closeUpgraded,
     upgradePending,
     redeemPending,
     upgrade,
@@ -271,6 +274,10 @@ export function BillingSection() {
         quote={selected}
         onClose={() => setSelected(null)}
         onQuoteChanged={onQuoteChanged}
+      />
+      <UpgradeSuccessDialog
+        result={upgraded}
+        onClose={closeUpgraded}
       />
     </section>
   );
