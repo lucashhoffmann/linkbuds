@@ -7,6 +7,7 @@ import { useCompanyDomainUseCase } from '@/app/modules/link-pages/use-cases/use-
 import { routes } from '@/shared/constants/router.constants';
 import { cn } from '@/shared/lib/utils';
 import { AccountSection } from './components/account-section.component';
+import { AgencyNameSection } from './components/agency-name-section/agency-name-section.component';
 import { BillingHistorySection } from './components/billing-history-section.component';
 import { BillingSection } from './components/billing-section/billing-section.component';
 import { DomainPanel } from './components/domain-panel.component';
@@ -102,6 +103,7 @@ export function DomainSettingsPage() {
 export function AccountSettingsPage() {
   return (
     <SettingsLayout>
+      <AgencyNameSection />
       <AccountSection />
     </SettingsLayout>
   );

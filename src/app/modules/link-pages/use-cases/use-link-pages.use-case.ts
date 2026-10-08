@@ -294,14 +294,17 @@ export function useCompanyDomainUseCase(enabled = true) {
   const create = useMutationCache({
     mutationFn: (hostname: string) => linkPagesService.createDomain(hostname),
     onSuccess: invalidate,
+    onError: axiosErrorHandler,
   });
   const verify = useMutationCache({
     mutationFn: (id: string) => linkPagesService.verifyDomain(id),
     onSuccess: invalidate,
+    onError: axiosErrorHandler,
   });
   const remove = useMutationCache({
     mutationFn: (id: string) => linkPagesService.deleteDomain(id),
     onSuccess: invalidate,
+    onError: axiosErrorHandler,
   });
 
   return { ...query, create, verify, remove };

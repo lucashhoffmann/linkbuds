@@ -1,6 +1,7 @@
 import { confirmAction } from '@/resources/components/base';
-import { Copy, Link2, Trash2, UserPlus } from 'lucide-react';
+import { Building2, Copy, Link2, Trash2, UserPlus } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSession } from '@/app/modules/auth/hooks';
 import {
@@ -10,6 +11,7 @@ import {
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
+import { routes } from '@/shared/constants/router.constants';
 
 async function copyLink(url: string) {
   try {
@@ -23,7 +25,7 @@ async function copyLink(url: string) {
 export function TeamPage() {
   const { data, isLoading } = useTeamUseCase();
   const mutations = useTeamMutations();
-  const { userAuthenticated } = useSession();
+  const { userAuthenticated, company } = useSession();
   const isOwner = userAuthenticated?.role === 'OWNER';
   const [email, setEmail] = useState('');
   const [lastLink, setLastLink] = useState<string | null>(null);
@@ -71,6 +73,20 @@ export function TeamPage() {
 
           {isOwner && (
             <section className='bg-card rounded-2xl border p-4'>
+              <div className='bg-muted mb-4 flex flex-col gap-2 rounded-xl p-3 text-sm sm:flex-row sm:items-center'>
+                <Building2 className='text-muted-foreground size-4 shrink-0' />
+                <p className='flex-1'>
+                  O convite mostra o nome da agência:{' '}
+                  <strong>{company?.name}</strong>. Confira antes de enviar.
+                </p>
+                <Button
+                  asChild
+                  variant='outline'
+                  size='sm'
+                >
+                  <Link to={routes.settingsAccount}>Alterar nome</Link>
+                </Button>
+              </div>
               <form
                 className='flex flex-col gap-2 sm:flex-row sm:items-end'
                 onSubmit={handleInvite}

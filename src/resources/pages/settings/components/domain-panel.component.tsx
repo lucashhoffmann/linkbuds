@@ -144,7 +144,9 @@ export function DomainPanel({
             placeholder='www.suaagencia.com'
           />
         </div>
-        <Button type='submit'>Salvar domínio</Button>
+        <Button type='submit' disabled={domain.create.isPending}>
+          Salvar domínio
+        </Button>
       </div>
     </form>
   );
