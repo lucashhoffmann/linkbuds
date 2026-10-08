@@ -14,6 +14,8 @@ import {
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { Select } from '@/resources/components/ui/select';
+import { cn } from '@/shared/lib/utils';
+import { Switch } from '@/resources/components/ui/switch';
 import {
   cardBrand,
   formatCardNumber,
@@ -45,6 +47,9 @@ const EMPTY = {
   addressNumber: '',
 };
 type Fields = typeof EMPTY;
+
+/** What the gateway expects for an address without a number. */
+const NO_NUMBER = 'S/N';
 
 function validate(fields: Fields) {
   const errors: Partial<Record<keyof Fields, string>> = {};
@@ -231,12 +236,16 @@ export function SubscribeDialog({
     >
       <DialogContent
         showCloseButton={!busy}
-        className='max-h-[calc(100dvh-1rem)] gap-0 overflow-y-auto p-0 sm:max-w-3xl'
+        className={cn(
+          'max-h-[calc(100dvh-1rem)] gap-0 overflow-y-auto p-0',
+          // The success screen is a short message: no room for the form layout.
+          done ? 'sm:max-w-md' : 'sm:max-w-3xl',
+        )}
         onInteractOutside={(event) => busy && event.preventDefault()}
         onEscapeKeyDown={(event) => busy && event.preventDefault()}
       >
         {quote && done && (
-          <div className='grid justify-items-center gap-3 px-6 py-12 text-center'>
+          <div className='grid justify-items-center gap-3 px-6 py-10 text-center'>
             <div className='bg-secondary text-primary flex size-14 items-center justify-center rounded-full'>
               <CircleCheck className='size-7' />
             </div>
@@ -458,10 +467,23 @@ export function SubscribeDialog({
                   <Input
                     {...inputProps('addressNumber', 'holder-number')}
                     placeholder='123'
+                    disabled={fields.addressNumber === NO_NUMBER}
                     onChange={set('addressNumber', (value) =>
                       value.slice(0, 10),
                     )}
                   />
+                  <label className='text-muted-foreground flex items-center gap-2 text-xs'>
+                    <Switch
+                      size='sm'
+                      checked={fields.addressNumber === NO_NUMBER}
+                      onCheckedChange={(checked) =>
+                        set('addressNumber')({
+                          target: { value: checked ? NO_NUMBER : '' },
+                        })
+                      }
+                    />
+                    Não possuo número (ex.: sítio, fazenda, etc.)
+                  </label>
                 </Field>
               </fieldset>
 

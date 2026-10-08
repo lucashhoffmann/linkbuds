@@ -373,9 +373,7 @@ function TextBlock({ text }: { text: LinkPageText }) {
   const border = boxed ? text.borderColor : null;
 
   return (
-    <div
-      className={cn(!boxed && 'px-1', textAlignClass[text.align ?? 'LEFT'])}
-    >
+    <div className={cn(!boxed && 'px-1', textAlignClass[text.align ?? 'LEFT'])}>
       <p
         data-testid='text-block'
         className={cn(

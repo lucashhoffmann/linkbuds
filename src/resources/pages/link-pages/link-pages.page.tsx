@@ -60,6 +60,7 @@ import {
 import { FormsTab, ResponsesTab } from './components/forms-tabs.component';
 import { IntegrationsPanel } from './components/integrations-panel.component';
 import { SubPagesPromoDialog } from './components/sub-pages-promo-dialog.component';
+import { WelcomePlansDialog } from './components/welcome-plans-dialog.component';
 import { LinkPageRenderer } from './renderer/link-page-renderer.component';
 import {
   socialPlatformIcons,
@@ -312,6 +313,8 @@ export function LinkPagesPage() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [searchParams, setSearchParams] = useSearchParams();
+  // State, not the param: selecting a page rewrites the query string.
+  const [welcome, setWelcome] = useState(() => searchParams.has('welcome'));
   const items = data?.items ?? [];
   const agencyPage = items.find((page) => page.type === 'AGENCY');
   // "Collection" = client: each client bio groups its post sub-pages.
@@ -388,7 +391,22 @@ export function LinkPagesPage() {
 
   return (
     <div className='flex min-h-0 flex-1'>
-      <SubPagesPromoDialog />
+      {welcome && (
+        <WelcomePlansDialog
+          onClose={() => {
+            setWelcome(false);
+            setSearchParams(
+              (params) => {
+                params.delete('welcome');
+                return params;
+              },
+              { replace: true },
+            );
+          }}
+        />
+      )}
+      {/* One modal at a time: the sub-pages tour waits for the plans. */}
+      {!welcome && <SubPagesPromoDialog />}
       <aside className='bg-sidebar flex w-full shrink-0 flex-col gap-4 overflow-y-auto p-3 md:w-64 md:border-r lg:w-80'>
         <div className='flex items-center justify-between px-2 pt-1'>
           <div>

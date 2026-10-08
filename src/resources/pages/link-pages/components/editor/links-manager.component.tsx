@@ -328,7 +328,8 @@ export function LinksManager({
       })
     ) {
       if (entry.type === 'VIDEO') mutations.deleteVideo.mutate(entry.item.id);
-      else if (entry.type === 'TEXT') mutations.deleteText.mutate(entry.item.id);
+      else if (entry.type === 'TEXT')
+        mutations.deleteText.mutate(entry.item.id);
       else mutations.deleteImage.mutate(entry.item.id);
     }
   };

@@ -56,6 +56,8 @@ export function useLogin() {
     try {
       const { error } = await authClient.signIn.social({
         provider: 'google',
+        callbackURL: `${window.location.origin}${routes.home}`,
+        newUserCallbackURL: `${window.location.origin}${routes.linkPages.welcome}`,
       });
 
       if (error) {

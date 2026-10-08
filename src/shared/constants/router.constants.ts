@@ -17,6 +17,8 @@ export const routes = {
   publicPostPage: '/p/:slug/:postSlug',
   linkPages: {
     list: '/link-pages',
+    /** First access after sign-up: opens the plans dialog. */
+    welcome: '/link-pages?welcome=1',
     new: '/link-pages/new',
     edit: (id = ':id') => `/link-pages/${id}/edit`,
   },

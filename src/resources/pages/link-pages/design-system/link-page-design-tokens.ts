@@ -10,7 +10,8 @@ export const linkPageDesignTokens = {
     className: 'flex shrink-0 flex-col p-3 shadow-sm',
   },
   verticalLink: {
-    className: 'relative flex items-center px-5 py-2 text-sm font-medium shadow-sm',
+    className:
+      'relative flex items-center px-5 py-2 text-sm font-medium shadow-sm',
   },
   socialIcon: {
     className: 'size-9 rounded-full border bg-white/80 shadow-sm',

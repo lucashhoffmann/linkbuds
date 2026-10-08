@@ -32,7 +32,7 @@ export function useRegister() {
       });
 
       toast.success('Conta criada com sucesso');
-      navigate(routes.home);
+      navigate(routes.linkPages.welcome);
     } catch (error) {
       axiosErrorHandler(error);
     }

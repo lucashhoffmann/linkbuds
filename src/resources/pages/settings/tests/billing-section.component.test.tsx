@@ -212,6 +212,33 @@ describe('BillingSection', () => {
     );
   });
 
+  it('sends S/N when the address has no number', () => {
+    renderSection();
+    fireEvent.click(screen.getByRole('button', { name: /^Assinar/ }));
+
+    const type = (label: string, value: string) =>
+      fireEvent.change(screen.getByLabelText(label), { target: { value } });
+    type('Número do cartão', '5162306219378829');
+    type('Nome do titular', 'Maria Silva');
+    type('Validade', '0530');
+    type('CVV', '318');
+    type('CPF ou CNPJ', '24971563792');
+    type('Celular', '11987654321');
+    type('CEP', '01310100');
+    fireEvent.click(screen.getByRole('switch', { name: /Não possuo número/ }));
+    expect(screen.getByLabelText('Número')).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: /Pagar/ }));
+
+    expect(mutations.subscribe.mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          holder: expect.objectContaining({ addressNumber: 'S/N' }),
+        }),
+      }),
+      expect.any(Object),
+    );
+  });
+
   it('yearly: paying in installments sends the split total and count', () => {
     renderSection();
     fireEvent.click(screen.getByRole('radio', { name: /^Anual/ }));

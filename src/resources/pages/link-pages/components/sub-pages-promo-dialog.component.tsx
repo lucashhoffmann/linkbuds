@@ -241,7 +241,8 @@ export function SubPagesPromoDialog() {
           <DialogDescription>{current.description}</DialogDescription>
         </div>
         <p className='text-muted-foreground text-xs'>
-          Selecione um cliente e use os botões de post ou formulário para criar. O questionário é um modo do formulário.
+          Selecione um cliente e use os botões de post ou formulário para criar.
+          O questionário é um modo do formulário.
         </p>
         <div className='flex justify-end'>
           <Button onClick={close}>Entendi</Button>
