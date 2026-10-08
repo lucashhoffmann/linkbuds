@@ -29,7 +29,7 @@ import {
   useLinkPageMutations,
   useLinkPagesOverviewUseCase,
   useListLinkPagesUseCase,
-  usePublicOrigin,
+  usePublicPageUrl,
 } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import {
   DevicePreview,
@@ -134,10 +134,6 @@ function StatusBadge({ status }: { status: LinkPageSummary['status'] }) {
   );
 }
 
-function publicUrl(origin: string, page: LinkPageSummary) {
-  return `${origin}${routes.publicLinkPage(page.publicPath)}`;
-}
-
 function ListGroup({
   title,
   action,
@@ -174,7 +170,7 @@ function PageListItem({
   onSelect: () => void;
   onRemove?: () => void;
 }) {
-  const publicOrigin = usePublicOrigin();
+  const publicPageUrl = usePublicPageUrl();
   const action =
     'text-muted-foreground hover:text-foreground hover:bg-background flex size-7 shrink-0 items-center justify-center rounded-md';
 
@@ -217,7 +213,7 @@ function PageListItem({
       {/* Desktop: reveal on hover/focus; touch has no hover, so always shown. */}
       <div className='flex items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100'>
         <a
-          href={publicUrl(publicOrigin, page)}
+          href={publicPageUrl(page).url}
           target='_blank'
           rel='noreferrer'
           title='Abrir link'
@@ -538,7 +534,7 @@ function PageCanvas({
   newSubPage?: React.ReactNode;
 }) {
   const detail = useGetLinkPageUseCase(page.id);
-  const url = publicUrl(usePublicOrigin(), page);
+  const { path: publicPath, url } = usePublicPageUrl()(page);
   const isBio = !page.parentPageId;
   const views: Array<{ value: CanvasView; label: string }> = [
     { value: 'preview', label: 'Prévia' },
@@ -604,7 +600,7 @@ function PageCanvas({
               <StatusBadge status={page.status} />
             </div>
             <p className='text-muted-foreground truncate text-xs'>
-              /p/{page.publicPath}
+              {publicPath}
             </p>
           </div>
         </div>

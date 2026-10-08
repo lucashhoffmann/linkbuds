@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   useLinkPageMutations: vi.fn(),
   useLinkPagesOverviewUseCase: vi.fn(),
   useListLinkPagesUseCase: vi.fn(),
-  usePublicOrigin: vi.fn(),
+  usePublicPageUrl: vi.fn(),
   useIsMobile: vi.fn(),
   confirmAction: vi.fn(),
 }));
@@ -18,7 +18,7 @@ vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useLinkPageMutations: mocks.useLinkPageMutations,
   useLinkPagesOverviewUseCase: mocks.useLinkPagesOverviewUseCase,
   useListLinkPagesUseCase: mocks.useListLinkPagesUseCase,
-  usePublicOrigin: mocks.usePublicOrigin,
+  usePublicPageUrl: mocks.usePublicPageUrl,
 }));
 
 vi.mock('@/resources/components/base', async (importOriginal) => ({
@@ -104,7 +104,10 @@ describe('LinkPagesPage', () => {
       createPost,
       update,
     });
-    mocks.usePublicOrigin.mockReturnValue('https://links.agencia.com');
+    mocks.usePublicPageUrl.mockReturnValue((page: { publicPath: string }) => ({
+      path: `/p/${page.publicPath}`,
+      url: `https://links.agencia.com/p/${page.publicPath}`,
+    }));
     mocks.useLinkPagesOverviewUseCase.mockReturnValue({
       data: { pages: [{ id: 'post-2', pageViews: 7 }] },
     });

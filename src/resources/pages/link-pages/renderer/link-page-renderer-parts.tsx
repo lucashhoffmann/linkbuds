@@ -1101,7 +1101,8 @@ export function FormBlock({
         }
         className={cn(
           linkPageDesignTokens.verticalLink.className,
-          'bg-slate-900 text-white disabled:opacity-60',
+          linkShapeClass.ROUNDED,
+          'min-h-11 w-full justify-center bg-slate-900 text-white disabled:opacity-60',
         )}
       >
         {sending ? 'Enviando...' : form.submitLabel}

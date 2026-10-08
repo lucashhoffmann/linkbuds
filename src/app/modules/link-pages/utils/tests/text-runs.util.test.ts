@@ -41,6 +41,9 @@ describe('domToTextRuns', () => {
             '<span style="font-weight: normal">x</span>',
         ),
       ),
-    ).toEqual([{ text: 'T', bold: true, italic: true, size: 'XL' }, { text: 'x' }]);
+    ).toEqual([
+      { text: 'T', bold: true, italic: true, size: 'XL' },
+      { text: 'x' },
+    ]);
   });
 });

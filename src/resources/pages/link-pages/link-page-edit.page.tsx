@@ -7,6 +7,7 @@ import {
   useGetLinkPageUseCase,
   useLinkPageLinkClicksUseCase,
   useLinkPageMutations,
+  usePublicPageUrl,
 } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type { LinkPageDetail } from '@/app/modules/link-pages/types/link-pages.types';
 import { Button } from '@/resources/components/ui/button';
@@ -76,6 +77,7 @@ function LinkPageEditor({
   const mutations = useLinkPageMutations(linkPage.id);
   const { whiteLabel: canManageWhiteLabel } = useEntitlements();
   const linkClicks = useLinkPageLinkClicksUseCase(draft.id);
+  const publicPath = usePublicPageUrl()(draft).path;
   const clicksByLinkId = (
     linkClicks.data?.items ?? []
   ).reduce<LinkClickCountMap>((acc, item) => {
@@ -157,9 +159,7 @@ function LinkPageEditor({
         />
         <div className='min-w-0 flex-1'>
           <h1 className='truncate font-semibold'>{draft.name}</h1>
-          <p className='text-muted-foreground truncate text-xs'>
-            /p/{draft.publicPath}
-          </p>
+          <p className='text-muted-foreground truncate text-xs'>{publicPath}</p>
         </div>
         <Button
           type='button'

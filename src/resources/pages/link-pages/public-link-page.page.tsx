@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios';
 import { Asterisk } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { Navigate, Link as RouterLink, useParams } from 'react-router-dom';
 import linkPagesService from '@/app/modules/link-pages/service/link-pages.service';
 import { useGetPublicLinkPageUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import type {
@@ -111,6 +111,17 @@ async function submitForm(
   }
 }
 
+// API slug for "the agency page of this custom domain".
+export const DOMAIN_HOME_SLUG = '_home';
+
+/** `_home` failed because the agency page is off: still a customer domain. */
+export function isDomainHomeUnavailable(error: unknown) {
+  return (
+    isAxiosError<{ errorCode?: string }>(error) &&
+    error.response?.data?.errorCode === 'LINK_PAGE_DOMAIN_HOME_UNAVAILABLE'
+  );
+}
+
 /** `slug` overrides the route param (custom-domain root uses `_home`). */
 export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   const params = useParams();
@@ -123,6 +134,12 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   const [visitorId] = useState(() => getVisitorId());
   const [sessionId] = useState(() => getSessionId());
   const { data, isError, isLoading } = useGetPublicLinkPageUseCase(slug);
+  // On a custom domain the agency page lives at `/`, not `/p/:slug`.
+  // ponytail: one extra (cached) request per bio view; 404 on the app host.
+  const isBioRoute = !slugProp && !params.postSlug;
+  const domainHome = useGetPublicLinkPageUseCase(
+    isBioRoute && data ? DOMAIN_HOME_SLUG : undefined,
+  );
   usePublicLinkPageSeo(data, isError || (!isLoading && !data));
 
   useEffect(() => {
@@ -178,6 +195,15 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
 
   if (isLoading) {
     return <PublicLinkPageLoader />;
+  }
+
+  if (data && domainHome.data?.id === data.id) {
+    return (
+      <Navigate
+        to={`/${window.location.search}`}
+        replace
+      />
+    );
   }
 
   if (isError || !data) {

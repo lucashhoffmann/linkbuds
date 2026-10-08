@@ -31,6 +31,10 @@ vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useLinkPageAnalyticsGeoUseCase: mocks.useLinkPageAnalyticsGeoUseCase,
   useLinkPageMutations: mocks.useLinkPageMutations,
   useLinkPreviewUseCase: mocks.useLinkPreviewUseCase,
+  usePublicPageUrl: () => (page: { publicPath: string }) => ({
+    path: `/p/${page.publicPath}`,
+    url: `https://links.agencia.com/p/${page.publicPath}`,
+  }),
 }));
 
 const page: LinkPageDetail = {
@@ -736,8 +740,7 @@ describe('LinkPageEditPage', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(
-      screen.getAllByText(/disponível em planos superiores/i)
-        .length,
+      screen.getAllByText(/disponível em planos superiores/i).length,
     ).toBeGreaterThan(0);
   });
 

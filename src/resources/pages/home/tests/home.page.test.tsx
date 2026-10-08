@@ -11,6 +11,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/app/modules/auth/hooks', () => ({ useSession: mocks.useSession }));
 vi.mock('@/app/modules/link-pages/use-cases/use-link-pages.use-case', () => ({
   useLinkPagesOverviewUseCase: mocks.useLinkPagesOverviewUseCase,
+  usePublicPageUrl: () => (page: { publicPath: string }) => ({
+    path: `/p/${page.publicPath}`,
+    url: `https://links.agencia.com/p/${page.publicPath}`,
+  }),
 }));
 
 const page = (overrides: Record<string, unknown>) => ({

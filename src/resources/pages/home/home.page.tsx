@@ -9,7 +9,10 @@ import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useSession } from '@/app/modules/auth/hooks';
 import type { LinkPagesOverviewPage } from '@/app/modules/link-pages/types/link-pages.types';
-import { useLinkPagesOverviewUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
+import {
+  useLinkPagesOverviewUseCase,
+  usePublicPageUrl,
+} from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import { Button } from '@/resources/components/ui/button';
 import { FormLimitBar } from '@/resources/pages/link-pages/components/form-limit-bar.component';
 import { routes } from '@/shared/constants/router.constants';
@@ -98,6 +101,8 @@ function PageRanking({
   pages: LinkPagesOverviewPage[];
   metric: 'pageViews' | 'clicks' | 'submissions';
 }) {
+  const publicPageUrl = usePublicPageUrl();
+
   return (
     <section className='bg-card rounded-2xl border'>
       <h2 className='border-b p-4 text-sm font-medium'>{title}</h2>
@@ -114,7 +119,7 @@ function PageRanking({
                 <div className='min-w-0 flex-1'>
                   <p className='truncate font-medium'>{page.name}</p>
                   <p className='text-muted-foreground truncate text-xs'>
-                    /p/{page.publicPath}
+                    {publicPageUrl(page).path}
                   </p>
                   {metric === 'submissions' && page.formLimit && (
                     <FormLimitBar

@@ -3,6 +3,7 @@ import { useMutationCache } from '@/app/cache/use-mutation-cache';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { useQueryCache } from '@/app/cache/use-query-cache';
 import linkPagesService from '../service/link-pages.service';
+import { routes } from '@/shared/constants/router.constants';
 import { LinkPagesQueryKeys } from '../keys/link-pages.keys';
 import type {
   FooterSettings,
@@ -12,6 +13,8 @@ import type {
   LinkPageText,
   LinkPageLink,
   LinkPageSocialLink,
+  LinkPageType,
+  CompanyDomain,
 } from '../types/link-pages.types';
 
 export const publicLinkPageQueryOptions = {
@@ -310,17 +313,34 @@ export function useCompanyDomainUseCase(enabled = true) {
   return { ...query, create, verify, remove };
 }
 
-/** Origin of public pages: the company's ACTIVE custom domain, else this app. */
-export function usePublicOrigin() {
+/**
+ * Public URL of a page: on the company's ACTIVE custom domain the agency page
+ * is the domain root; everything else (and the app host) uses `/p/...`.
+ */
+export function publicPageUrl(
+  domain: Pick<CompanyDomain, 'hostname' | 'status'> | null | undefined,
+  page: { type: LinkPageType; publicPath: string },
+  appOrigin: string,
+) {
+  const customDomain = domain?.status === 'ACTIVE' ? domain.hostname : null;
+  const origin = customDomain ? `https://${customDomain}` : appOrigin;
+  const path =
+    customDomain && page.type === 'AGENCY'
+      ? '/'
+      : routes.publicLinkPage(page.publicPath);
+
+  return { path, url: `${origin}${path}` };
+}
+
+export function usePublicPageUrl() {
   const { data } = useQueryCache({
     queryKey: [LinkPagesQueryKeys.DOMAIN],
     queryFn: () => linkPagesService.getDomain(),
     retry: false,
   });
 
-  return data?.status === 'ACTIVE'
-    ? `https://${data.hostname}`
-    : window.location.origin;
+  return (page: { type: LinkPageType; publicPath: string }) =>
+    publicPageUrl(data, page, window.location.origin);
 }
 
 export function useFooterDefaultUseCase() {

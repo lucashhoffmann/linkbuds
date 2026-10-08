@@ -1,10 +1,14 @@
+import { AxiosError } from 'axios';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import linkPagesService from '@/app/modules/link-pages/service/link-pages.service';
 import type { PublicLinkPage } from '@/app/modules/link-pages/types/link-pages.types';
-import { PublicLinkPagePage } from '../public-link-page.page';
+import {
+  PublicLinkPagePage,
+  isDomainHomeUnavailable,
+} from '../public-link-page.page';
 
 const publicPage: PublicLinkPage = {
   id: 'page-id',
@@ -78,6 +82,10 @@ function renderPublicPage() {
             path='/p/:slug'
             element={<PublicLinkPagePage />}
           />
+          <Route
+            path='/'
+            element={<p>raiz do domínio</p>}
+          />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -93,7 +101,12 @@ describe('PublicLinkPagePage', () => {
       .forEach((element) => element.remove());
     window.localStorage.clear();
     window.sessionStorage.clear();
-    vi.spyOn(linkPagesService, 'getPublic').mockResolvedValue(publicPage);
+    // App host: `_home` (custom-domain root) does not exist.
+    vi.spyOn(linkPagesService, 'getPublic').mockImplementation((slug) =>
+      slug === '_home'
+        ? Promise.reject(new Error('not found'))
+        : Promise.resolve(publicPage),
+    );
     vi.spyOn(linkPagesService, 'trackEvent').mockResolvedValue(undefined);
     vi.spyOn(linkPagesService, 'trackEventBeacon').mockReturnValue(true);
     vi.spyOn(linkPagesService, 'trackPresence').mockResolvedValue({
@@ -179,5 +192,35 @@ describe('PublicLinkPagePage', () => {
     ).toHaveAttribute('href', '/register');
     expect(document.title).toBe('Página não encontrada | LinkBuds');
     expect(getMeta('name', 'robots')).toBe('noindex');
+  });
+
+  it('moves the agency page to the root of its custom domain', async () => {
+    // Custom domain: `_home` resolves to this same page.
+    vi.spyOn(linkPagesService, 'getPublic').mockResolvedValue(publicPage);
+    vi.spyOn(linkPagesService, 'trackEvent').mockResolvedValue(undefined);
+    vi.spyOn(linkPagesService, 'trackPresence').mockResolvedValue({
+      online: 0,
+    } as never);
+
+    renderPublicPage();
+
+    expect(await screen.findByText('raiz do domínio')).toBeInTheDocument();
+    expect(linkPagesService.getPublic).toHaveBeenCalledWith('_home');
+  });
+
+  it('tells an inactive agency page on a custom domain from the app host', () => {
+    const apiError = (errorCode: string) =>
+      new AxiosError('not found', '404', undefined, undefined, {
+        data: { errorCode },
+        status: 404,
+      } as never);
+
+    expect(
+      isDomainHomeUnavailable(apiError('LINK_PAGE_DOMAIN_HOME_UNAVAILABLE')),
+    ).toBe(true);
+    expect(isDomainHomeUnavailable(apiError('LINK_PAGE_NOT_FOUND'))).toBe(
+      false,
+    );
+    expect(isDomainHomeUnavailable(new Error('network'))).toBe(false);
   });
 });

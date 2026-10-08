@@ -2,6 +2,7 @@ import { confirmAction } from '@/resources/components/base';
 import { Copy } from 'lucide-react';
 import { type FormEvent } from 'react';
 import { toast } from 'sonner';
+import { cn } from '@/shared/lib/utils';
 import type { CompanyDomain } from '@/app/modules/link-pages/types/link-pages.types';
 import type { useCompanyDomainUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
 import { Button } from '@/resources/components/ui/button';
@@ -14,19 +15,19 @@ const DOMAIN_STATUS: Record<
 > = {
   PENDING: {
     label: 'Aguardando DNS',
-    help: 'Ainda não encontramos o registro TXT de posse.',
+    help: 'Criou os dois registros abaixo? Clique em Verificar. Se o DNS ainda estiver propagando, tente de novo em alguns minutos.',
   },
   VERIFIED: {
-    label: 'Posse confirmada',
-    help: 'Falta o apontamento (CNAME) para as páginas abrirem no domínio.',
+    label: 'Falta o apontamento',
+    help: 'Posse confirmada. Crie o registro de apontamento (CNAME) e clique em Verificar.',
   },
   ACTIVE: {
     label: 'Ativo',
-    help: 'Suas páginas já abrem neste domínio.',
+    help: 'Suas páginas já abrem neste domínio, com HTTPS.',
   },
   FAILED: {
     label: 'Falhou',
-    help: 'O registro TXT sumiu. Recrie-o e verifique de novo.',
+    help: 'O registro TXT sumiu. Recrie-o e clique em Verificar.',
   },
 };
 
@@ -45,6 +46,7 @@ export function DomainPanel({
 
   if (currentDomain) {
     const status = DOMAIN_STATUS[currentDomain.status];
+    const active = currentDomain.status === 'ACTIVE';
 
     return (
       <div className='mt-3 rounded-md border p-3 text-sm'>
@@ -52,11 +54,47 @@ export function DomainPanel({
           <p className='min-w-0 font-medium break-all'>
             {currentDomain.hostname}
           </p>
-          <span className='bg-muted w-fit shrink-0 rounded-full px-2 py-0.5 text-xs'>
+          <span
+            className={cn(
+              'inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium',
+              active
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300',
+            )}
+          >
+            <span
+              aria-hidden='true'
+              className={cn(
+                'size-1.5 rounded-full',
+                active ? 'bg-emerald-500' : 'bg-amber-500',
+              )}
+            />
             {status.label}
           </span>
         </div>
-        <p className='text-muted-foreground mt-1 text-xs'>{status.help}</p>
+        <p
+          className={cn(
+            'mt-2 rounded-md px-3 py-2 text-xs',
+            active
+              ? 'bg-emerald-50 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200'
+              : 'bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200',
+          )}
+        >
+          {status.help}
+          {active && (
+            <>
+              {' '}
+              <a
+                href={`https://${currentDomain.hostname}`}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='font-medium underline'
+              >
+                Abrir {currentDomain.hostname}
+              </a>
+            </>
+          )}
+        </p>
         <div className='bg-muted/40 mt-3 grid gap-3 rounded-md p-3'>
           <p className='text-muted-foreground'>
             Crie os dois registros no provedor do domínio e clique em Verificar.
@@ -95,11 +133,11 @@ export function DomainPanel({
           <Button
             type='button'
             size='sm'
-            variant='outline'
+            variant={active ? 'outline' : 'default'}
             disabled={domain.verify.isPending}
             onClick={() => domain.verify.mutate(currentDomain.id)}
           >
-            Verificar
+            {domain.verify.isPending ? 'Verificando…' : 'Verificar'}
           </Button>
           <Button
             type='button'
@@ -144,7 +182,10 @@ export function DomainPanel({
             placeholder='www.suaagencia.com'
           />
         </div>
-        <Button type='submit' disabled={domain.create.isPending}>
+        <Button
+          type='submit'
+          disabled={domain.create.isPending}
+        >
           Salvar domínio
         </Button>
       </div>

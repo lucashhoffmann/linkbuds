@@ -27,11 +27,12 @@ import {
   LinkPagesPage,
   PublicLinkPagePage,
 } from '@/resources/pages';
+import {
+  DOMAIN_HOME_SLUG,
+  isDomainHomeUnavailable,
+} from '@/resources/pages/link-pages/public-link-page.page';
 import { useSession } from '@/app/modules/auth/hooks';
 import { useGetPublicLinkPageUseCase } from '@/app/modules/link-pages/use-cases/use-link-pages.use-case';
-
-// API slug for "the agency page of this custom domain".
-const DOMAIN_HOME_SLUG = '_home';
 
 /**
  * `/` on a custom domain shows the agency page; on the app host it redirects.
@@ -45,7 +46,8 @@ function InitialRedirect() {
     return null;
   }
 
-  if (domainHome.data) {
+  // Customer domain (page active, or off → "unavailable"): never the app login.
+  if (domainHome.data || isDomainHomeUnavailable(domainHome.error)) {
     return <PublicLinkPagePage slug={DOMAIN_HOME_SLUG} />;
   }
 

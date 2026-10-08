@@ -108,7 +108,7 @@ describe('SettingsPage', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText('Posse confirmada')).toBeInTheDocument();
+    expect(screen.getByText('Falta o apontamento')).toBeInTheDocument();
     expect(screen.getByText('TXT')).toBeInTheDocument();
     expect(
       screen.getByText('_linkbuds.www.agencia.com.br'),

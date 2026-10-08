@@ -1,8 +1,5 @@
 import type { CSSProperties } from 'react';
-import type {
-  TextRun,
-  TextRunSize,
-} from '../types/link-pages.types';
+import type { TextRun, TextRunSize } from '../types/link-pages.types';
 
 export const textRunSizeOptions: Array<{ value: TextRunSize; label: string }> =
   [
@@ -95,7 +92,9 @@ function styleOf(element: HTMLElement, inherited: RunStyle): RunStyle {
   const size =
     sizeByRem[element.style.fontSize] ??
     sizeByKeyword[element.style.fontSize] ??
-    (tag === 'FONT' ? sizeByFontAttr[element.getAttribute('size') ?? ''] : undefined);
+    (tag === 'FONT'
+      ? sizeByFontAttr[element.getAttribute('size') ?? '']
+      : undefined);
   if (size) style.size = size;
 
   return style;
