@@ -61,6 +61,18 @@ export function useBillingMutations() {
       }) => billingService.subscribe(input, idempotencyKey),
       onSuccess: refresh,
     }),
+    upgrade: useMutationCache({
+      mutationFn: (input: { planCode: string; expectedTotalCents: number }) =>
+        billingService.upgrade(input, crypto.randomUUID()),
+      onSuccess: refresh,
+      // A changed total (days went by) needs the fresh quote on screen.
+      onError: async (error) => {
+        axiosErrorHandler(error);
+        await queryClient.invalidateQueries({
+          queryKey: [BillingQueryKeys.QUOTE],
+        });
+      },
+    }),
     cancel: useMutationCache({
       mutationFn: () => billingService.cancel(),
       onSuccess: refresh,

@@ -46,6 +46,16 @@ export interface IBillingQuote {
   baseCents: number;
   feeCents: number;
   totalCents: number;
+  /**
+   * With an active subscription in this cycle and a pricier plan: what
+   * upgrading charges now (prorated, on the stored card). 0 = no charge.
+   */
+  upgrade?: {
+    daysLeft: number;
+    baseCents: number;
+    feeCents: number;
+    totalCents: number;
+  } | null;
   /** Yearly only: card split options, each with its own fee (count 1 = totalCents). */
   installments: Array<{
     count: number;

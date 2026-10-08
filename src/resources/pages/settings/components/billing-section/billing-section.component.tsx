@@ -1,26 +1,15 @@
-import { confirmAction } from '@/resources/components/base';
 import { Check, Sparkles, Ticket } from 'lucide-react';
-import { type FormEvent, useState } from 'react';
-import { useSession } from '@/app/modules/auth/hooks';
-import type {
-  BillingCycle,
-  IBillingQuote,
-} from '@/app/modules/billing/types/billing.types';
-import {
-  useBillingMutations,
-  useBillingOverviewUseCase,
-  useBillingQuoteUseCase,
-} from '@/app/modules/billing/use-cases/use-billing.use-case';
-import { useGetPricingPlansUseCase } from '@/app/modules/pricing-plans/use-cases/use-get-pricing-plans.use-case';
 import { SegmentedControl } from '@/resources/components/base/device-preview/device-preview.component';
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
 import { cn } from '@/shared/lib/utils';
-import { formatMoney as money } from './subscribe-dialog/payment-format.util';
-import { SubscribeDialog } from './subscribe-dialog/subscribe-dialog.component';
-const date = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString('pt-BR') : '—';
+import {
+  formatDate as date,
+  formatMoney as money,
+} from '../subscribe-dialog/payment-format.util';
+import { SubscribeDialog } from '../subscribe-dialog/subscribe-dialog.component';
+import { useBillingSection } from './use-billing-section.component';
 
 const STATUS_LABEL = {
   INCOMPLETE: 'Aguardando pagamento',
@@ -40,16 +29,29 @@ function Limit({ label, value }: { label: string; value: string }) {
 
 /** Plan, special conditions/coupons and subscription (history: BillingHistorySection). */
 export function BillingSection() {
-  const { userAuthenticated } = useSession();
-  const isOwner = userAuthenticated?.role === 'OWNER';
-  const { data } = useBillingOverviewUseCase();
-  const mutations = useBillingMutations();
-  const [cycle, setCycle] = useState<BillingCycle>('MONTHLY');
-  const [coupon, setCoupon] = useState('');
-  const [selected, setSelected] = useState<IBillingQuote | null>(null);
-  const quote = useBillingQuoteUseCase(isOwner);
-  // Catalog copy (description, features) so the upgrade shows what it unlocks.
-  const { pricingPlansCatalog } = useGetPricingPlansUseCase();
+  const {
+    data,
+    isOwner,
+    subscription,
+    subscribed,
+    canCancel,
+    effectivePlanName,
+    upgrades,
+    catalogPlan,
+    yearlyDiscountPercent,
+    cycle,
+    setCycle,
+    coupon,
+    setCoupon,
+    selected,
+    setSelected,
+    upgradePending,
+    redeemPending,
+    upgrade,
+    cancel,
+    redeem,
+    onQuoteChanged,
+  } = useBillingSection();
 
   if (!data) {
     return (
@@ -59,25 +61,7 @@ export function BillingSection() {
     );
   }
 
-  const { entitlements, subscription } = data;
-  // A special condition can grant another plan than the company's base one.
-  const effectivePlanName =
-    data.prices.find((price) => price.code === entitlements.planCode)?.name ??
-    data.plan.name;
-  // Prices as charged (card fee included), for plans other than the current one.
-  const upgrades = (quote.data?.quotes ?? []).filter(
-    (item) => item.planCode !== data.plan.code && item.billingCycle === cycle,
-  );
-  const canCancel =
-    isOwner &&
-    subscription &&
-    ['ACTIVE', 'PAST_DUE'].includes(subscription.status) &&
-    !subscription.cancelAtPeriodEnd;
-
-  function redeem(event: FormEvent) {
-    event.preventDefault();
-    mutations.redeemCoupon.mutate(coupon, { onSuccess: () => setCoupon('') });
-  }
+  const { entitlements } = data;
 
   return (
     <section className='bg-card grid grid-cols-[minmax(0,1fr)] gap-4 rounded-2xl border p-4'>
@@ -143,19 +127,7 @@ export function BillingSection() {
               variant='outline'
               size='sm'
               className='mt-1 w-fit'
-              onClick={async () => {
-                if (
-                  await confirmAction({
-                    title: 'Cancelar assinatura?',
-                    description: `As renovações param. O plano continua até ${date(subscription.currentPeriodEnd)} e depois volta para o Grátis.`,
-                    confirmLabel: 'Cancelar assinatura',
-                    cancelLabel: 'Manter',
-                    destructive: true,
-                  })
-                ) {
-                  mutations.cancel.mutate(undefined);
-                }
-              }}
+              onClick={() => void cancel()}
             >
               Cancelar assinatura
             </Button>
@@ -175,9 +147,10 @@ export function BillingSection() {
                 { value: 'MONTHLY', label: 'Mensal' },
                 {
                   value: 'YEARLY',
-                  label: pricingPlansCatalog
-                    ? `Anual -${pricingPlansCatalog.yearlyDiscountPercent}%`
-                    : 'Anual',
+                  label:
+                    yearlyDiscountPercent !== undefined
+                      ? `Anual -${yearlyDiscountPercent}%`
+                      : 'Anual',
                 },
               ]}
             />
@@ -188,9 +161,7 @@ export function BillingSection() {
             </p>
           )}
           {upgrades.map((item) => {
-            const plan = pricingPlansCatalog?.plans.find(
-              (catalogPlan) => catalogPlan.code === item.planCode,
-            );
+            const plan = catalogPlan(item.planCode);
             return (
               <div
                 key={item.planCode}
@@ -225,20 +196,31 @@ export function BillingSection() {
                         </span>
                       )}
                     </p>
+                    {item.upgrade && (
+                      <p className='text-primary mt-1 text-xs font-medium'>
+                        {item.upgrade.totalCents > 0
+                          ? `Upgrade hoje: ${money(item.upgrade.totalCents)} pelos ${item.upgrade.daysLeft} dias restantes`
+                          : 'Upgrade hoje sem cobrança (perto da renovação)'}
+                      </p>
+                    )}
                   </div>
-                  <Button
-                    type='button'
-                    disabled={
-                      !data.providerConfigured ||
-                      Boolean(
-                        subscription &&
-                        ['ACTIVE', 'PAST_DUE'].includes(subscription.status),
-                      )
-                    }
-                    onClick={() => setSelected(item)}
-                  >
-                    Assinar {item.planName}
-                  </Button>
+                  {item.upgrade ? (
+                    <Button
+                      type='button'
+                      disabled={upgradePending}
+                      onClick={() => void upgrade(item)}
+                    >
+                      Fazer upgrade
+                    </Button>
+                  ) : (
+                    <Button
+                      type='button'
+                      disabled={!data.providerConfigured || subscribed}
+                      onClick={() => setSelected(item)}
+                    >
+                      Assinar {item.planName}
+                    </Button>
+                  )}
                 </div>
                 {plan && plan.features.length > 0 && (
                   <ul className='grid gap-1.5 text-sm sm:grid-cols-2'>
@@ -277,7 +259,7 @@ export function BillingSection() {
           <Button
             type='submit'
             variant='outline'
-            disabled={!coupon.trim() || mutations.redeemCoupon.isPending}
+            disabled={!coupon.trim() || redeemPending}
           >
             <Ticket className='size-4' />
             Aplicar cupom
@@ -288,10 +270,7 @@ export function BillingSection() {
       <SubscribeDialog
         quote={selected}
         onClose={() => setSelected(null)}
-        onQuoteChanged={() => {
-          setSelected(null);
-          void quote.refetch();
-        }}
+        onQuoteChanged={onQuoteChanged}
       />
     </section>
   );

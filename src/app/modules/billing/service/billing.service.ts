@@ -44,6 +44,20 @@ class BillingService {
     return data.data;
   }
 
+  /** Prorated upgrade on the subscription's stored card. */
+  async upgrade(
+    input: { planCode: string; expectedTotalCents: number },
+    idempotencyKey: string,
+  ) {
+    const { data } = await HttpAuth.post<
+      ApiResponse<{ planCode: string; chargedCents: number }>
+    >('/billing/upgrade', input, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+      keepPageOnServerError: true,
+    });
+    return data.data;
+  }
+
   async cancel() {
     await HttpAuth.post('/billing/cancel');
   }

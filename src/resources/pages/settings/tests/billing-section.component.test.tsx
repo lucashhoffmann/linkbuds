@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BillingSection } from '../components/billing-section.component';
+import { BillingSection } from '../components/billing-section/billing-section.component';
 
 const mocks = vi.hoisted(() => ({
   useSession: vi.fn(),
@@ -9,6 +9,12 @@ const mocks = vi.hoisted(() => ({
   useBillingMutations: vi.fn(),
   useBillingQuoteUseCase: vi.fn(),
   useBillingLedgerEntryUseCase: vi.fn(),
+  confirmAction: vi.fn(),
+}));
+
+vi.mock('@/resources/components/base', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  confirmAction: mocks.confirmAction,
 }));
 
 vi.mock('@/app/modules/auth/hooks', () => ({ useSession: mocks.useSession }));
@@ -128,6 +134,7 @@ describe('BillingSection', () => {
     mutations = {
       redeemCoupon: mutation(),
       subscribe: mutation(),
+      upgrade: mutation(),
       cancel: mutation(),
     };
     mocks.useBillingMutations.mockReturnValue(mutations);
@@ -209,6 +216,59 @@ describe('BillingSection', () => {
         },
       },
       expect.any(Object),
+    );
+  });
+
+  it('upgrades an active subscription for the prorated difference', async () => {
+    mocks.confirmAction.mockResolvedValue(true);
+    mocks.useBillingOverviewUseCase.mockReturnValue({
+      data: overview({
+        plan: { code: 'DIGITAL', name: 'Digital' },
+        subscription: {
+          status: 'ACTIVE',
+          plan: { code: 'DIGITAL', name: 'Digital' },
+          billingCycle: 'MONTHLY',
+          amountCents: 6133,
+          installmentCount: 1,
+          currentPeriodEnd: '2026-11-03T12:00:00.000Z',
+          cancelAtPeriodEnd: false,
+        },
+      }),
+    });
+    mocks.useBillingQuoteUseCase.mockReturnValue({
+      data: {
+        method: 'CREDIT_CARD',
+        quotes: [
+          {
+            ...agency('MONTHLY', 18000, 18607),
+            upgrade: {
+              daysLeft: 10,
+              baseCents: 3871,
+              feeCents: 170,
+              totalCents: 4041,
+            },
+          },
+        ],
+      },
+      refetch: vi.fn(),
+    });
+    renderSection();
+
+    expect(
+      screen.getByText(/Upgrade hoje: R\$\s40,41 pelos 10 dias restantes/),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Fazer upgrade' }));
+
+    await waitFor(() =>
+      expect(mutations.upgrade.mutate).toHaveBeenCalledWith({
+        planCode: 'AGENCY',
+        expectedTotalCents: 4041,
+      }),
+    );
+    expect(mocks.confirmAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        confirmLabel: expect.stringMatching(/Pagar R\$\s40,41/),
+      }),
     );
   });
 

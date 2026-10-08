@@ -117,3 +117,6 @@ export const formatMoney = (cents: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
     cents / 100,
   );
+
+export const formatDate = (value: string | null) =>
+  value ? new Date(value).toLocaleDateString('pt-BR') : '—';

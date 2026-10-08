@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   useSession: vi.fn(),
 }));
 
-vi.mock('../components/billing-section.component', () => ({
+vi.mock('../components/billing-section/billing-section.component', () => ({
   BillingSection: () => <div>billing-section</div>,
 }));
 
