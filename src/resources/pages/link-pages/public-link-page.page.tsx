@@ -80,38 +80,35 @@ function getUtmParams() {
   };
 }
 
-function submitFormHandler(
+async function submitForm(
   pageId: string,
   visitorId: string,
-  startedAtRef: { current: number | null },
-): SubmitFormFn {
-  return async (answers, website) => {
-    try {
-      const { score } = await linkPagesService.submitForm(pageId, {
-        answers,
-        visitorId,
-        website,
-        durationMs:
-          startedAtRef.current === null
-            ? null
-            : Date.now() - startedAtRef.current,
-      });
-      return { ok: true, score };
-    } catch (error) {
-      const data = isAxiosError<{
-        message?: string;
-        errors?: Array<{ path?: string }>;
-      }>(error)
-        ? error.response?.data
-        : undefined;
+  /** When the visitor started filling the form (null = unknown). */
+  started: number | null,
+  ...[answers, website]: Parameters<SubmitFormFn>
+): ReturnType<SubmitFormFn> {
+  try {
+    const { score } = await linkPagesService.submitForm(pageId, {
+      answers,
+      visitorId,
+      website,
+      durationMs: started === null ? null : Date.now() - started,
+    });
+    return { ok: true, score };
+  } catch (error) {
+    const data = isAxiosError<{
+      message?: string;
+      errors?: Array<{ path?: string }>;
+    }>(error)
+      ? error.response?.data
+      : undefined;
 
-      return {
-        ok: false,
-        message: data?.message ?? 'Não foi possível enviar. Tente de novo.',
-        invalid: (data?.errors ?? []).flatMap((issue) => issue.path ?? []),
-      };
-    }
-  };
+    return {
+      ok: false,
+      message: data?.message ?? 'Não foi possível enviar. Tente de novo.',
+      invalid: (data?.errors ?? []).flatMap((issue) => issue.path ?? []),
+    };
+  }
 }
 
 /** `slug` overrides the route param (custom-domain root uses `_home`). */
@@ -220,7 +217,9 @@ export function PublicLinkPagePage({ slug: slugProp }: { slug?: string } = {}) {
   return (
     <LinkPageRenderer
       linkPage={data}
-      onSubmitForm={submitFormHandler(data.id, visitorId, startedAtRef)}
+      onSubmitForm={(answers, website) =>
+        submitForm(data.id, visitorId, startedAtRef.current, answers, website)
+      }
       onTrack={(targetType, targetId) => {
         linkPagesService.trackEventBeacon(data.id, {
           eventId: createId('event'),

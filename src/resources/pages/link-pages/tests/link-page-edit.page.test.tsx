@@ -736,7 +736,7 @@ describe('LinkPageEditPage', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('A')).toBeInTheDocument();
     expect(
-      screen.getAllByText(/disponível nos planos agência e personalizado/i)
+      screen.getAllByText(/disponível em planos superiores/i)
         .length,
     ).toBeGreaterThan(0);
   });
