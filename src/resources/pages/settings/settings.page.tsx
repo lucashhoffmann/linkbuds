@@ -10,6 +10,7 @@ import { AccountSection } from './components/account-section.component';
 import { AgencyNameSection } from './components/agency-name-section/agency-name-section.component';
 import { BillingHistorySection } from './components/billing-history-section.component';
 import { BillingSection } from './components/billing-section/billing-section.component';
+import { DomainGuide } from './components/domain-guide.component';
 import { DomainPanel } from './components/domain-panel.component';
 import { FooterDefaultSection } from './components/footer-default-section.component';
 
@@ -96,6 +97,7 @@ export function DomainSettingsPage() {
           </p>
         )}
       </section>
+      {entitlements.customDomain && <DomainGuide />}
     </SettingsLayout>
   );
 }

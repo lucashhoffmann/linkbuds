@@ -23,6 +23,7 @@ export function useLogin() {
   const navigate = useNavigate();
   const [isPendingMutateAuth, setIsPendingMutateAuth] = useState(false);
   const googleAuthEnabled = isGoogleAuthEnabled();
+  const { refetch: refetchSession } = authClient.useSession();
 
   useEffect(() => {
     if (!emailFromQuery) {
@@ -40,6 +41,8 @@ export function useLogin() {
     setIsPendingMutateAuth(true);
     try {
       await Http.post('/api/auth/sign-in/email', data);
+      // Raw sign-in doesn't touch better-auth's cached (null) session: the guard would bounce to login.
+      await refetchSession();
       navigate(routes.home);
     } catch (error) {
       axiosErrorHandler(error);

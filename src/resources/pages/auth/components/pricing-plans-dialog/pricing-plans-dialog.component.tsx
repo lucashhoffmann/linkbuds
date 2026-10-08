@@ -3,6 +3,7 @@ import { Check, CornerDownRight, Globe, Link2 } from 'lucide-react';
 import { Link as RouterLink } from 'react-router-dom';
 
 import { Button } from '@/resources/components/ui/button';
+import { Skeleton } from '@/resources/components/ui/skeleton';
 import {
   Dialog,
   DialogClose,
@@ -142,8 +143,30 @@ export function PricingPlansContent({
       </DialogHeader>
 
       {isLoadingPricingPlans && (
-        <div className='bg-muted/30 rounded-md border p-6 text-center text-sm'>
-          Carregando planos...
+        <div
+          aria-busy
+          aria-label='Carregando planos'
+          className='grid gap-3 sm:grid-cols-2 lg:grid-cols-4'
+        >
+          {Array.from({ length: 4 }, (_, index) => (
+            <div
+              key={index}
+              className='flex flex-col gap-3 rounded-lg border p-4'
+            >
+              <Skeleton className='h-6 w-24' />
+              <Skeleton className='h-12' />
+              <Skeleton className='h-8 w-32' />
+              <Skeleton className='h-9' />
+              <div className='space-y-2 border-t pt-4'>
+                {Array.from({ length: 5 }, (_, line) => (
+                  <Skeleton
+                    key={line}
+                    className='h-3.5'
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

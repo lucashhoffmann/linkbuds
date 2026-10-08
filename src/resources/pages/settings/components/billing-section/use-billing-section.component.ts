@@ -117,6 +117,7 @@ export function useBillingSection() {
     canCancel,
     effectivePlanName,
     upgrades,
+    upgradesLoading: isOwner && quote.isLoading,
     catalogPlan,
     yearlyDiscountPercent: pricingPlansCatalog?.yearlyDiscountPercent,
     cycle,

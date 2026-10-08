@@ -3,6 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { PricingPlansContent } from '@/resources/pages/auth/components/pricing-plans-dialog/pricing-plans-dialog.component';
 import { SubscribeDialog } from '@/resources/pages/settings/components/subscribe-dialog/subscribe-dialog.component';
 import { Button } from '@/resources/components/ui/button';
+import { Skeleton } from '@/resources/components/ui/skeleton';
 import { Dialog, DialogContent } from '@/resources/components/ui/dialog';
 import { routes } from '@/shared/constants/router.constants';
 import { useWelcomePlansDialog } from './use-welcome-plans-dialog.component';
@@ -16,6 +17,7 @@ export function WelcomePlansDialog({ onClose }: IWelcomePlansDialogProps) {
   const {
     title,
     currentPlanCode,
+    quoteLoading,
     selected,
     setSelected,
     checkoutFor,
@@ -44,6 +46,11 @@ export function WelcomePlansDialog({ onClose }: IWelcomePlansDialogProps) {
                     Continuar no {plan.name}
                   </Button>
                 );
+              }
+
+              // Without the quote the CTA would fall back to the settings link.
+              if (quoteLoading) {
+                return <Skeleton className='h-9 w-full' />;
               }
 
               const checkout = checkoutFor(plan.code, billingCycle);

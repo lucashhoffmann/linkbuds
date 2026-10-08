@@ -6,6 +6,7 @@ import { registerSchema, type RegisterSchemaType } from './register-schema';
 import { axiosErrorHandler } from '@/shared/utils/axios-error-handler.util';
 import { useRegisterUseCase } from '@/app/modules/auth/use-cases';
 import { Http } from '@/app/api/api';
+import { authClient } from '@/app/modules/auth/hooks';
 import { routes } from '@/shared/constants/router.constants';
 
 export function useRegister() {
@@ -21,6 +22,7 @@ export function useRegister() {
 
   const navigate = useNavigate();
   const { mutateRegister, isPendingRegister } = useRegisterUseCase();
+  const { refetch: refetchSession } = authClient.useSession();
 
   async function onSubmit(data: RegisterSchemaType) {
     try {
@@ -30,6 +32,8 @@ export function useRegister() {
         email: data.email,
         password: data.password,
       });
+      // Raw sign-in doesn't touch better-auth's cached (null) session: the guard would bounce to login.
+      await refetchSession();
 
       toast.success('Conta criada com sucesso');
       navigate(routes.linkPages.welcome);

@@ -35,6 +35,7 @@ export function useWelcomePlansDialog(onClose: () => void) {
   return {
     title: firstName ? `Bem-vindo, ${firstName}!` : 'Bem-vindo ao LinkBuds!',
     currentPlanCode: company?.entitlements.planCode,
+    quoteLoading: quote.isLoading,
     selected,
     setSelected,
     checkoutFor,

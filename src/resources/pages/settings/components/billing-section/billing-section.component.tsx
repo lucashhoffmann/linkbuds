@@ -3,6 +3,7 @@ import { SegmentedControl } from '@/resources/components/base/device-preview/dev
 import { Button } from '@/resources/components/ui/button';
 import { Input } from '@/resources/components/ui/input';
 import { Label } from '@/resources/components/ui/label';
+import { Skeleton } from '@/resources/components/ui/skeleton';
 import { cn } from '@/shared/lib/utils';
 import {
   formatDate as date,
@@ -38,6 +39,7 @@ export function BillingSection() {
     canCancel,
     effectivePlanName,
     upgrades,
+    upgradesLoading,
     catalogPlan,
     yearlyDiscountPercent,
     cycle,
@@ -58,8 +60,21 @@ export function BillingSection() {
 
   if (!data) {
     return (
-      <section className='bg-card rounded-2xl border p-4'>
-        <p className='text-muted-foreground text-sm'>Carregando plano...</p>
+      <section
+        aria-busy
+        aria-label='Carregando plano'
+        className='bg-card grid gap-4 rounded-2xl border p-4'
+      >
+        <Skeleton className='h-6 w-40' />
+        <div className='grid grid-cols-2 gap-2 sm:grid-cols-3'>
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton
+              key={index}
+              className='h-[3.75rem] rounded-xl'
+            />
+          ))}
+        </div>
+        <Skeleton className='h-36 rounded-xl' />
       </section>
     );
   }
@@ -135,6 +150,17 @@ export function BillingSection() {
               Cancelar assinatura
             </Button>
           )}
+        </div>
+      )}
+
+      {upgradesLoading && (
+        <div
+          aria-busy
+          aria-label='Carregando planos'
+          className='grid gap-3'
+        >
+          <Skeleton className='h-36 rounded-xl' />
+          <Skeleton className='h-36 rounded-xl' />
         </div>
       )}
 
